@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  accounts      Account[]
+  sessions      Session[]
+  ratings       Rating[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// MCP Marketplace models
+model Server {
+  id                 String   @id
+  name               String
+  organization       String
+  description        String?
+  version            String?
+  repositoryUrl      String?
+  packages           Json?
+  remotes            Json?
+
+  // Aggregated ratings
+  avgTrustworthiness Float    @default(0)
+  avgUsefulness      Float    @default(0)
+  totalRatings       Int      @default(0)
+
+  isOfficial         Boolean  @default(true)
+  syncedAt           DateTime @default(now())
+
+  ratings            Rating[]
+
+  @@index([name])
+  @@index([organization])
+}
+
+model Rating {
+  id              String   @id @default(cuid())
+  trustworthiness Int      // 1-5
+  usefulness      Int      // 1-5
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  @@unique([serverId, userId]) // One rating per user per server
+}
