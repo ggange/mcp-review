@@ -105,9 +105,6 @@ export default async function ServerPage({ params }: ServerPageProps) {
                       <p className="mt-1 text-muted-foreground">by {server.organization}</p>
                     </div>
                     <div className="flex gap-2">
-                      {server.isOfficial && (
-                        <Badge className="bg-violet-500/20 text-violet-600 dark:text-violet-300">Official</Badge>
-                      )}
                       {server.version && (
                         <Badge variant="outline" className="border-border text-muted-foreground">
                           v{server.version}

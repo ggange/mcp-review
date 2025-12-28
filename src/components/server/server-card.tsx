@@ -71,11 +71,6 @@ export function ServerCard({ server }: ServerCardProps) {
             />
             
             <div className="flex gap-2">
-              {server.isOfficial && (
-                <Badge variant="secondary" className="bg-violet-500/20 text-violet-600 dark:text-violet-300">
-                  Official
-                </Badge>
-              )}
               {server.version && (
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   v{server.version}

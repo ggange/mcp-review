@@ -1,11 +1,13 @@
 import { ServerCard } from './server-card'
 import type { ServerWithRatings } from '@/types'
+import type { ReactNode } from 'react'
 
 interface ServerGridProps {
   servers: ServerWithRatings[]
+  pagination?: ReactNode
 }
 
-export function ServerGrid({ servers }: ServerGridProps) {
+export function ServerGrid({ servers, pagination }: ServerGridProps) {
   if (servers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -25,17 +27,20 @@ export function ServerGrid({ servers }: ServerGridProps) {
           </svg>
         </div>
         <h3 className="text-lg font-medium text-foreground">No servers found</h3>
-        <p className="mt-1 text-muted-foreground/70">Try adjusting your search terms</p>
+        <p className="mt-1 text-muted-foreground/70">Try adjusting your search terms or category filter</p>
       </div>
     )
   }
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {servers.map((server) => (
-        <ServerCard key={server.id} server={server} />
-      ))}
-    </div>
+    <>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {servers.map((server) => (
+          <ServerCard key={server.id} server={server} />
+        ))}
+      </div>
+      {pagination}
+    </>
   )
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import type { MCPRegistryResponse, MCPRegistryServer } from '@/types'
+import { categorizeServer } from './server-categories'
 
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers'
 
@@ -52,14 +53,17 @@ function transformServer(registryServer: MCPRegistryServer): {
   repositoryUrl: string | null
   packages: unknown
   remotes: unknown
-  isOfficial: boolean
+  category: string
   source: string
 } {
-  const { server, _meta } = registryServer
+  const { server } = registryServer
   const { organization, name } = parseServerName(server.name)
   
   // Use the full name as ID to ensure uniqueness
   const id = server.name
+
+  // Categorize server based on description
+  const category = categorizeServer(server.description || null)
 
   return {
     id,
@@ -70,7 +74,7 @@ function transformServer(registryServer: MCPRegistryServer): {
     repositoryUrl: server.repository?.url || null,
     packages: server.packages || null,
     remotes: server.remotes || null,
-    isOfficial: false,
+    category,
     source: 'registry',
   }
 }
@@ -143,19 +147,6 @@ export async function syncRegistry(): Promise<{
       }
     }
 
-    // Mark servers not in the registry as unofficial
-    const syncedIds = Array.from(latestServers.keys())
-    if (syncedIds.length > 0) {
-      await prisma.server.updateMany({
-        where: {
-          id: { notIn: syncedIds },
-          isOfficial: true,
-        },
-        data: {
-          isOfficial: false,
-        },
-      })
-    }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

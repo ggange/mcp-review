@@ -5,63 +5,64 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')
-    const cursor = searchParams.get('cursor')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+    const category = searchParams.get('category')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = 20
+    const skip = (page - 1) * limit
 
-    // Build where clause for search
-    const where = q
-      ? {
-          OR: [
-            { name: { contains: q, mode: 'insensitive' as const } },
-            { organization: { contains: q, mode: 'insensitive' as const } },
-            { description: { contains: q, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}
-
-    // Fetch servers with cursor-based pagination
-    const servers = await prisma.server.findMany({
-      where,
-      orderBy: [
-        { totalRatings: 'desc' },
-        { avgTrustworthiness: 'desc' },
-        { name: 'asc' },
-      ],
-      take: limit + 1, // Fetch one extra to check if there are more
-      ...(cursor && {
-        cursor: { id: cursor },
-        skip: 1, // Skip the cursor itself
-      }),
-      select: {
-        id: true,
-        name: true,
-        organization: true,
-        description: true,
-        version: true,
-        repositoryUrl: true,
-        avgTrustworthiness: true,
-        avgUsefulness: true,
-        totalRatings: true,
-        isOfficial: true,
-        syncedAt: true,
-        source: true,
-      },
-    })
-
-    // Determine if there are more results
-    let nextCursor: string | undefined
-    if (servers.length > limit) {
-      const nextItem = servers.pop()
-      nextCursor = nextItem?.id
+    // Build where clause
+    const where: any = {}
+    
+    // Add search filter
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { organization: { contains: q, mode: 'insensitive' as const } },
+        { description: { contains: q, mode: 'insensitive' as const } },
+      ]
     }
 
-    // Get total count for the query
-    const total = await prisma.server.count({ where })
+    // Add category filter
+    if (category && category !== 'all') {
+      where.category = category
+    }
+
+    // Fetch servers with offset-based pagination
+    const [servers, total] = await Promise.all([
+      prisma.server.findMany({
+        where,
+        orderBy: [
+          { totalRatings: 'desc' },
+          { avgTrustworthiness: 'desc' },
+          { name: 'asc' },
+        ],
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          organization: true,
+          description: true,
+          version: true,
+          repositoryUrl: true,
+          avgTrustworthiness: true,
+          avgUsefulness: true,
+          totalRatings: true,
+          category: true,
+          syncedAt: true,
+          source: true,
+        },
+      }),
+      prisma.server.count({ where }),
+    ])
+
+    const totalPages = Math.ceil(total / limit)
 
     return NextResponse.json({
       data: servers,
-      nextCursor,
       total,
+      page,
+      totalPages,
     })
   } catch (error) {
     console.error('API error:', error)

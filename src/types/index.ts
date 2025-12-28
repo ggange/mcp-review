@@ -53,7 +53,7 @@ export interface ServerWithRatings {
   avgTrustworthiness: number
   avgUsefulness: number
   totalRatings: number
-  isOfficial: boolean
+  category: string | null
   syncedAt: Date
   source: 'registry' | 'user'
 }

@@ -23,6 +23,8 @@ export function SearchBar() {
           } else {
             params.delete('q')
           }
+          // Reset to page 1 when search changes
+          params.set('page', '1')
           router.push(`/?${params.toString()}`)
         })
       }, 300)

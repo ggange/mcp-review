@@ -14,7 +14,6 @@ const mockServer = {
   avgTrustworthiness: 4.5,
   avgUsefulness: 4.2,
   totalRatings: 10,
-  isOfficial: true,
   syncedAt: new Date(),
   source: 'registry' as const,
 }
@@ -33,11 +32,6 @@ describe('ServerCard', () => {
   it('renders description', () => {
     render(<ServerCard server={mockServer} />)
     expect(screen.getByText('Fast, intelligent web search')).toBeInTheDocument()
-  })
-
-  it('renders official badge when isOfficial is true', () => {
-    render(<ServerCard server={mockServer} />)
-    expect(screen.getByText('Official')).toBeInTheDocument()
   })
 
   it('renders version badge', () => {

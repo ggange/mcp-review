@@ -70,7 +70,7 @@ model Server {
   avgUsefulness      Float    @default(0)
   totalRatings       Int      @default(0)
 
-  isOfficial         Boolean  @default(false)
+  category           String?  // "database", "search", "code", "web", "ai", "data", "tools", "other"
   syncedAt           DateTime @default(now())
   source             String   @default("registry") // "registry" | "user"
 
