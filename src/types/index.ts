@@ -55,6 +55,7 @@ export interface ServerWithRatings {
   totalRatings: number
   isOfficial: boolean
   syncedAt: Date
+  source: 'registry' | 'user'
 }
 
 export interface RatingInput {

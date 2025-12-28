@@ -195,7 +195,10 @@ npm run test:watch
 - [ ] Auto-categorization using LLM (optional)
 
 ### Phase 3: User Uploads
-- [ ] Server submission form
+- [ ] POST /api/servers endpoint for user-uploaded servers
+- [ ] Server submission form in dashboard
+- [ ] Server upload form component
+- [ ] User-uploaded servers listing
 - [ ] Moderation queue
 - [ ] R2/S3 storage for custom icons
 - [ ] Verification system

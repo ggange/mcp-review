@@ -72,11 +72,13 @@ model Server {
 
   isOfficial         Boolean  @default(true)
   syncedAt           DateTime @default(now())
+  source             String   @default("registry") // "registry" | "user"
 
   ratings            Rating[]
 
   @@index([name])
   @@index([organization])
+  @@index([source])
 }
 
 model Rating {

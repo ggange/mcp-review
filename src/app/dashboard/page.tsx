@@ -66,7 +66,7 @@ export default async function DashboardPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ratings.map((rating) => (
+          {ratings.map((rating: typeof ratings[0]) => (
             <Link key={rating.id} href={`/servers/${encodeURIComponent(rating.server.id)}`}>
               <Card className="h-full cursor-pointer border-slate-700 bg-slate-800/50 transition-all hover:border-slate-600 hover:bg-slate-800/80">
                 <CardHeader className="pb-2">

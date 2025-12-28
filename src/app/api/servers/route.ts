@@ -44,6 +44,7 @@ export async function GET(request: Request) {
         totalRatings: true,
         isOfficial: true,
         syncedAt: true,
+        source: true,
       },
     })
 

@@ -53,6 +53,7 @@ function transformServer(registryServer: MCPRegistryServer): {
   packages: unknown
   remotes: unknown
   isOfficial: boolean
+  source: string
 } {
   const { server, _meta } = registryServer
   const { organization, name } = parseServerName(server.name)
@@ -70,6 +71,7 @@ function transformServer(registryServer: MCPRegistryServer): {
     packages: server.packages || null,
     remotes: server.remotes || null,
     isOfficial: false,
+    source: 'registry',
   }
 }
 

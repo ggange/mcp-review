@@ -2,15 +2,15 @@ import { Suspense } from 'react'
 import { prisma } from '@/lib/db'
 import { syncRegistry } from '@/lib/mcp-registry'
 import { SearchBar } from '@/components/search-bar'
-import { ServerGrid } from '@/components/server-grid'
 import { ServerGridSkeleton } from '@/components/server-card-skeleton'
+import { ServerTabs } from '@/components/server-tabs'
 import type { ServerWithRatings } from '@/types'
 
 interface HomePageProps {
   searchParams: Promise<{ q?: string }>
 }
 
-async function getServers(search?: string): Promise<ServerWithRatings[]> {
+async function getRegistryServers(search?: string): Promise<ServerWithRatings[]> {
   // Check if database is empty and sync if needed
   const serverCount = await prisma.server.count()
   if (serverCount === 0) {
@@ -26,13 +26,14 @@ async function getServers(search?: string): Promise<ServerWithRatings[]> {
 
   const where = search
     ? {
+        source: 'registry',
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
           { organization: { contains: search, mode: 'insensitive' as const } },
           { description: { contains: search, mode: 'insensitive' as const } },
         ],
       }
-    : {}
+    : { source: 'registry' }
 
   const servers = await prisma.server.findMany({
     where,
@@ -41,15 +42,39 @@ async function getServers(search?: string): Promise<ServerWithRatings[]> {
       { avgTrustworthiness: 'desc' },
       { name: 'asc' },
     ],
-    take: 50,
   })
 
   return servers
 }
 
-async function ServerList({ search }: { search?: string }) {
-  const servers = await getServers(search)
-  return <ServerGrid servers={servers} />
+async function getUserServers(search?: string): Promise<ServerWithRatings[]> {
+  const where = search
+    ? {
+        source: 'user',
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { organization: { contains: search, mode: 'insensitive' as const } },
+          { description: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
+    : { source: 'user' }
+
+  const servers = await prisma.server.findMany({
+    where,
+    orderBy: [
+      { totalRatings: 'desc' },
+      { avgTrustworthiness: 'desc' },
+      { name: 'asc' },
+    ],
+  })
+
+  return servers
+}
+
+async function ServerTabsWrapper({ search }: { search?: string }) {
+  const registryServers = await getRegistryServers(search)
+  const userServers = await getUserServers(search)
+  return <ServerTabs registryServers={registryServers} userServers={userServers} />
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
@@ -60,7 +85,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       {/* Hero Section */}
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-100 sm:text-5xl">
-          MCP Server Marketplace
+          MCP Review
           </h1>
         <p className="mx-auto max-w-2xl text-lg text-slate-400">
           Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows.
@@ -74,25 +99,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </Suspense>
       </div>
 
-      {/* Server Grid */}
-      <Suspense fallback={<ServerGridSkeleton />}>
-        <ServerList search={q} />
-      </Suspense>
-
-      {/* Stats */}
-      <div className="mt-12 border-t border-slate-800 pt-8 text-center text-sm text-slate-500">
-        <p>
-          Synced from the{' '}
-          <a
-            href="https://registry.modelcontextprotocol.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-violet-400 hover:text-violet-300"
-          >
-            Official MCP Registry
-          </a>
-        </p>
-        </div>
+      {/* Server Tabs */}
+      <div className="mb-12">
+        <Suspense fallback={<ServerGridSkeleton />}>
+          <ServerTabsWrapper search={q} />
+        </Suspense>
+      </div>
     </div>
   )
 }
