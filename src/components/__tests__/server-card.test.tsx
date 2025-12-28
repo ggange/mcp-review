@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { ServerCard } from './server-card'
+import { ServerCard } from '../server-card'
 
 const mockServer = {
   id: 'ai.exa/exa',
@@ -16,6 +16,7 @@ const mockServer = {
   totalRatings: 10,
   isOfficial: true,
   syncedAt: new Date(),
+  source: 'registry' as const,
 }
 
 describe('ServerCard', () => {
