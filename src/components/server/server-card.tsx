@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { RatingDisplay } from './rating-display'
+import { RatingDisplay } from '@/components/rating/rating-display'
 import type { ServerWithRatings } from '@/types'
 
 interface ServerCardProps {

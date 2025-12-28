@@ -1,8 +1,8 @@
 "use client"
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ServerGrid } from './server-grid'
-import { SoonPlaceholder } from './soon-placeholder'
+import { SoonPlaceholder } from '@/components/soon-placeholder'
 import type { ServerWithRatings } from '@/types'
 
 interface ServerTabsProps {

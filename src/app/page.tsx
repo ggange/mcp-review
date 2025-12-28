@@ -2,8 +2,8 @@ import { Suspense } from 'react'
 import { prisma } from '@/lib/db'
 import { syncRegistry } from '@/lib/mcp-registry'
 import { SearchBar } from '@/components/search-bar'
-import { ServerGridSkeleton } from '@/components/server-card-skeleton'
-import { ServerTabs } from '@/components/server-tabs'
+import { ServerGridSkeleton } from '@/components/server/server-card-skeleton'
+import { ServerTabs } from '@/components/server/server-tabs'
 import type { ServerWithRatings } from '@/types'
 
 interface HomePageProps {
