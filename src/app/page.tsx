@@ -84,10 +84,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-100 sm:text-5xl">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           MCP Review
           </h1>
-        <p className="mx-auto max-w-2xl text-lg text-slate-400">
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
           Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows.
           </p>
         </div>

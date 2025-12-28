@@ -40,10 +40,10 @@ export function Collapsible({
         aria-expanded={isOpen}
         aria-controls="collapsible-content"
       >
-        <h2 className="text-2xl font-bold text-slate-100">{title}</h2>
+        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
         <ChevronDown
           className={cn(
-            "h-5 w-5 text-slate-400 transition-transform duration-200",
+            "h-5 w-5 text-muted-foreground transition-transform duration-200",
             isOpen && "rotate-180"
           )}
         />

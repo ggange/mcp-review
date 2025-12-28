@@ -30,7 +30,7 @@ export function ServerCard({ server }: ServerCardProps) {
 
   return (
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
-      <Card className="group h-full cursor-pointer border-slate-700 bg-slate-800/50 transition-all hover:border-slate-600 hover:bg-slate-800/80">
+      <Card className="group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md">
         <CardHeader className="pb-3 overflow-hidden">
           <div className="flex items-start gap-4">
             {/* Avatar placeholder */}
@@ -41,10 +41,10 @@ export function ServerCard({ server }: ServerCardProps) {
             </div>
             
             <div className="min-w-0 flex-1 overflow-hidden">
-              <h3 className="truncate text-lg font-semibold text-slate-100 group-hover:text-white">
+              <h3 className="truncate text-lg font-semibold text-card-foreground group-hover:text-foreground">
                 {server.name}
               </h3>
-              <p className="truncate text-sm text-slate-400">
+              <p className="truncate text-sm text-muted-foreground">
                 by {server.organization}
               </p>
             </div>
@@ -53,11 +53,11 @@ export function ServerCard({ server }: ServerCardProps) {
         
         <CardContent>
           {server.description ? (
-            <p className="mb-4 line-clamp-2 text-sm text-slate-400">
+            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
               {server.description}
             </p>
           ) : (
-            <p className="mb-4 text-sm italic text-slate-500">
+            <p className="mb-4 text-sm italic text-muted-foreground/70">
               No description available
             </p>
           )}
@@ -72,12 +72,12 @@ export function ServerCard({ server }: ServerCardProps) {
             
             <div className="flex gap-2">
               {server.isOfficial && (
-                <Badge variant="secondary" className="bg-violet-500/20 text-violet-300">
+                <Badge variant="secondary" className="bg-violet-500/20 text-violet-600 dark:text-violet-300">
                   Official
                 </Badge>
               )}
               {server.version && (
-                <Badge variant="outline" className="border-slate-600 text-slate-400">
+                <Badge variant="outline" className="border-border text-muted-foreground">
                   v{server.version}
                 </Badge>
               )}

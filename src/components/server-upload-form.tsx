@@ -71,16 +71,16 @@ export function ServerUploadForm() {
   }
 
   return (
-    <Card className="border-slate-700 bg-slate-800/50">
+    <Card className="border-border bg-card">
       <CardHeader>
-        <CardTitle className="text-xl text-slate-100">Upload New Server</CardTitle>
+        <CardTitle className="text-xl text-card-foreground">Upload New Server</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-300">
-                Server Name <span className="text-red-400">*</span>
+              <Label htmlFor="name" className="text-muted-foreground">
+                Server Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
@@ -88,13 +88,13 @@ export function ServerUploadForm() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., my-mcp-server"
                 required
-                className="bg-slate-900 border-slate-700 text-slate-100"
+                className="bg-background border-border text-foreground"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="organization" className="text-slate-300">
-                Organization <span className="text-red-400">*</span>
+              <Label htmlFor="organization" className="text-muted-foreground">
+                Organization <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="organization"
@@ -102,13 +102,13 @@ export function ServerUploadForm() {
                 onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                 placeholder="e.g., my-org"
                 required
-                className="bg-slate-900 border-slate-700 text-slate-100"
+                className="bg-background border-border text-foreground"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-300">
+            <Label htmlFor="description" className="text-muted-foreground">
               Description
             </Label>
             <Textarea
@@ -117,13 +117,13 @@ export function ServerUploadForm() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe what this server does..."
               rows={3}
-              className="bg-slate-900 border-slate-700 text-slate-100"
+              className="bg-background border-border text-foreground"
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="version" className="text-slate-300">
+              <Label htmlFor="version" className="text-muted-foreground">
                 Version
               </Label>
               <Input
@@ -131,12 +131,12 @@ export function ServerUploadForm() {
                 value={formData.version}
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                 placeholder="e.g., 1.0.0"
-                className="bg-slate-900 border-slate-700 text-slate-100"
+                className="bg-background border-border text-foreground"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="repositoryUrl" className="text-slate-300">
+              <Label htmlFor="repositoryUrl" className="text-muted-foreground">
                 Repository URL
               </Label>
               <Input
@@ -145,17 +145,17 @@ export function ServerUploadForm() {
                 value={formData.repositoryUrl}
                 onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
                 placeholder="https://github.com/..."
-                className="bg-slate-900 border-slate-700 text-slate-100"
+                className="bg-background border-border text-foreground"
               />
             </div>
           </div>
 
           {error && (
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           {success && (
-            <p className="text-sm text-green-400">Server uploaded successfully!</p>
+            <p className="text-sm text-emerald-600 dark:text-emerald-400">Server uploaded successfully!</p>
           )}
 
           <Button

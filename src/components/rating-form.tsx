@@ -30,12 +30,12 @@ function StarRating({
     <div className="space-y-2">
       <Tooltip>
         <TooltipTrigger asChild>
-          <label className="text-sm font-medium text-slate-300 cursor-help border-b border-dashed border-slate-600">
+          <label className="text-sm font-medium text-muted-foreground cursor-help border-b border-dashed border-border">
             {label}
           </label>
         </TooltipTrigger>
-        <TooltipContent className="max-w-xs bg-slate-800 border-slate-700">
-          <p className="text-sm">{tooltip}</p>
+        <TooltipContent className="max-w-xs bg-popover border-border">
+          <p className="text-sm text-popover-foreground">{tooltip}</p>
         </TooltipContent>
       </Tooltip>
       
@@ -53,7 +53,7 @@ function StarRating({
               className={`h-6 w-6 transition-colors ${
                 (hoverValue || value) >= star
                   ? 'text-amber-400'
-                  : 'text-slate-600'
+                  : 'text-muted-foreground/50'
               }`}
               fill={(hoverValue || value) >= star ? 'currentColor' : 'none'}
               stroke="currentColor"
@@ -130,7 +130,7 @@ export function RatingForm({ serverId, existingRating }: RatingFormProps) {
       />
 
       {error && (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-destructive">{error}</p>
       )}
 
       <Button

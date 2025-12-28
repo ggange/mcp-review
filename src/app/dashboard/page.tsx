@@ -28,18 +28,18 @@ export default async function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-100">My Ratings</h1>
-        <p className="mt-2 text-slate-400">
+        <h1 className="text-3xl font-bold text-foreground">My Ratings</h1>
+        <p className="mt-2 text-muted-foreground">
           View and manage your server ratings
         </p>
       </div>
 
       {ratings.length === 0 ? (
-        <Card className="border-slate-700 bg-slate-800/50">
+        <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <div className="mb-4 inline-block rounded-full bg-slate-800 p-4">
+            <div className="mb-4 inline-block rounded-full bg-muted p-4">
               <svg
-                className="h-8 w-8 text-slate-500"
+                className="h-8 w-8 text-muted-foreground/70"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -52,13 +52,13 @@ export default async function DashboardPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-slate-300">No ratings yet</h3>
-            <p className="mt-1 text-slate-500">
+            <h3 className="text-lg font-medium text-card-foreground">No ratings yet</h3>
+            <p className="mt-1 text-muted-foreground/70">
               Start by exploring servers and leaving your first rating
             </p>
             <Link
               href="/"
-              className="mt-4 inline-block text-violet-400 hover:text-violet-300"
+              className="mt-4 inline-block text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
             >
               Browse servers →
             </Link>
@@ -68,31 +68,31 @@ export default async function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {ratings.map((rating: typeof ratings[0]) => (
             <Link key={rating.id} href={`/servers/${encodeURIComponent(rating.server.id)}`}>
-              <Card className="h-full cursor-pointer border-slate-700 bg-slate-800/50 transition-all hover:border-slate-600 hover:bg-slate-800/80">
+              <Card className="h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-slate-100">
+                  <CardTitle className="text-lg text-card-foreground">
                     {rating.server.name}
                   </CardTitle>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted-foreground">
                     by {rating.server.organization}
                   </p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Trustworthiness</span>
-                      <span className="font-medium text-slate-300">
+                      <span className="text-muted-foreground">Trustworthiness</span>
+                      <span className="font-medium text-card-foreground">
                         {rating.trustworthiness}/5
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Usefulness</span>
-                      <span className="font-medium text-slate-300">
+                      <span className="text-muted-foreground">Usefulness</span>
+                      <span className="font-medium text-card-foreground">
                         {rating.usefulness}/5
                       </span>
                     </div>
                   </div>
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-4 text-xs text-muted-foreground/70">
                     Updated {rating.updatedAt.toLocaleDateString()}
                   </p>
                 </CardContent>

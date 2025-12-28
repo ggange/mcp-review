@@ -75,7 +75,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
       {/* Back button */}
       <Link
         href="/"
-        className="mb-6 inline-flex items-center text-sm text-slate-400 hover:text-slate-300"
+        className="mb-6 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -87,7 +87,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Header */}
-          <Card className="border-slate-700 bg-slate-800/50">
+          <Card className="border-border bg-card">
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
                 <div
@@ -101,15 +101,15 @@ export default async function ServerPage({ params }: ServerPageProps) {
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="text-2xl font-bold text-slate-100">{server.name}</h1>
-                      <p className="mt-1 text-slate-400">by {server.organization}</p>
+                      <h1 className="text-2xl font-bold text-card-foreground">{server.name}</h1>
+                      <p className="mt-1 text-muted-foreground">by {server.organization}</p>
                     </div>
                     <div className="flex gap-2">
                       {server.isOfficial && (
-                        <Badge className="bg-violet-500/20 text-violet-300">Official</Badge>
+                        <Badge className="bg-violet-500/20 text-violet-600 dark:text-violet-300">Official</Badge>
                       )}
                       {server.version && (
-                        <Badge variant="outline" className="border-slate-600 text-slate-400">
+                        <Badge variant="outline" className="border-border text-muted-foreground">
                           v{server.version}
                         </Badge>
                       )}
@@ -121,7 +121,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                       href={server.repositoryUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-4 inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300"
+                      className="mt-4 inline-flex items-center gap-2 text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
                     >
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -135,33 +135,33 @@ export default async function ServerPage({ params }: ServerPageProps) {
           </Card>
 
           {/* Description */}
-          <Card className="border-slate-700 bg-slate-800/50">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-slate-100">Description</CardTitle>
+              <CardTitle className="text-card-foreground">Description</CardTitle>
             </CardHeader>
             <CardContent>
               {server.description ? (
-                <p className="text-slate-300 whitespace-pre-wrap">{server.description}</p>
+                <p className="text-card-foreground whitespace-pre-wrap">{server.description}</p>
               ) : (
-                <p className="text-slate-500 italic">No description available</p>
+                <p className="text-muted-foreground/70 italic">No description available</p>
               )}
             </CardContent>
           </Card>
 
           {/* Technical Details */}
           {(server.packages || server.remotes) && (
-            <Card className="border-slate-700 bg-slate-800/50">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-slate-100">Technical Details</CardTitle>
+                <CardTitle className="text-card-foreground">Technical Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {server.packages && Array.isArray(server.packages) && server.packages.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-slate-400 mb-2">Packages</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Packages</h4>
                     <div className="space-y-2">
                       {(server.packages as Array<{ registryType?: string; identifier?: string }>).map((pkg, idx) => (
-                        <div key={idx} className="rounded bg-slate-900/50 p-3">
-                          <code className="text-sm text-slate-300">
+                        <div key={idx} className="rounded bg-muted p-3">
+                          <code className="text-sm text-card-foreground">
                             {pkg.registryType}: {pkg.identifier}
                           </code>
                         </div>
@@ -172,12 +172,12 @@ export default async function ServerPage({ params }: ServerPageProps) {
                 
                 {server.remotes && Array.isArray(server.remotes) && server.remotes.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-slate-400 mb-2">Remote Endpoints</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Remote Endpoints</h4>
                     <div className="space-y-2">
                       {(server.remotes as Array<{ type?: string; url?: string }>).map((remote, idx) => (
-                        <div key={idx} className="rounded bg-slate-900/50 p-3">
-                          <span className="text-xs text-slate-500">{remote.type}</span>
-                          <code className="block text-sm text-slate-300 break-all">{remote.url}</code>
+                        <div key={idx} className="rounded bg-muted p-3">
+                          <span className="text-xs text-muted-foreground/70">{remote.type}</span>
+                          <code className="block text-sm text-card-foreground break-all">{remote.url}</code>
                         </div>
                       ))}
                     </div>
@@ -191,9 +191,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Rating Card */}
-          <Card className="border-slate-700 bg-slate-800/50">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-slate-100">Ratings</CardTitle>
+              <CardTitle className="text-card-foreground">Ratings</CardTitle>
             </CardHeader>
             <CardContent>
               <RatingDisplay
@@ -205,9 +205,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
           </Card>
 
           {/* Rating Form */}
-          <Card className="border-slate-700 bg-slate-800/50">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-slate-100">
+              <CardTitle className="text-card-foreground">
                 {userRating ? 'Update Your Rating' : 'Rate This Server'}
               </CardTitle>
             </CardHeader>
@@ -219,7 +219,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                 />
               ) : (
                 <div className="text-center">
-                  <p className="mb-4 text-sm text-slate-400">
+                  <p className="mb-4 text-sm text-muted-foreground">
                     Sign in to rate this server
                   </p>
                   <Link href="/auth/signin">
@@ -234,25 +234,25 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
           {/* Recent Ratings */}
           {server.ratings.length > 0 && (
-            <Card className="border-slate-700 bg-slate-800/50">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-slate-100">Recent Ratings</CardTitle>
+                <CardTitle className="text-card-foreground">Recent Ratings</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {server.ratings.map((rating) => (
+                  {server.ratings.map((rating: typeof server.ratings[0]) => (
                     <div key={rating.id}>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="h-6 w-6 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300">
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
                           {rating.user.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
-                        <span className="text-sm text-slate-300">{rating.user.name || 'Anonymous'}</span>
+                        <span className="text-sm text-card-foreground">{rating.user.name || 'Anonymous'}</span>
                       </div>
-                      <div className="ml-8 text-sm text-slate-500 space-y-1">
+                      <div className="ml-8 text-sm text-muted-foreground/70 space-y-1">
                         <div>Trustworthiness: {rating.trustworthiness}/5</div>
                         <div>Usefulness: {rating.usefulness}/5</div>
                       </div>
-                      <Separator className="mt-4 bg-slate-700" />
+                      <Separator className="mt-4" />
                     </div>
                   ))}
                 </div>

@@ -9,9 +9,9 @@ export function ServerGrid({ servers }: ServerGridProps) {
   if (servers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="mb-4 rounded-full bg-slate-800 p-4">
+        <div className="mb-4 rounded-full bg-muted p-4">
           <svg
-            className="h-8 w-8 text-slate-500"
+            className="h-8 w-8 text-muted-foreground/70"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -24,8 +24,8 @@ export function ServerGrid({ servers }: ServerGridProps) {
             />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-slate-300">No servers found</h3>
-        <p className="mt-1 text-slate-500">Try adjusting your search terms</p>
+        <h3 className="text-lg font-medium text-foreground">No servers found</h3>
+        <p className="mt-1 text-muted-foreground/70">Try adjusting your search terms</p>
       </div>
     )
   }

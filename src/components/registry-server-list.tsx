@@ -8,7 +8,7 @@ interface RegistryServerListProps {
 export function RegistryServerList({ servers }: RegistryServerListProps) {
   return (
     <div>
-      <div className="mb-4 text-sm text-slate-400">
+      <div className="mb-4 text-sm text-muted-foreground">
         {servers.length} {servers.length === 1 ? 'server' : 'servers'} from the official MCP registry
       </div>
       <ServerGrid servers={servers} />

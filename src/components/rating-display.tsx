@@ -10,7 +10,7 @@ interface RatingDisplayProps {
 function StarIcon({ filled }: { filled: boolean }) {
   return (
     <svg
-      className={`h-4 w-4 ${filled ? 'text-amber-400' : 'text-slate-600'}`}
+      className={`h-4 w-4 ${filled ? 'text-amber-400' : 'text-muted-foreground/50'}`}
       fill={filled ? 'currentColor' : 'none'}
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -41,7 +41,7 @@ function RatingStars({ rating }: { rating: number }) {
 export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compact }: RatingDisplayProps) {
   if (totalRatings === 0) {
     return (
-      <div className="text-sm text-slate-500">
+      <div className="text-sm text-muted-foreground/70">
         No ratings yet
       </div>
     )
@@ -54,18 +54,18 @@ export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compa
         <TooltipTrigger asChild>
           <div className="flex items-center gap-2">
             <RatingStars rating={avgRating} />
-            <span className="text-sm text-slate-400">({totalRatings})</span>
+            <span className="text-sm text-muted-foreground">({totalRatings})</span>
           </div>
         </TooltipTrigger>
-        <TooltipContent className="bg-slate-800 border-slate-700">
+        <TooltipContent className="bg-popover border-border">
           <div className="space-y-1 text-sm">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-slate-400">Trustworthiness:</span>
-              <span className="font-medium text-slate-100">{trustworthiness.toFixed(1)}</span>
+              <span className="text-popover-foreground">Trustworthiness:</span>
+              <span className="font-medium text-popover-foreground">{trustworthiness.toFixed(1)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-slate-400">Usefulness:</span>
-              <span className="font-medium text-slate-100">{usefulness.toFixed(1)}</span>
+              <span className="text-popover-foreground">Usefulness:</span>
+              <span className="font-medium text-popover-foreground">{usefulness.toFixed(1)}</span>
             </div>
           </div>
         </TooltipContent>
@@ -78,42 +78,42 @@ export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compa
       <div className="flex items-center justify-between">
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-sm text-slate-400 cursor-help border-b border-dashed border-slate-600">
+            <span className="text-sm text-muted-foreground cursor-help border-b border-dashed border-border">
               Trustworthiness
             </span>
           </TooltipTrigger>
-          <TooltipContent className="max-w-xs bg-slate-800 border-slate-700">
-            <p className="text-sm">
+          <TooltipContent className="max-w-xs bg-popover border-border">
+            <p className="text-sm text-popover-foreground">
               Do you trust this server? Consider: Is it from a known org? Is the code open source? Does it request minimal permissions?
             </p>
           </TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2">
           <RatingStars rating={trustworthiness} />
-          <span className="text-sm font-medium text-slate-300">{trustworthiness.toFixed(1)}</span>
+          <span className="text-sm font-medium text-foreground">{trustworthiness.toFixed(1)}</span>
         </div>
       </div>
       
       <div className="flex items-center justify-between">
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-sm text-slate-400 cursor-help border-b border-dashed border-slate-600">
+            <span className="text-sm text-muted-foreground cursor-help border-b border-dashed border-border">
               Usefulness
             </span>
           </TooltipTrigger>
-          <TooltipContent className="max-w-xs bg-slate-800 border-slate-700">
-            <p className="text-sm">
+          <TooltipContent className="max-w-xs bg-popover border-border">
+            <p className="text-sm text-popover-foreground">
               How useful is this server? Consider: Does it solve your problem? Is it well documented? Does it work reliably?
             </p>
           </TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2">
           <RatingStars rating={usefulness} />
-          <span className="text-sm font-medium text-slate-300">{usefulness.toFixed(1)}</span>
+          <span className="text-sm font-medium text-foreground">{usefulness.toFixed(1)}</span>
         </div>
       </div>
       
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground/70">
         Based on {totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'}
       </p>
     </div>

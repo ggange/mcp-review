@@ -23,7 +23,7 @@ export function ServerTabs({ registryServers, userServers }: ServerTabsProps) {
       </TabsList>
       
       <TabsContent value="registry" className="mt-0">
-        <div className="mb-4 text-sm text-slate-400">
+        <div className="mb-4 text-sm text-muted-foreground">
           {registryServers.length} {registryServers.length === 1 ? 'server' : 'servers'} from the official MCP registry
         </div>
         <ServerGrid servers={registryServers} />
@@ -34,7 +34,7 @@ export function ServerTabs({ registryServers, userServers }: ServerTabsProps) {
           <SoonPlaceholder />
         ) : (
           <>
-            <div className="mb-4 text-sm text-slate-400">
+            <div className="mb-4 text-sm text-muted-foreground">
               {userServers.length} {userServers.length === 1 ? 'server' : 'servers'} from the community
             </div>
             <ServerGrid servers={userServers} />

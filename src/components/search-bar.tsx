@@ -35,7 +35,7 @@ export function SearchBar() {
   return (
     <div className="relative">
       <svg
-        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -52,11 +52,11 @@ export function SearchBar() {
         placeholder="Search MCP servers..."
         value={value}
         onChange={(e) => handleSearch(e.target.value)}
-        className="h-12 w-full bg-slate-800/50 pl-10 text-slate-100 placeholder:text-slate-500 border-slate-700 focus:border-violet-500 focus:ring-violet-500"
+        className="h-12 w-full bg-background pl-10 text-foreground placeholder:text-muted-foreground border-border focus:border-violet-500 focus:ring-violet-500"
       />
       {isPending && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-violet-500" />
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-violet-500" />
         </div>
       )}
     </div>
