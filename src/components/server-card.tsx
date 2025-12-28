@@ -31,7 +31,7 @@ export function ServerCard({ server }: ServerCardProps) {
   return (
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
       <Card className="group h-full cursor-pointer border-slate-700 bg-slate-800/50 transition-all hover:border-slate-600 hover:bg-slate-800/80">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 overflow-hidden">
           <div className="flex items-start gap-4">
             {/* Avatar placeholder */}
             <div
@@ -40,7 +40,7 @@ export function ServerCard({ server }: ServerCardProps) {
               <span className="text-xl font-bold text-white">{initial}</span>
             </div>
             
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 overflow-hidden">
               <h3 className="truncate text-lg font-semibold text-slate-100 group-hover:text-white">
                 {server.name}
               </h3>

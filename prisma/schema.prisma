@@ -54,7 +54,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// MCP Marketplace models
+// MCP Review models
 model Server {
   id                 String   @id
   name               String

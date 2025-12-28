@@ -13,7 +13,7 @@ export default function SignInPage() {
       <Card className="w-full max-w-md border-slate-700 bg-slate-800/50 backdrop-blur">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-slate-100">
-            Sign in to MCP Marketplace
+            Sign in to MCP Review
           </CardTitle>
           <CardDescription className="text-slate-400">
             Rate and review MCP servers with your account

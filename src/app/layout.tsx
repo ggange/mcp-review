@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'MCP Marketplace',
+  title: 'MCP Review',
   description: 'Discover, rate, and review Model Context Protocol servers',
 }
 

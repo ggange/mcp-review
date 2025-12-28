@@ -13,7 +13,7 @@ export async function Navbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500">
             <span className="text-lg font-bold text-white">M</span>
           </div>
-          <span className="text-xl font-semibold text-slate-100">MCP Marketplace</span>
+          <span className="text-xl font-semibold text-slate-100">MCP Review</span>
         </Link>
 
         <div className="flex items-center gap-4">

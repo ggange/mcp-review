@@ -1,4 +1,4 @@
-# MCP Marketplace - Setup & Next Steps
+# MCP Review - Setup & Next Steps
 
 ## Quick Start
 
