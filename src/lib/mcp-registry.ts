@@ -69,7 +69,7 @@ function transformServer(registryServer: MCPRegistryServer): {
     repositoryUrl: server.repository?.url || null,
     packages: server.packages || null,
     remotes: server.remotes || null,
-    isOfficial: _meta?.['io.modelcontextprotocol.registry/official']?.status === 'active',
+    isOfficial: false,
   }
 }
 
