@@ -7,9 +7,51 @@ import { ServerTabs } from '@/components/server/server-tabs'
 import type { ServerWithRatings } from '@/types'
 
 type ServerWhereInput = Parameters<typeof prisma.server.findMany>[0]['where']
+type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
+
+function getOrderBy(sort: SortOption) {
+  switch (sort) {
+    case 'most-reviewed':
+      return [
+        { totalRatings: 'desc' as const },
+        { avgTrustworthiness: 'desc' as const },
+        { name: 'asc' as const },
+      ]
+    case 'top-rated':
+      // Handled separately with in-memory sorting for combined score
+      return [
+        { totalRatings: 'desc' as const },
+        { name: 'asc' as const },
+      ]
+    case 'newest':
+      return [{ createdAt: 'desc' as const }, { name: 'asc' as const }]
+    case 'trending':
+      // For trending, we'll sort by recent ratings count
+      return [
+        { totalRatings: 'desc' as const },
+        { avgTrustworthiness: 'desc' as const },
+        { name: 'asc' as const },
+      ]
+    default:
+      return [
+        { totalRatings: 'desc' as const },
+        { avgTrustworthiness: 'desc' as const },
+        { name: 'asc' as const },
+      ]
+  }
+}
 
 interface HomePageProps {
-  searchParams: Promise<{ q?: string; category?: string; page?: string }>
+  searchParams: Promise<{ 
+    q?: string
+    category?: string
+    page?: string
+    sort?: string
+    minRating?: string
+    maxRating?: string
+    dateFrom?: string
+    dateTo?: string
+  }>
 }
 
 interface PaginatedServers {
@@ -22,7 +64,12 @@ interface PaginatedServers {
 async function getRegistryServers(
   search?: string,
   category?: string,
-  page: number = 1
+  page: number = 1,
+  sort: SortOption = 'most-reviewed',
+  minRating: number = 0,
+  maxRating?: number,
+  dateFrom?: string,
+  dateTo?: string
 ): Promise<PaginatedServers> {
   // Check if database is empty and sync if needed
   const serverCount = await prisma.server.count()
@@ -56,14 +103,119 @@ async function getRegistryServers(
     where.category = category
   }
 
+  // Add rating range filter
+  if (minRating > 0 || maxRating !== undefined) {
+    if (minRating > 0 && maxRating !== undefined) {
+      where.avgTrustworthiness = { gte: minRating, lte: maxRating }
+    } else if (minRating > 0) {
+      where.avgTrustworthiness = { gte: minRating }
+    } else if (maxRating !== undefined) {
+      where.avgTrustworthiness = { lte: maxRating }
+    }
+  }
+
+  // Add date range filter
+  if (dateFrom || dateTo) {
+    where.createdAt = {}
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      where.createdAt.gte = fromDate
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      where.createdAt.lte = toDate
+    }
+  }
+
+  // Handle top-rated sort separately (needs combined score calculation)
+  if (sort === 'top-rated') {
+    const allServers = await prisma.server.findMany({
+      where,
+    })
+
+    // Sort by combined average rating (trustworthiness + usefulness) / 2
+    type ServerType = typeof allServers[0]
+    const sorted = allServers.sort((a: ServerType, b: ServerType) => {
+      const aCombined = (a.avgTrustworthiness + a.avgUsefulness) / 2
+      const bCombined = (b.avgTrustworthiness + b.avgUsefulness) / 2
+      
+      if (aCombined !== bCombined) {
+        return bCombined - aCombined // Descending order
+      }
+      
+      // Tie-breaker: prefer servers with more ratings
+      if (a.totalRatings !== b.totalRatings) {
+        return b.totalRatings - a.totalRatings
+      }
+      
+      return a.name.localeCompare(b.name)
+    })
+
+    const paginated = sorted.slice(skip, skip + limit)
+    const total = sorted.length
+
+    return {
+      servers: paginated,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
+  }
+
+  // Handle trending sort separately
+  if (sort === 'trending') {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const serversWithRatings = await prisma.server.findMany({
+      where,
+      include: {
+        ratings: {
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { id: true },
+        },
+      },
+    })
+
+    // Sort by recent ratings count, then by average rating
+    type ServerWithRecentRatings = typeof serversWithRatings[0]
+    const sorted = serversWithRatings.sort((a: ServerWithRecentRatings, b: ServerWithRecentRatings) => {
+      const aRecentCount = a.ratings.length
+      const bRecentCount = b.ratings.length
+      
+      if (aRecentCount !== bRecentCount) {
+        return bRecentCount - aRecentCount
+      }
+      
+      const aAvg = (a.avgTrustworthiness + a.avgUsefulness) / 2
+      const bAvg = (b.avgTrustworthiness + b.avgUsefulness) / 2
+      
+      if (aAvg !== bAvg) {
+        return bAvg - aAvg
+      }
+      
+      return a.name.localeCompare(b.name)
+    })
+
+    const paginated = sorted.slice(skip, skip + limit)
+    const total = sorted.length
+
+    return {
+      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => server),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
+  }
+
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
-      orderBy: [
-        { totalRatings: 'desc' },
-        { avgTrustworthiness: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: getOrderBy(sort),
       skip,
       take: limit,
     }),
@@ -83,7 +235,12 @@ async function getRegistryServers(
 async function getUserServers(
   search?: string,
   category?: string,
-  page: number = 1
+  page: number = 1,
+  sort: SortOption = 'most-reviewed',
+  minRating: number = 0,
+  maxRating?: number,
+  dateFrom?: string,
+  dateTo?: string
 ): Promise<PaginatedServers> {
   const limit = 20
   const skip = (page - 1) * limit
@@ -104,14 +261,119 @@ async function getUserServers(
     where.category = category
   }
 
+  // Add rating range filter
+  if (minRating > 0 || maxRating !== undefined) {
+    if (minRating > 0 && maxRating !== undefined) {
+      where.avgTrustworthiness = { gte: minRating, lte: maxRating }
+    } else if (minRating > 0) {
+      where.avgTrustworthiness = { gte: minRating }
+    } else if (maxRating !== undefined) {
+      where.avgTrustworthiness = { lte: maxRating }
+    }
+  }
+
+  // Add date range filter
+  if (dateFrom || dateTo) {
+    where.createdAt = {}
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      where.createdAt.gte = fromDate
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      where.createdAt.lte = toDate
+    }
+  }
+
+  // Handle top-rated sort separately (needs combined score calculation)
+  if (sort === 'top-rated') {
+    const allServers = await prisma.server.findMany({
+      where,
+    })
+
+    // Sort by combined average rating (trustworthiness + usefulness) / 2
+    type ServerType = typeof allServers[0]
+    const sorted = allServers.sort((a: ServerType, b: ServerType) => {
+      const aCombined = (a.avgTrustworthiness + a.avgUsefulness) / 2
+      const bCombined = (b.avgTrustworthiness + b.avgUsefulness) / 2
+      
+      if (aCombined !== bCombined) {
+        return bCombined - aCombined // Descending order
+      }
+      
+      // Tie-breaker: prefer servers with more ratings
+      if (a.totalRatings !== b.totalRatings) {
+        return b.totalRatings - a.totalRatings
+      }
+      
+      return a.name.localeCompare(b.name)
+    })
+
+    const paginated = sorted.slice(skip, skip + limit)
+    const total = sorted.length
+
+    return {
+      servers: paginated,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
+  }
+
+  // Handle trending sort separately
+  if (sort === 'trending') {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const serversWithRatings = await prisma.server.findMany({
+      where,
+      include: {
+        ratings: {
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { id: true },
+        },
+      },
+    })
+
+    // Sort by recent ratings count, then by average rating
+    type ServerWithRecentRatings = typeof serversWithRatings[0]
+    const sorted = serversWithRatings.sort((a: ServerWithRecentRatings, b: ServerWithRecentRatings) => {
+      const aRecentCount = a.ratings.length
+      const bRecentCount = b.ratings.length
+      
+      if (aRecentCount !== bRecentCount) {
+        return bRecentCount - aRecentCount
+      }
+      
+      const aAvg = (a.avgTrustworthiness + a.avgUsefulness) / 2
+      const bAvg = (b.avgTrustworthiness + b.avgUsefulness) / 2
+      
+      if (aAvg !== bAvg) {
+        return bAvg - aAvg
+      }
+      
+      return a.name.localeCompare(b.name)
+    })
+
+    const paginated = sorted.slice(skip, skip + limit)
+    const total = sorted.length
+
+    return {
+      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => server),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
+  }
+
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
-      orderBy: [
-        { totalRatings: 'desc' },
-        { avgTrustworthiness: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: getOrderBy(sort),
       skip,
       take: limit,
     }),
@@ -128,7 +390,14 @@ async function getUserServers(
   }
 }
 
-async function getCategoryCounts(source: 'registry' | 'user', search?: string): Promise<Record<string, number>> {
+async function getCategoryCounts(
+  source: 'registry' | 'user',
+  search?: string,
+  minRating?: number,
+  maxRating?: number,
+  dateFrom?: string,
+  dateTo?: string
+): Promise<Record<string, number>> {
   const baseWhere: ServerWhereInput = { source }
   
   if (search) {
@@ -137,6 +406,32 @@ async function getCategoryCounts(source: 'registry' | 'user', search?: string): 
       { organization: { contains: search, mode: 'insensitive' as const } },
       { description: { contains: search, mode: 'insensitive' as const } },
     ]
+  }
+
+  // Add rating range filter
+  if (minRating !== undefined && minRating > 0 || maxRating !== undefined) {
+    if (minRating !== undefined && minRating > 0 && maxRating !== undefined) {
+      baseWhere.avgTrustworthiness = { gte: minRating, lte: maxRating }
+    } else if (minRating !== undefined && minRating > 0) {
+      baseWhere.avgTrustworthiness = { gte: minRating }
+    } else if (maxRating !== undefined) {
+      baseWhere.avgTrustworthiness = { lte: maxRating }
+    }
+  }
+
+  // Add date range filter
+  if (dateFrom || dateTo) {
+    baseWhere.createdAt = {}
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      baseWhere.createdAt.gte = fromDate
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      baseWhere.createdAt.lte = toDate
+    }
   }
 
   // Use groupBy to get all category counts in a single query
@@ -175,17 +470,27 @@ async function getCategoryCounts(source: 'registry' | 'user', search?: string): 
 async function ServerTabsWrapper({ 
   search, 
   category, 
-  page 
+  page,
+  sort,
+  minRating,
+  maxRating,
+  dateFrom,
+  dateTo
 }: { 
   search?: string
   category?: string
   page: number
+  sort: SortOption
+  minRating: number
+  maxRating?: number
+  dateFrom?: string
+  dateTo?: string
 }) {
   const [registryData, userData, registryCounts, userCounts] = await Promise.all([
-    getRegistryServers(search, category, page),
-    getUserServers(search, category, page),
-    getCategoryCounts('registry', search),
-    getCategoryCounts('user', search),
+    getRegistryServers(search, category, page, sort, minRating, maxRating, dateFrom, dateTo),
+    getUserServers(search, category, page, sort, minRating, maxRating, dateFrom, dateTo),
+    getCategoryCounts('registry', search, minRating, maxRating, dateFrom, dateTo),
+    getCategoryCounts('user', search, minRating, maxRating, dateFrom, dateTo),
   ])
 
   return (
@@ -203,6 +508,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const q = params.q
   const category = params.category || 'all'
   const page = Math.max(1, parseInt(params.page || '1'))
+  const sort = (params.sort || 'most-reviewed') as SortOption
+  const minRating = parseFloat(params.minRating || '0')
+  const maxRating = params.maxRating ? parseFloat(params.maxRating) : undefined
+  const dateFrom = params.dateFrom
+  const dateTo = params.dateTo
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -226,7 +536,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       {/* Server Tabs */}
       <div className="mb-12">
         <Suspense fallback={<ServerGridSkeleton />}>
-          <ServerTabsWrapper search={q} category={category} page={page} />
+          <ServerTabsWrapper 
+            search={q} 
+            category={category} 
+            page={page} 
+            sort={sort} 
+            minRating={minRating}
+            maxRating={maxRating}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+          />
         </Suspense>
       </div>
     </div>

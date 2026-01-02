@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ServerGrid } from './server-grid'
 import { CategoryFilter } from './category-filter'
+import { SortFilterControls } from './sort-filter-controls'
 import { Pagination } from './pagination'
 import { SoonPlaceholder } from '@/components/soon-placeholder'
 import type { ServerWithRatings } from '@/types'
@@ -41,6 +42,7 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
           categoryCounts={registryCounts} 
           source="registry"
         />
+        <SortFilterControls source="registry" />
         <div className="mb-4 text-sm text-muted-foreground">
           {registryData.total} {registryData.total === 1 ? 'server' : 'servers'} from the official MCP registry
         </div>
@@ -65,6 +67,7 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
               categoryCounts={userCounts} 
               source="user"
             />
+            <SortFilterControls source="user" />
             <div className="mb-4 text-sm text-muted-foreground">
               {userData.total} {userData.total === 1 ? 'server' : 'servers'} from the community
             </div>

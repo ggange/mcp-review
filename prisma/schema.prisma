@@ -71,6 +71,7 @@ model Server {
   totalRatings       Int      @default(0)
 
   category           String?  // "database", "search", "code", "web", "ai", "data", "tools", "other"
+  createdAt          DateTime @default(now())
   syncedAt           DateTime @default(now())
   source             String   @default("registry") // "registry" | "user"
 
@@ -79,6 +80,7 @@ model Server {
   @@index([name])
   @@index([organization])
   @@index([source])
+  @@index([createdAt])
 }
 
 model Rating {
