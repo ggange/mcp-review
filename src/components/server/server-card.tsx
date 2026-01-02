@@ -32,7 +32,7 @@ export function ServerCard({ server }: ServerCardProps) {
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
       <Card className="group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md">
         <CardHeader className="pb-3 overflow-hidden">
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 w-full min-w-0">
             {/* Avatar placeholder */}
             <div
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor}`}

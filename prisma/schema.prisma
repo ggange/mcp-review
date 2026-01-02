@@ -59,7 +59,7 @@ model Server {
   id                 String   @id
   name               String
   organization       String
-  description        String?
+  description        String?  @db.Text
   version            String?
   repositoryUrl      String?
   packages           Json?

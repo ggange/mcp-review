@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getCategoryDisplayName, getCategories, type ServerCategory } from '@/lib/server-categories'
+import { getCategoryDisplayName, getCategories} from '@/lib/server-categories'
 
 interface CategoryFilterProps {
   categoryCounts?: Record<string, number>

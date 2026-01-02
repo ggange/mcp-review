@@ -138,7 +138,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardHeader>
             <CardContent>
               {server.description ? (
-                <p className="text-card-foreground whitespace-pre-wrap">{server.description}</p>
+                <div className="text-card-foreground whitespace-pre-wrap break-words leading-relaxed text-base">
+                  {server.description}
+                </div>
               ) : (
                 <p className="text-muted-foreground/70 italic">No description available</p>
               )}

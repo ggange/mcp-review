@@ -29,10 +29,10 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'registry' | 'community')} className="w-full">
       <TabsList className="mb-6">
         <TabsTrigger value="registry">
-          Registry ({registryData.total})
+          Registry ({registryCounts.total})
         </TabsTrigger>
         <TabsTrigger value="community">
-          Community ({userData.total})
+          Community ({userCounts.total})
         </TabsTrigger>
       </TabsList>
       
