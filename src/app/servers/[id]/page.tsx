@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { getAvatarColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,20 +15,30 @@ interface ServerPageProps {
   params: Promise<{ id: string }>
 }
 
-// Generate avatar color based on server name
-function getAvatarColor(name: string): string {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-cyan-500',
-    'from-emerald-500 to-teal-500',
-    'from-orange-500 to-amber-500',
-    'from-rose-500 to-pink-500',
-    'from-indigo-500 to-blue-500',
-    'from-fuchsia-500 to-pink-500',
-    'from-cyan-500 to-blue-500',
-  ]
-  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
-  return colors[index]
+export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
+  const { id } = await params
+  const decodedId = decodeURIComponent(id)
+  
+  const server = await prisma.server.findUnique({
+    where: { id: decodedId },
+    select: {
+      name: true,
+      description: true,
+      organization: true,
+    },
+  })
+
+  if (!server) {
+    return {
+      title: 'Server Not Found - MCP Review',
+      description: 'The requested MCP server could not be found',
+    }
+  }
+
+  return {
+    title: `${server.name} - MCP Review`,
+    description: server.description || `Rate and review ${server.name} MCP server by ${server.organization}`,
+  }
 }
 
 export default async function ServerPage({ params }: ServerPageProps) {

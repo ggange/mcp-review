@@ -2,26 +2,11 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { RatingDisplay } from '@/components/rating/rating-display'
+import { getAvatarColor } from '@/lib/utils'
 import type { ServerWithRatings } from '@/types'
 
 interface ServerCardProps {
   server: ServerWithRatings
-}
-
-// Generate a consistent color based on the server name
-function getAvatarColor(name: string): string {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-cyan-500',
-    'from-emerald-500 to-teal-500',
-    'from-orange-500 to-amber-500',
-    'from-rose-500 to-pink-500',
-    'from-indigo-500 to-blue-500',
-    'from-fuchsia-500 to-pink-500',
-    'from-cyan-500 to-blue-500',
-  ]
-  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
-  return colors[index]
 }
 
 export function ServerCard({ server }: ServerCardProps) {

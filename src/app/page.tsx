@@ -6,6 +6,8 @@ import { ServerGridSkeleton } from '@/components/server/server-card-skeleton'
 import { ServerTabs } from '@/components/server/server-tabs'
 import type { ServerWithRatings } from '@/types'
 
+type ServerWhereInput = Parameters<typeof prisma.server.findMany>[0]['where']
+
 interface HomePageProps {
   searchParams: Promise<{ q?: string; category?: string; page?: string }>
 }
@@ -38,7 +40,7 @@ async function getRegistryServers(
   const limit = 20
   const skip = (page - 1) * limit
 
-  const where: any = { source: 'registry' }
+  const where: ServerWhereInput = { source: 'registry' }
 
   // Add search filter
   if (search) {
@@ -86,7 +88,7 @@ async function getUserServers(
   const limit = 20
   const skip = (page - 1) * limit
 
-  const where: any = { source: 'user' }
+  const where: ServerWhereInput = { source: 'user' }
 
   // Add search filter
   if (search) {
@@ -127,7 +129,7 @@ async function getUserServers(
 }
 
 async function getCategoryCounts(source: 'registry' | 'user', search?: string): Promise<Record<string, number>> {
-  const baseWhere: any = { source }
+  const baseWhere: ServerWhereInput = { source }
   
   if (search) {
     baseWhere.OR = [
@@ -137,29 +139,37 @@ async function getCategoryCounts(source: 'registry' | 'user', search?: string): 
     ]
   }
 
-  const [total, ...categoryCounts] = await Promise.all([
+  // Use groupBy to get all category counts in a single query
+  const [total, categoryResults] = await Promise.all([
     prisma.server.count({ where: baseWhere }),
-    prisma.server.count({ where: { ...baseWhere, category: 'database' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'search' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'code' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'web' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'ai' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'data' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'tools' } }),
-    prisma.server.count({ where: { ...baseWhere, category: 'other' } }),
+    prisma.server.groupBy({
+      by: ['category'],
+      where: baseWhere,
+      _count: true,
+    }),
   ])
 
-  return {
+  // Transform groupBy results into the expected format
+  const counts: Record<string, number> = {
     total,
-    database: categoryCounts[0],
-    search: categoryCounts[1],
-    code: categoryCounts[2],
-    web: categoryCounts[3],
-    ai: categoryCounts[4],
-    data: categoryCounts[5],
-    tools: categoryCounts[6],
-    other: categoryCounts[7],
+    database: 0,
+    search: 0,
+    code: 0,
+    web: 0,
+    ai: 0,
+    data: 0,
+    tools: 0,
+    other: 0,
   }
+
+  for (const result of categoryResults) {
+    const category = result.category || 'other'
+    if (category in counts) {
+      counts[category] = result._count
+    }
+  }
+
+  return counts
 }
 
 async function ServerTabsWrapper({ 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useState, useTransition, useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 
 export function SearchBar() {
@@ -9,13 +9,28 @@ export function SearchBar() {
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [value, setValue] = useState(searchParams.get('q') || '')
+  const timeoutRef = useRef<NodeJS.Timeout>()
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSearch = useCallback(
     (term: string) => {
       setValue(term)
       
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      
       // Debounce the actual search
-      const timeoutId = setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         startTransition(() => {
           const params = new URLSearchParams(searchParams.toString())
           if (term) {
@@ -28,8 +43,6 @@ export function SearchBar() {
           router.push(`/?${params.toString()}`)
         })
       }, 300)
-
-      return () => clearTimeout(timeoutId)
     },
     [router, searchParams]
   )

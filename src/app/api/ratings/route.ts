@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { ratingSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -14,37 +15,24 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { serverId, trustworthiness, usefulness } = body
-
-    // Validate input
-    if (!serverId || typeof serverId !== 'string') {
+    
+    // Validate input with Zod
+    const validationResult = ratingSchema.safeParse(body)
+    if (!validationResult.success) {
+      const issues = validationResult.error.issues
+      const firstIssue = issues[0]
       return NextResponse.json(
-        { error: { code: 'INVALID_INPUT', message: 'Server ID is required' } },
+        { 
+          error: { 
+            code: 'INVALID_INPUT', 
+            message: firstIssue ? `${firstIssue.path.join('.')}: ${firstIssue.message}` : 'Invalid input' 
+          } 
+        },
         { status: 400 }
       )
     }
 
-    if (
-      typeof trustworthiness !== 'number' ||
-      trustworthiness < 1 ||
-      trustworthiness > 5
-    ) {
-      return NextResponse.json(
-        { error: { code: 'INVALID_INPUT', message: 'Trustworthiness must be 1-5' } },
-        { status: 400 }
-      )
-    }
-
-    if (
-      typeof usefulness !== 'number' ||
-      usefulness < 1 ||
-      usefulness > 5
-    ) {
-      return NextResponse.json(
-        { error: { code: 'INVALID_INPUT', message: 'Usefulness must be 1-5' } },
-        { status: 400 }
-      )
-    }
+    const { serverId, trustworthiness, usefulness } = validationResult.data
 
     // Check if server exists
     const server = await prisma.server.findUnique({

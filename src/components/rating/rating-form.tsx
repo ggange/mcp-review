@@ -39,7 +39,7 @@ function StarRating({
         </TooltipContent>
       </Tooltip>
       
-      <div className="flex gap-1">
+      <div className="flex gap-1" role="radiogroup" aria-label={`${label} rating`}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -47,6 +47,8 @@ function StarRating({
             onClick={() => onChange(star)}
             onMouseEnter={() => setHoverValue(star)}
             onMouseLeave={() => setHoverValue(0)}
+            aria-label={`Rate ${star} out of 5 stars for ${label.toLowerCase()}`}
+            aria-pressed={value === star}
             className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-violet-500 rounded"
           >
             <svg
