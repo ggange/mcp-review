@@ -7,9 +7,9 @@ import { getAvatarColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
+import { ReviewCard } from '@/components/rating/review-card'
 
 interface ServerPageProps {
   params: Promise<{ id: string }>
@@ -45,23 +45,36 @@ export default async function ServerPage({ params }: ServerPageProps) {
   const { id } = await params
   const decodedId = decodeURIComponent(id)
   
-  const [server, session] = await Promise.all([
-    prisma.server.findUnique({
-      where: { id: decodedId },
-      include: {
-        ratings: {
-          include: {
-            user: {
-              select: { name: true, image: true },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
+  const session = await auth()
+  
+  const server = await prisma.server.findUnique({
+    where: { id: decodedId },
+    include: {
+      ratings: {
+        where: {
+          status: 'approved', // Only show approved reviews
         },
+        include: {
+          user: {
+            select: { name: true, image: true },
+          },
+          reviewVotes: session?.user?.id
+            ? {
+                where: {
+                  userId: session.user.id,
+                },
+                select: {
+                  helpful: true,
+                },
+                take: 1,
+              }
+            : false,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
       },
-    }),
-    auth(),
-  ])
+    },
+  })
 
   if (!server) {
     notFound()
@@ -226,7 +239,12 @@ export default async function ServerPage({ params }: ServerPageProps) {
               {session?.user ? (
                 <RatingForm
                   serverId={server.id}
-                  existingRating={userRating}
+                  existingRating={userRating ? {
+                    id: userRating.id,
+                    trustworthiness: userRating.trustworthiness,
+                    usefulness: userRating.usefulness,
+                    text: userRating.text,
+                  } : null}
                 />
               ) : (
                 <div className="text-center">
@@ -243,29 +261,45 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardContent>
           </Card>
 
-          {/* Recent Ratings */}
+          {/* Reviews */}
           {server.ratings.length > 0 && (
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-card-foreground">Recent Ratings</CardTitle>
+                <CardTitle className="text-card-foreground">Reviews</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {server.ratings.map((rating: typeof server.ratings[0]) => (
-                    <div key={rating.id}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                          {rating.user.name?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <span className="text-sm text-card-foreground">{rating.user.name || 'Anonymous'}</span>
-                      </div>
-                      <div className="ml-8 text-sm text-muted-foreground/70 space-y-1">
-                        <div>Trustworthiness: {rating.trustworthiness}/5</div>
-                        <div>Usefulness: {rating.usefulness}/5</div>
-                      </div>
-                      <Separator className="mt-4" />
-                    </div>
-                  ))}
+                  {server.ratings.map((rating: (typeof server.ratings)[0]) => {
+                    const userVote =
+                      rating.reviewVotes && Array.isArray(rating.reviewVotes) && rating.reviewVotes.length > 0
+                        ? { helpful: rating.reviewVotes[0].helpful }
+                        : null
+
+                    return (
+                      <ReviewCard
+                        key={rating.id}
+                        review={{
+                          id: rating.id,
+                          trustworthiness: rating.trustworthiness,
+                          usefulness: rating.usefulness,
+                          text: rating.text,
+                          status: rating.status,
+                          helpfulCount: rating.helpfulCount,
+                          notHelpfulCount: rating.notHelpfulCount,
+                          createdAt: rating.createdAt,
+                          updatedAt: rating.updatedAt,
+                          userId: rating.userId,
+                          user: {
+                            name: rating.user.name,
+                            image: rating.user.image,
+                          },
+                          userVote,
+                        }}
+                        currentUserId={session?.user?.id}
+                        serverId={server.id}
+                      />
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>

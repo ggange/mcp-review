@@ -91,3 +91,4 @@ export function getCategories(): ServerCategory[] {
   return ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other']
 }
 
+

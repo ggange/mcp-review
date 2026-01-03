@@ -62,6 +62,31 @@ export interface RatingInput {
   serverId: string
   trustworthiness: number
   usefulness: number
+  text?: string
+}
+
+export interface ReviewVoteInput {
+  helpful: boolean
+}
+
+export interface ReviewWithVotes {
+  id: string
+  trustworthiness: number
+  usefulness: number
+  text: string | null
+  status: string
+  helpfulCount: number
+  notHelpfulCount: number
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  user: {
+    name: string | null
+    image: string | null
+  }
+  userVote?: {
+    helpful: boolean
+  } | null
 }
 
 // API Response types

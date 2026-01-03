@@ -1,0 +1,121 @@
+import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { reviewUpdateSchema } from '@/lib/validations'
+
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  try {
+    const session = await auth()
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'You must be signed in to update a review' } },
+        { status: 401 }
+      )
+    }
+
+    const { id } = await params
+    const body = await request.json()
+
+    // Validate input
+    const validationResult = reviewUpdateSchema.safeParse(body)
+    if (!validationResult.success) {
+      const issues = validationResult.error.issues
+      const firstIssue = issues[0]
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INVALID_INPUT',
+            message: firstIssue ? `${firstIssue.path.join('.')}: ${firstIssue.message}` : 'Invalid input',
+          },
+        },
+        { status: 400 }
+      )
+    }
+
+    // Check if rating exists and user owns it
+    const rating = await prisma.rating.findUnique({
+      where: { id },
+      select: { userId: true, serverId: true },
+    })
+
+    if (!rating) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Review not found' } },
+        { status: 404 }
+      )
+    }
+
+    // Verify ownership
+    if (rating.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'You can only edit your own reviews' } },
+        { status: 403 }
+      )
+    }
+
+    // Build update data
+    const updateData: {
+      text?: string | null
+      trustworthiness?: number
+      usefulness?: number
+    } = {}
+
+    if (validationResult.data.text !== undefined) {
+      updateData.text = validationResult.data.text || null
+    }
+    if (validationResult.data.trustworthiness !== undefined) {
+      updateData.trustworthiness = validationResult.data.trustworthiness
+    }
+    if (validationResult.data.usefulness !== undefined) {
+      updateData.usefulness = validationResult.data.usefulness
+    }
+
+    // Update the rating
+    const updatedRating = await prisma.rating.update({
+      where: { id },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            name: true,
+            image: true,
+          },
+        },
+      },
+    })
+
+    // Recalculate server aggregates
+    const aggregates = await prisma.rating.aggregate({
+      where: { serverId: rating.serverId },
+      _avg: {
+        trustworthiness: true,
+        usefulness: true,
+      },
+      _count: true,
+    })
+
+    await prisma.server.update({
+      where: { id: rating.serverId },
+      data: {
+        avgTrustworthiness: aggregates._avg.trustworthiness || 0,
+        avgUsefulness: aggregates._avg.usefulness || 0,
+        totalRatings: aggregates._count,
+      },
+    })
+
+    return NextResponse.json({ data: updatedRating })
+  } catch (error) {
+    console.error('Review update error:', error)
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to update review' } },
+      { status: 500 }
+    )
+  }
+}
+
+

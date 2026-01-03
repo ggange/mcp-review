@@ -120,3 +120,4 @@ export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compa
   )
 }
 
+

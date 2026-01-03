@@ -5,8 +5,9 @@ import { SearchBar } from '@/components/search-bar'
 import { ServerGridSkeleton } from '@/components/server/server-card-skeleton'
 import { ServerTabs } from '@/components/server/server-tabs'
 import type { ServerWithRatings } from '@/types'
+import type { Prisma } from '@prisma/client'
 
-type ServerWhereInput = Parameters<typeof prisma.server.findMany>[0]['where']
+type ServerWhereInput = Prisma.ServerWhereInput
 type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
 
 function getOrderBy(sort: SortOption) {
@@ -157,7 +158,10 @@ async function getRegistryServers(
     const total = sorted.length
 
     return {
-      servers: paginated,
+      servers: paginated.map(server => ({
+        ...server,
+        source: server.source as 'registry' | 'user',
+      })),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -205,7 +209,10 @@ async function getRegistryServers(
     const total = sorted.length
 
     return {
-      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => server),
+      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => ({
+        ...server,
+        source: server.source as 'registry' | 'user',
+      })),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -225,7 +232,10 @@ async function getRegistryServers(
   const totalPages = Math.ceil(total / limit)
 
   return {
-    servers,
+    servers: servers.map(server => ({
+      ...server,
+      source: server.source as 'registry' | 'user',
+    })),
     total,
     page,
     totalPages,
@@ -315,7 +325,10 @@ async function getUserServers(
     const total = sorted.length
 
     return {
-      servers: paginated,
+      servers: paginated.map(server => ({
+        ...server,
+        source: server.source as 'registry' | 'user',
+      })),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -363,7 +376,10 @@ async function getUserServers(
     const total = sorted.length
 
     return {
-      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => server),
+      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => ({
+        ...server,
+        source: server.source as 'registry' | 'user',
+      })),
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -383,7 +399,10 @@ async function getUserServers(
   const totalPages = Math.ceil(total / limit)
 
   return {
-    servers,
+    servers: servers.map(server => ({
+      ...server,
+      source: server.source as 'registry' | 'user',
+    })),
     total,
     page,
     totalPages,

@@ -133,3 +133,4 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
   )
 }
 
+

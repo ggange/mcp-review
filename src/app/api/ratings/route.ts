@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { serverId, trustworthiness, usefulness } = validationResult.data
+    const { serverId, trustworthiness, usefulness, text } = validationResult.data
 
     // Check if server exists
     const server = await prisma.server.findUnique({
@@ -59,10 +59,14 @@ export async function POST(request: Request) {
         userId: session.user.id,
         trustworthiness,
         usefulness,
+        text: text || null,
+        status: 'approved', // Auto-approve reviews
       },
       update: {
         trustworthiness,
         usefulness,
+        text: text || null,
+        status: 'approved', // Re-approve on update
       },
     })
 

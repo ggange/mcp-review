@@ -4,13 +4,18 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 interface RatingFormProps {
   serverId: string
   existingRating?: {
+    id?: string
     trustworthiness: number
     usefulness: number
+    text?: string | null
   } | null
+  onSuccess?: () => void
 }
 
 function StarRating({
@@ -75,12 +80,15 @@ function StarRating({
   )
 }
 
-export function RatingForm({ serverId, existingRating }: RatingFormProps) {
+export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [trustworthiness, setTrustworthiness] = useState(existingRating?.trustworthiness || 0)
   const [usefulness, setUsefulness] = useState(existingRating?.usefulness || 0)
+  const [text, setText] = useState(existingRating?.text || '')
+  const isEditMode = !!existingRating?.id
+  const maxTextLength = 2000
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,24 +99,53 @@ export function RatingForm({ serverId, existingRating }: RatingFormProps) {
       return
     }
 
+    if (text.length > maxTextLength) {
+      setError(`Review text must be ${maxTextLength} characters or less`)
+      return
+    }
+
     startTransition(async () => {
       try {
-        const response = await fetch('/api/ratings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            serverId,
-            trustworthiness,
-            usefulness,
-          }),
-        })
+        if (isEditMode && existingRating?.id) {
+          // Update existing review
+          const response = await fetch(`/api/reviews/${existingRating.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trustworthiness,
+              usefulness,
+              text: text.trim() || undefined,
+            }),
+          })
 
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error?.message || 'Failed to submit rating')
+          if (!response.ok) {
+            const data = await response.json()
+            throw new Error(data.error?.message || 'Failed to update review')
+          }
+        } else {
+          // Create new rating
+          const response = await fetch('/api/ratings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serverId,
+              trustworthiness,
+              usefulness,
+              text: text.trim() || undefined,
+            }),
+          })
+
+          if (!response.ok) {
+            const data = await response.json()
+            throw new Error(data.error?.message || 'Failed to submit rating')
+          }
         }
 
-        router.refresh()
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          router.refresh()
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to submit rating')
       }
@@ -131,6 +168,24 @@ export function RatingForm({ serverId, existingRating }: RatingFormProps) {
         tooltip="How useful is this server? Consider: Does it solve your problem? Is it well documented? Does it work reliably?"
       />
 
+      <div className="space-y-2">
+        <Label htmlFor="review-text" className="text-sm font-medium text-muted-foreground">
+          Review (Optional)
+        </Label>
+        <Textarea
+          id="review-text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Share your experience with this server..."
+          className="min-h-[100px] resize-y"
+          maxLength={maxTextLength}
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Maximum {maxTextLength} characters</span>
+          <span>{text.length}/{maxTextLength}</span>
+        </div>
+      </div>
+
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
@@ -143,12 +198,12 @@ export function RatingForm({ serverId, existingRating }: RatingFormProps) {
         {isPending ? (
           <span className="flex items-center gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            Submitting...
+            {isEditMode ? 'Updating...' : 'Submitting...'}
           </span>
-        ) : existingRating ? (
-          'Update Rating'
+        ) : isEditMode ? (
+          'Update Review'
         ) : (
-          'Submit Rating'
+          'Submit Review'
         )}
       </Button>
     </form>
