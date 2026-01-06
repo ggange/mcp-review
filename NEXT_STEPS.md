@@ -307,6 +307,9 @@ npm run test:watch
 - **User Uploads**: POST endpoint and form component for submitting new servers
 - **Auto-Categorization**: Servers are automatically categorized based on description keywords
 - **Rating System**: Users can rate servers on trustworthiness and usefulness (1-5 scale)
+- **Text Reviews**: Users can write detailed text reviews alongside ratings (up to 2000 characters)
+- **Review Voting**: Users can vote reviews as helpful or not helpful
+- **Review Moderation**: Flag system for inappropriate reviews (status: approved, flagged, removed)
 - **Aggregated Ratings**: Average ratings and total count displayed per server
 - **User Dashboard**: View all your ratings in one place
 - **Pagination**: Offset-based pagination for server listings
@@ -326,10 +329,10 @@ npm run test:watch
 - [x] Auto-categorization based on description keywords
 
 
-### Phase 3: Enhanced Reviews
-- [ ] Text reviews alongside ratings
-- [ ] Review voting (helpful/not helpful)
-- [ ] Review moderation
+### Phase 3: Enhanced Reviews ✅ (Completed)
+- [x] Text reviews alongside ratings
+- [x] Review voting (helpful/not helpful)
+- [x] Review moderation
 
 ### Phase 4: User Uploads (Mostly Complete)
 - [x] POST /api/servers endpoint for user-uploaded servers

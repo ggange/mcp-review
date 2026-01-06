@@ -24,3 +24,18 @@ export function getAvatarColor(name: string): string {
   const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
   return colors[index]
 }
+
+/**
+ * Normalize an email address for consistent comparison
+ * - Converts to lowercase
+ * - Trims whitespace
+ * - Returns null for null/undefined/empty strings
+ * @param email - Email address to normalize
+ * @returns Normalized email or null
+ */
+export function normalizeEmail(email: string | null | undefined): string | null {
+  if (!email || typeof email !== 'string') {
+    return null
+  }
+  return email.trim().toLowerCase() || null
+}
