@@ -66,9 +66,10 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
     return pages
   }
 
+  const itemPerPage = 12;
   const pageNumbers = getPageNumbers()
-  const startItem = (currentPage - 1) * 20 + 1
-  const endItem = Math.min(currentPage * 20, total)
+  const startItem = (currentPage - 1) * itemPerPage + 1
+  const endItem = Math.min(currentPage * itemPerPage, total)
 
   return (
     <div className="flex flex-col items-center gap-4 mt-8">

@@ -85,7 +85,7 @@ async function getRegistryServers(
     }
   }
 
-  const limit = 20
+  const limit = 12
   const skip = (page - 1) * limit
 
   const where: ServerWhereInput = { source: 'registry' }

@@ -49,7 +49,7 @@ export async function GET(request: Request, { params }: RouteParams) {
               : false,
           },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 12,
         },
       },
     })

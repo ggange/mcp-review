@@ -71,7 +71,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
             : false,
         },
         orderBy: { createdAt: 'desc' },
-        take: 20,
+        take: 12,
       },
     },
   })
