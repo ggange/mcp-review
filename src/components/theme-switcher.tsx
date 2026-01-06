@@ -1,18 +1,42 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+// Track mount state outside React to avoid hydration mismatch
+const mountStore = {
+  mounted: false,
+  listeners: new Set<() => void>(),
+  subscribe(listener: () => void) {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  },
+  getSnapshot() {
+    return this.mounted
+  },
+  getServerSnapshot() {
+    return false
+  },
+  setMounted() {
+    this.mounted = true
+    this.listeners.forEach(l => l())
+  }
+}
+
+// Initialize on client side
+if (typeof window !== 'undefined') {
+  mountStore.setMounted()
+}
+
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  // Avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    mountStore.subscribe.bind(mountStore),
+    mountStore.getSnapshot.bind(mountStore),
+    mountStore.getServerSnapshot.bind(mountStore)
+  )
 
   if (!mounted) {
     return (

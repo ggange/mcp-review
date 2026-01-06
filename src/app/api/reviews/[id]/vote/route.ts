@@ -60,16 +60,6 @@ export async function POST(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Get existing vote to determine count changes
-    const existingVote = await prisma.reviewVote.findUnique({
-      where: {
-        ratingId_userId: {
-          ratingId: id,
-          userId: session.user.id,
-        },
-      },
-    })
-
     // Upsert vote
     await prisma.reviewVote.upsert({
       where: {

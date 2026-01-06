@@ -68,7 +68,8 @@ export async function GET(request: Request, { params }: RouteParams) {
           ? { helpful: rating.reviewVotes[0].helpful }
           : null
 
-      const { reviewVotes, ...ratingWithoutVotes } = rating
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { reviewVotes: _reviewVotes, ...ratingWithoutVotes } = rating
 
       return {
         ...ratingWithoutVotes,

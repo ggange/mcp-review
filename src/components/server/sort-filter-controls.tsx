@@ -27,11 +27,7 @@ const RATING_OPTIONS: { value: MinRatingOption; label: string }[] = [
   { value: '4.5', label: '4.5+ Stars' },
 ]
 
-interface SortFilterControlsProps {
-  source?: 'registry' | 'user'
-}
-
-export function SortFilterControls({ source }: SortFilterControlsProps) {
+export function SortFilterControls() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -39,7 +35,6 @@ export function SortFilterControls({ source }: SortFilterControlsProps) {
   const currentMinRating = (searchParams.get('minRating') || '0') as MinRatingOption
   const currentSearch = searchParams.get('q') || ''
   const currentCategory = searchParams.get('category') || 'all'
-  const currentPage = searchParams.get('page') || '1'
 
   const updateParams = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams()

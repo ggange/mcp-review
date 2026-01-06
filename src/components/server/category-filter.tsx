@@ -9,7 +9,7 @@ interface CategoryFilterProps {
   source: 'registry' | 'user'
 }
 
-export function CategoryFilter({ categoryCounts, source }: CategoryFilterProps) {
+export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentCategory = searchParams.get('category') || 'all'

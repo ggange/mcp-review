@@ -4,32 +4,41 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Collapsible } from '@/components/ui/collapsible'
-import { useCallback, useState, useTransition, useEffect } from 'react'
+import { useCallback, useState, useTransition } from 'react'
+
+// Helper to get search param value
+function getSearchParam(params: URLSearchParams, key: string): string {
+  return params.get(key) || ''
+}
 
 export function AdvancedFilters() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   
-  // Get current values from URL params
-  const currentDateFrom = searchParams.get('dateFrom') || ''
-  const currentDateTo = searchParams.get('dateTo') || ''
-  const currentMinRating = searchParams.get('minRating') || ''
-  const currentMaxRating = searchParams.get('maxRating') || ''
+  // Get current values from URL params - these are the source of truth
+  const currentDateFrom = getSearchParam(searchParams, 'dateFrom')
+  const currentDateTo = getSearchParam(searchParams, 'dateTo')
+  const currentMinRating = getSearchParam(searchParams, 'minRating')
+  const currentMaxRating = getSearchParam(searchParams, 'maxRating')
   
-  // Local state for inputs
+  // Local state for inputs - initialized from URL params
   const [dateFrom, setDateFrom] = useState(currentDateFrom)
   const [dateTo, setDateTo] = useState(currentDateTo)
   const [minRating, setMinRating] = useState(currentMinRating)
   const [maxRating, setMaxRating] = useState(currentMaxRating)
 
-  // Sync local state with URL params when they change externally
-  useEffect(() => {
-    setDateFrom(searchParams.get('dateFrom') || '')
-    setDateTo(searchParams.get('dateTo') || '')
-    setMinRating(searchParams.get('minRating') || '')
-    setMaxRating(searchParams.get('maxRating') || '')
-  }, [searchParams])
+  // Sync local state when URL params change (using key to detect changes)
+  const paramsKey = `${currentDateFrom}|${currentDateTo}|${currentMinRating}|${currentMaxRating}`
+  const [lastParamsKey, setLastParamsKey] = useState(paramsKey)
+  
+  if (paramsKey !== lastParamsKey) {
+    setLastParamsKey(paramsKey)
+    setDateFrom(currentDateFrom)
+    setDateTo(currentDateTo)
+    setMinRating(currentMinRating)
+    setMaxRating(currentMaxRating)
+  }
 
   const currentSearch = searchParams.get('q') || ''
   const currentCategory = searchParams.get('category') || 'all'

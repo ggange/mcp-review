@@ -209,9 +209,20 @@ async function getRegistryServers(
     const total = sorted.length
 
     return {
-      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => ({
-        ...server,
-        source: server.source as 'registry' | 'user',
+      servers: paginated.map((serverWithRatings: ServerWithRecentRatings) => ({
+        id: serverWithRatings.id,
+        name: serverWithRatings.name,
+        description: serverWithRatings.description,
+        organization: serverWithRatings.organization,
+        repository: serverWithRatings.repository,
+        homepage: serverWithRatings.homepage,
+        category: serverWithRatings.category,
+        source: serverWithRatings.source as 'registry' | 'user',
+        avgTrustworthiness: serverWithRatings.avgTrustworthiness,
+        avgUsefulness: serverWithRatings.avgUsefulness,
+        totalRatings: serverWithRatings.totalRatings,
+        createdAt: serverWithRatings.createdAt,
+        updatedAt: serverWithRatings.updatedAt,
       })),
       total,
       page,
@@ -376,9 +387,20 @@ async function getUserServers(
     const total = sorted.length
 
     return {
-      servers: paginated.map(({ ratings, ...server }: ServerWithRecentRatings) => ({
-        ...server,
-        source: server.source as 'registry' | 'user',
+      servers: paginated.map((serverWithRatings: ServerWithRecentRatings) => ({
+        id: serverWithRatings.id,
+        name: serverWithRatings.name,
+        description: serverWithRatings.description,
+        organization: serverWithRatings.organization,
+        repository: serverWithRatings.repository,
+        homepage: serverWithRatings.homepage,
+        category: serverWithRatings.category,
+        source: serverWithRatings.source as 'registry' | 'user',
+        avgTrustworthiness: serverWithRatings.avgTrustworthiness,
+        avgUsefulness: serverWithRatings.avgUsefulness,
+        totalRatings: serverWithRatings.totalRatings,
+        createdAt: serverWithRatings.createdAt,
+        updatedAt: serverWithRatings.updatedAt,
       })),
       total,
       page,

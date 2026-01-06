@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth'
 import GitHub from 'next-auth/providers/github'
-import Google from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './db'
 import { normalizeEmail } from './utils'
@@ -37,7 +36,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: providers.length > 0 ? PrismaAdapter(prisma) : undefined,
   providers,
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Only process OAuth providers (skip email/password if added later)
       if (!account || !user.email) {
         return true // Allow default behavior for non-OAuth or missing email
