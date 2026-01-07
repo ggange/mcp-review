@@ -52,6 +52,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
   const [isEditing, setIsEditing] = useState(false)
   const [isVoting, setIsVoting] = useState(false)
   const [isFlagging, setIsFlagging] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [helpfulCount, setHelpfulCount] = useState(review.helpfulCount)
   const [notHelpfulCount, setNotHelpfulCount] = useState(review.notHelpfulCount)
   const [userVote, setUserVote] = useState(review.userVote)
@@ -123,6 +124,35 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
     router.refresh()
   }
 
+  const handleDelete = async () => {
+    if (isDeleting || !isOwnReview) return
+
+    if (!confirm('Are you sure you want to delete your review? This action cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/reviews/${review.id}`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error?.message || 'Failed to delete review')
+        }
+
+        router.refresh()
+      } catch (err) {
+        console.error('Delete error:', err)
+        alert(err instanceof Error ? err.message : 'Failed to delete review')
+      } finally {
+        setIsDeleting(false)
+      }
+    })
+  }
+
   if (isEditing) {
     return (
       <div className="space-y-4 rounded-lg border border-border bg-card p-4">
@@ -179,24 +209,35 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
               </div>
             </div>
             {isOwnReview && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="h-8 text-xs"
-              >
-                Edit
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8 text-xs"
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Trustworthiness:</span>
               <RatingStars rating={review.trustworthiness} />
               <span className="font-medium text-card-foreground">{review.trustworthiness}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Usefulness:</span>
               <RatingStars rating={review.usefulness} />
               <span className="font-medium text-card-foreground">{review.usefulness}</span>

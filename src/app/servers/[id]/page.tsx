@@ -228,38 +228,32 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardContent>
           </Card>
 
-          {/* Rating Form */}
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="text-card-foreground">
-                {userRating ? 'Update Your Rating' : 'Rate This Server'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {session?.user ? (
-                <RatingForm
-                  serverId={server.id}
-                  existingRating={userRating ? {
-                    id: userRating.id,
-                    trustworthiness: userRating.trustworthiness,
-                    usefulness: userRating.usefulness,
-                    text: userRating.text,
-                  } : null}
-                />
-              ) : (
-                <div className="text-center">
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    Sign in to rate this server
-                  </p>
-                  <Link href="/auth/signin">
-                    <Button className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600">
-                      Sign in
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Rating Form - only show if user hasn't rated yet or isn't logged in */}
+          {!userRating && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-card-foreground">
+                  Rate This Server
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {session?.user ? (
+                  <RatingForm serverId={server.id} />
+                ) : (
+                  <div className="text-center">
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Sign in to rate this server
+                    </p>
+                    <Link href="/auth/signin">
+                      <Button className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600">
+                        Sign in
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Reviews */}
           {server.ratings.length > 0 && (
