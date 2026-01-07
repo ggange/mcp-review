@@ -21,9 +21,10 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint src/",
+    "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:push": "prisma db push",
