@@ -42,7 +42,7 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
           categoryCounts={registryCounts} 
           source="registry"
         />
-        <SortFilterControls source="registry" />
+        <SortFilterControls />
         <div className="mb-4 text-sm text-muted-foreground">
           {registryData.total} {registryData.total === 1 ? 'server' : 'servers'} from the official MCP registry
         </div>
@@ -67,7 +67,7 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
               categoryCounts={userCounts} 
               source="user"
             />
-            <SortFilterControls source="user" />
+            <SortFilterControls />
             <div className="mb-4 text-sm text-muted-foreground">
               {userData.total} {userData.total === 1 ? 'server' : 'servers'} from the community
             </div>

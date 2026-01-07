@@ -1,6 +1,7 @@
 import { prisma } from './db'
 import type { MCPRegistryResponse, MCPRegistryServer } from '@/types'
 import { categorizeServer } from './server-categories'
+import { Prisma } from '@prisma/client'
 
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers'
 
@@ -51,8 +52,8 @@ function transformServer(registryServer: MCPRegistryServer): {
   description: string | null
   version: string | null
   repositoryUrl: string | null
-  packages: unknown
-  remotes: unknown
+  packages: Prisma.InputJsonValue | typeof Prisma.JsonNull
+  remotes: Prisma.InputJsonValue | typeof Prisma.JsonNull
   category: string
   source: string
 } {
@@ -72,8 +73,8 @@ function transformServer(registryServer: MCPRegistryServer): {
     description: server.description || null,
     version: server.version || null,
     repositoryUrl: server.repository?.url || null,
-    packages: server.packages || null,
-    remotes: server.remotes || null,
+    packages: server.packages ? (server.packages as Prisma.InputJsonValue) : Prisma.JsonNull,
+    remotes: server.remotes ? (server.remotes as Prisma.InputJsonValue) : Prisma.JsonNull,
     category,
     source: 'registry',
   }

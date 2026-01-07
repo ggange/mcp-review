@@ -9,7 +9,7 @@ export function SearchBar() {
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [value, setValue] = useState(searchParams.get('q') || '')
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Cleanup timeout on unmount
   useEffect(() => {

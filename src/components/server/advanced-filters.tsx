@@ -118,8 +118,8 @@ export function AdvancedFilters() {
   }
 
   // Only consider advanced filters as active (not the simple minRating dropdown)
-  const hasActiveFilters = currentDateFrom || currentDateTo || currentMaxRating || 
-    (currentMinRating && !['0', '3', '4', '4.5'].includes(currentMinRating))
+  const hasActiveFilters = !!(currentDateFrom || currentDateTo || currentMaxRating || 
+    (currentMinRating && !['0', '3', '4', '4.5'].includes(currentMinRating)))
 
   return (
     <Collapsible title="Advanced Filters" defaultOpen={hasActiveFilters}>

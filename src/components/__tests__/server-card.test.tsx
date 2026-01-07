@@ -14,6 +14,7 @@ const mockServer = {
   avgTrustworthiness: 4.5,
   avgUsefulness: 4.2,
   totalRatings: 10,
+  category: 'search',
   syncedAt: new Date(),
   source: 'registry' as const,
 }

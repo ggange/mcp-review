@@ -3,8 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { serverUploadSchema } from '@/lib/validations'
 import { categorizeServer } from '@/lib/server-categories'
+import { Prisma } from '@prisma/client'
 
-type ServerWhereInput = Parameters<typeof prisma.server.findMany>[0]['where']
+type ServerWhereInput = Prisma.ServerWhereInput
 
 type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
 
@@ -303,8 +304,8 @@ export async function POST(request: Request) {
         description: description || null,
         version: version || null,
         repositoryUrl: repositoryUrl || null,
-        packages: null,
-        remotes: null,
+        packages: Prisma.JsonNull,
+        remotes: Prisma.JsonNull,
         category,
         source: 'user',
         syncedAt: new Date(),

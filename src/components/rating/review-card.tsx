@@ -56,7 +56,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
   const [notHelpfulCount, setNotHelpfulCount] = useState(review.notHelpfulCount)
   const [userVote, setUserVote] = useState(review.userVote)
 
-  const isOwnReview = currentUserId && review.userId === currentUserId
+  const isOwnReview = !!(currentUserId && review.userId === currentUserId)
   const avatarColor = getAvatarColor(review.user.name || 'U')
 
   const handleVote = async (helpful: boolean) => {
