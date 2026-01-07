@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { reviewVoteSchema } from '@/lib/validations'
+import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -9,12 +11,39 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
+    // CSRF protection
+    const originCheck = validateOrigin(request)
+    if (!originCheck.isValid) {
+      return NextResponse.json(csrfErrorResponse(), { status: 403 })
+    }
+
     const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'You must be signed in to vote' } },
         { status: 401 }
+      )
+    }
+
+    // Rate limiting
+    const rateLimitKey = getRateLimitKey(session.user.id, 'votes')
+    const { allowed, resetIn } = checkRateLimit(
+      rateLimitKey,
+      RATE_LIMITS.votes.limit,
+      RATE_LIMITS.votes.windowMs
+    )
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMITED', message: 'Too many votes. Please try again later.' } },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+          }
+        }
       )
     }
 
@@ -60,52 +89,51 @@ export async function POST(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Upsert vote
-    await prisma.reviewVote.upsert({
-      where: {
-        ratingId_userId: {
+    // Use a transaction to upsert vote and update counts in a single database round-trip
+    const result = await prisma.$transaction(async (tx) => {
+      // Upsert vote
+      await tx.reviewVote.upsert({
+        where: {
+          ratingId_userId: {
+            ratingId: id,
+            userId: session.user.id,
+          },
+        },
+        create: {
           ratingId: id,
           userId: session.user.id,
+          helpful,
         },
-      },
-      create: {
-        ratingId: id,
-        userId: session.user.id,
-        helpful,
-      },
-      update: {
-        helpful,
-      },
-    })
+        update: {
+          helpful,
+        },
+      })
 
-    // Update vote counts
-    const helpfulCount = await prisma.reviewVote.count({
-      where: {
-        ratingId: id,
-        helpful: true,
-      },
-    })
+      // Get vote counts using groupBy (single query instead of two count queries)
+      const voteCounts = await tx.reviewVote.groupBy({
+        by: ['helpful'],
+        where: { ratingId: id },
+        _count: true,
+      })
 
-    const notHelpfulCount = await prisma.reviewVote.count({
-      where: {
-        ratingId: id,
-        helpful: false,
-      },
-    })
+      // Parse the grouped counts
+      const helpfulCount = voteCounts.find(v => v.helpful === true)?._count ?? 0
+      const notHelpfulCount = voteCounts.find(v => v.helpful === false)?._count ?? 0
 
-    await prisma.rating.update({
-      where: { id },
-      data: {
-        helpfulCount,
-        notHelpfulCount,
-      },
+      // Update the rating with new counts
+      await tx.rating.update({
+        where: { id },
+        data: {
+          helpfulCount,
+          notHelpfulCount,
+        },
+      })
+
+      return { helpfulCount, notHelpfulCount }
     })
 
     return NextResponse.json({
-      data: {
-        helpfulCount,
-        notHelpfulCount,
-      },
+      data: result,
     })
   } catch (error) {
     console.error('Vote error:', error)

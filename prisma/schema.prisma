@@ -45,6 +45,7 @@ model User {
   sessions      Session[]
   ratings       Rating[]
   reviewVotes   ReviewVote[]
+  reviewFlags   ReviewFlag[]
 }
 
 model VerificationToken {
@@ -70,6 +71,10 @@ model Server {
   avgTrustworthiness Float    @default(0)
   avgUsefulness      Float    @default(0)
   totalRatings       Int      @default(0)
+  
+  // Computed fields for efficient sorting
+  combinedScore      Float    @default(0) // (avgTrustworthiness + avgUsefulness) / 2
+  recentRatingsCount Int      @default(0) // Ratings in last 30 days (updated periodically)
 
   category           String?  // "database", "search", "code", "web", "ai", "data", "tools", "other"
   createdAt          DateTime @default(now())
@@ -82,6 +87,9 @@ model Server {
   @@index([organization])
   @@index([source])
   @@index([createdAt])
+  @@index([combinedScore]) // For top-rated sort
+  @@index([recentRatingsCount]) // For trending sort
+  @@index([source, category]) // For filtered queries
 }
 
 model Rating {
@@ -92,6 +100,7 @@ model Rating {
   status          String       @default("approved") // "approved", "flagged", "removed"
   helpfulCount    Int          @default(0)
   notHelpfulCount Int          @default(0)
+  flagCount       Int          @default(0) // Number of unique flags
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -100,8 +109,12 @@ model Rating {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   reviewVotes ReviewVote[]
+  reviewFlags ReviewFlag[]
 
   @@unique([serverId, userId]) // One rating per user per server
+  @@index([status, serverId]) // For filtering approved reviews by server
+  @@index([createdAt]) // For trending sort by recent ratings
+  @@index([serverId]) // For server-specific rating queries
 }
 
 model ReviewVote {
@@ -115,4 +128,19 @@ model ReviewVote {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([ratingId, userId]) // One vote per user per review
+  @@index([ratingId, helpful]) // For counting helpful/not helpful votes efficiently
+}
+
+model ReviewFlag {
+  id        String   @id @default(cuid())
+  ratingId  String
+  userId    String
+  reason    String?  @db.Text // Optional reason for flagging
+  createdAt DateTime @default(now())
+
+  rating Rating @relation(fields: [ratingId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ratingId, userId]) // One flag per user per review
+  @@index([ratingId])
 }

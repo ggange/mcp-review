@@ -1,25 +1,47 @@
 import { NextResponse } from 'next/server'
 import { syncRegistry } from '@/lib/mcp-registry'
+import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 // This endpoint is meant to be called by a cron job
-// In production, add proper authentication/authorization
+// In production, CRON_SECRET must be set for proper authentication
 
 export async function POST(request: Request) {
-  // Verify the request is from Vercel Cron or has proper authorization
+  // Verify the request has proper authorization
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
 
-  // Allow if:
-  // 1. No CRON_SECRET is set (development mode)
-  // 2. Valid authorization header matches
-  // 3. Request is from Vercel Cron (has x-vercel-cron header)
-  const isVercelCron = request.headers.get('x-vercel-cron') === '1'
-  const isAuthorized = !cronSecret || authHeader === `Bearer ${cronSecret}` || isVercelCron
+  // In production, require CRON_SECRET
+  // In development, allow without secret for easier testing
+  const isProduction = process.env.NODE_ENV === 'production'
+  const isAuthorized = cronSecret 
+    ? authHeader === `Bearer ${cronSecret}`
+    : !isProduction // Only allow without secret in non-production
 
   if (!isAuthorized) {
     return NextResponse.json(
       { error: { code: 'UNAUTHORIZED', message: 'Invalid authorization' } },
       { status: 401 }
+    )
+  }
+
+  // Rate limiting to prevent abuse
+  const clientIp = getClientIp(request)
+  const rateLimitKey = getIpRateLimitKey(clientIp, 'sync')
+  const { allowed, resetIn } = checkRateLimit(
+    rateLimitKey,
+    RATE_LIMITS.sync.limit,
+    RATE_LIMITS.sync.windowMs
+  )
+
+  if (!allowed) {
+    return NextResponse.json(
+      { error: { code: 'RATE_LIMITED', message: 'Sync already in progress or rate limited.' } },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+        }
+      }
     )
   }
 
