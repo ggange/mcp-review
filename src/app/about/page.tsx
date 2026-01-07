@@ -42,6 +42,13 @@ export default function AboutPage() {
                 collective learning and growth.
               </p>
             </section>
+
+            <section>
+                <h2 className="mb-4 text-2xl font-semibold text-foreground"> Soon</h2>
+                <p className="text-base leading-7 text-muted-foreground">
+                    You will be able to upload your own MCP servers to the platform. Customize your page and give users hints and tips on how to use your product.
+                </p>
+            </section>
           </div>
         </div>
       </div>

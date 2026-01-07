@@ -565,7 +565,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           MCP Review
           </h1>
         <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows.
+          Discover, rate, and review Model Context Protocol servers. <br /> Find the best MCP servers for your AI workflows.
           </p>
         </div>
 

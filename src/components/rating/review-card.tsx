@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -184,19 +185,24 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={review.user.image || undefined} />
-          <AvatarFallback className={avatarColor}>
-            {review.user.name?.charAt(0).toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
+        <Link href={`/users/${review.userId}`} className="shrink-0">
+          <Avatar className="h-10 w-10 transition-opacity hover:opacity-80">
+            <AvatarImage src={review.user.image || undefined} />
+            <AvatarFallback className={avatarColor}>
+              {review.user.name?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
 
         <div className="flex-1 space-y-2">
           <div className="flex items-start justify-between">
             <div>
-              <div className="font-medium text-card-foreground">
+              <Link 
+                href={`/users/${review.userId}`}
+                className="font-medium text-card-foreground hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+              >
                 {review.user.name || 'Anonymous'}
-              </div>
+              </Link>
               <div className="text-xs text-muted-foreground">
                 {new Date(review.createdAt).toLocaleDateString('en-US', {
                   year: 'numeric',
