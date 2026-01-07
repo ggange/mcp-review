@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Montserrat, Geist_Mono } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
@@ -35,6 +36,11 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
         </Providers>
+        <Script
+          src="https://cloud.umami.is/script.js"
+          data-website-id="f83a6e52-9686-4064-9ecd-bef84e8d07ed"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
