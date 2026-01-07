@@ -32,9 +32,16 @@ if (process.env.GITHUB_ID && process.env.GITHUB_SECRET) {
 //   )
 // }
 
+// Ensure NEXTAUTH_URL is set for NextAuth v5
+// Vercel provides VERCEL_URL without protocol, so we construct the full URL
+if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: providers.length > 0 ? PrismaAdapter(prisma) : undefined,
   providers,
+  trustHost: true, // Trust the host header (needed for Vercel)
   callbacks: {
     async signIn({ user, account }) {
       // Only process OAuth providers (skip email/password if added later)
