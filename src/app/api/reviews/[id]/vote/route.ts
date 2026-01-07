@@ -136,6 +136,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       data: result,
     })
   } catch (error) {
+     
     console.error('Vote error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to submit vote' } },

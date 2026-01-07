@@ -46,12 +46,14 @@ export async function POST(request: Request) {
   }
 
   try {
+     
     console.log('Starting registry sync...')
     const startTime = Date.now()
     
     const result = await syncRegistry()
     
     const duration = Date.now() - startTime
+     
     console.log(`Sync completed in ${duration}ms: ${result.synced} servers synced, ${result.errors.length} errors`)
 
     return NextResponse.json({
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
       duration,
     })
   } catch (error) {
+     
     console.error('Sync error:', error)
     return NextResponse.json(
       { 

@@ -143,6 +143,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: rating })
   } catch (error) {
+     
     console.error('Rating error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to submit rating' } },

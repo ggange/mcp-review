@@ -119,6 +119,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ data: { success: true } })
   } catch (error) {
+     
     console.error('Review delete error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to delete review' } },
@@ -280,6 +281,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ data: updatedRating })
   } catch (error) {
+     
     console.error('Review update error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to update review' } },

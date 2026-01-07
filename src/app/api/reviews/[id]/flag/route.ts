@@ -73,6 +73,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const FLAG_THRESHOLD = 3
 
     // Check if user has already flagged this review
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingFlag = await (prisma as any).reviewFlag.findUnique({
       where: {
         ratingId_userId: {
@@ -92,6 +93,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Create the flag and update the count in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create the flag entry
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (tx as any).reviewFlag.create({
         data: {
           ratingId: id,
@@ -100,6 +102,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       })
 
       // Count total flags for this review
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const flagCount = await (tx as any).reviewFlag.count({
         where: { ratingId: id },
       })
@@ -135,6 +138,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
+     
     console.error('Flag error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to flag review' } },

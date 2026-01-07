@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       totalPages: result.totalPages,
     })
   } catch (error) {
+     
     console.error('API error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch servers' } },
@@ -136,6 +137,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: server }, { status: 201 })
   } catch (error) {
+     
     console.error('Server upload error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to upload server' } },

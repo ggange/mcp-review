@@ -84,6 +84,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
+     
     console.error('API error:', error)
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch server' } },
