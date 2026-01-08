@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import { Github } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { getAvatarColor } from '@/lib/utils'
 import type { ServerWithRatings } from '@/types'
@@ -89,6 +91,18 @@ export function ServerCard({ server }: ServerCardProps) {
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   {toolsCount} {toolsCount === 1 ? 'tool' : 'tools'}
                 </Badge>
+              )}
+              {server.repositoryUrl && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-border text-muted-foreground">
+                      <Github />
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>GitHub repository available</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
               {server.version && (
                 <Badge variant="outline" className="border-border text-muted-foreground">
