@@ -1,7 +1,11 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { SearchBar } from '@/components/search-bar'
 import { ServerGridSkeleton } from '@/components/server/server-card-skeleton'
 import { ServerList } from '@/components/server/server-tabs'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { 
   queryServers, 
   getCategoryCounts, 
@@ -69,7 +73,7 @@ async function ServerListWrapper({
 
   // Fetch servers and category counts together
   const [serverData, categoryCounts] = await Promise.all([
-    queryServers({ ...queryOptions, limit: 20 }),
+    queryServers({ ...queryOptions, limit: 12 }),
     getCategoryCounts(sourceFilter, { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
   ])
 
@@ -97,14 +101,36 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
-      <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          MCP Review
+      <Card className="mb-12 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
+        <CardContent className="pt-6 text-center">
+          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            MCP Review
           </h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Discover, rate, and review Model Context Protocol servers. <br /> Find the best MCP servers for your AI workflows.
+          <p className="mx-auto mb-6 max-w-2xl text-lg text-muted-foreground">
+            Discover, rate, and review Model Context Protocol servers. <br /> 
+            <span className="font-medium text-foreground">Upload your own servers and get feedback from the community.</span>
           </p>
-        </div>
+          <Link href="/auth/signin">
+            <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
+              Upload your MCP server
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Top Picks of the Week */}
+      <Card className="mb-12">
+        <CardContent className="py-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-left text-base font-semibold text-foreground">
+              Top Picks of the Week
+            </h2>
+            <Badge variant="outline" className="text-xs">
+              Coming soon
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search */}
       <div className="mx-auto mb-8 max-w-xl">

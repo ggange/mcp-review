@@ -511,7 +511,7 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
           <Button
             type="submit"
             disabled={isPending || isUploadingIcon}
-            className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600"
+            className="w-full bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600"
           >
             {isPending || isUploadingIcon ? (
               <span className="flex items-center gap-2">

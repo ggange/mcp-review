@@ -15,7 +15,7 @@ export default function SignInPage() {
             Sign in to MCP Review
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Rate and review MCP servers with your account. <br /> We require a GitHub account to limit abuse and give you the most fair experience.
+            Upload, rate and review MCP servers. <br /> We require a GitHub account to limit abuse and give you the most fair experience.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

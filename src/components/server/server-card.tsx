@@ -96,7 +96,7 @@ export function ServerCard({ server }: ServerCardProps) {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Registry servers from the{' '}
+                      From {' '}
                       <a 
                         href="https://registry.modelcontextprotocol.io" 
                         target="_blank" 
@@ -104,7 +104,7 @@ export function ServerCard({ server }: ServerCardProps) {
                         className="underline hover:text-violet-600 dark:hover:text-violet-200"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        official MCP registry
+                        MCP registry
                       </a>
                     </p>
                   </TooltipContent>

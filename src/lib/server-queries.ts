@@ -37,14 +37,25 @@ export interface ServerQueryOptions {
 /**
  * Get order by clause for sorting
  */
-export function getOrderBy(sort: SortOption) {
+export function getOrderBy(sort: SortOption, prioritizeUserUploads: boolean = false) {
+  // Base ordering for most-reviewed (default)
+  const mostReviewedOrder = [
+    { totalRatings: 'desc' as const },
+    { combinedScore: 'desc' as const },
+    { name: 'asc' as const },
+  ]
+
   switch (sort) {
     case 'most-reviewed':
-      return [
-        { totalRatings: 'desc' as const },
-        { combinedScore: 'desc' as const },
-        { name: 'asc' as const },
-      ]
+      // When prioritizing user uploads, add source ordering first
+      // Note: 'user' comes after 'registry' alphabetically, so we use desc to reverse
+      if (prioritizeUserUploads) {
+        return [
+          { source: 'desc' as const }, // 'user' > 'registry' in desc order
+          ...mostReviewedOrder,
+        ]
+      }
+      return mostReviewedOrder
     case 'top-rated':
       return [
         { combinedScore: 'desc' as const },
@@ -60,11 +71,7 @@ export function getOrderBy(sort: SortOption) {
         { name: 'asc' as const },
       ]
     default:
-      return [
-        { totalRatings: 'desc' as const },
-        { combinedScore: 'desc' as const },
-        { name: 'asc' as const },
-      ]
+      return mostReviewedOrder
   }
 }
 
@@ -166,7 +173,10 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
   const sort = options.sort ?? 'most-reviewed'
   
   const where = buildWhereClause(options)
-  const orderBy = getOrderBy(sort)
+  
+  // Prioritize user-uploaded servers when using default sort and source is 'all'
+  const prioritizeUserUploads = sort === 'most-reviewed' && (!options.source || options.source === 'all')
+  const orderBy = getOrderBy(sort, prioritizeUserUploads)
 
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
