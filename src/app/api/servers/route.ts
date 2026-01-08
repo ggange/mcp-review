@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       maxRating: searchParams.get('maxRating') ? parseFloat(searchParams.get('maxRating')!) : undefined,
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
+      hasGithub: searchParams.get('hasGithub') === 'true',
       page: Math.max(1, parseInt(searchParams.get('page') || '1')),
       source: 'all',
       limit: 20,

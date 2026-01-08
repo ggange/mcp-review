@@ -11,7 +11,12 @@ function getSearchParam(params: URLSearchParams, key: string): string {
   return params.get(key) || ''
 }
 
-export function AdvancedFilters() {
+interface AdvancedFiltersProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function AdvancedFilters({ open, onOpenChange }: AdvancedFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -56,6 +61,12 @@ export function AdvancedFilters() {
       // Preserve minRating if not being updated (from simple filter dropdown)
       if (!('minRating' in updates) && currentMinRating) {
         params.set('minRating', currentMinRating)
+      }
+      
+      // Preserve hasGithub if not being updated
+      const hasGithub = searchParams.get('hasGithub')
+      if (!('hasGithub' in updates) && hasGithub) {
+        params.set('hasGithub', hasGithub)
       }
       
       // Apply updates
@@ -122,7 +133,11 @@ export function AdvancedFilters() {
     (currentMinRating && !['0', '3', '4', '4.5'].includes(currentMinRating)))
 
   return (
-    <Collapsible title="Advanced Filters" defaultOpen={hasActiveFilters}>
+    <Collapsible 
+      open={open} 
+      onOpenChange={onOpenChange} 
+      defaultOpen={open === undefined ? hasActiveFilters : undefined}
+    >
       <div className="space-y-6 py-4">
         {/* Date Range Filter */}
         <div className="space-y-2">

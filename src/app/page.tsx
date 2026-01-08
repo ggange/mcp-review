@@ -19,6 +19,7 @@ interface HomePageProps {
     maxRating?: string
     dateFrom?: string
     dateTo?: string
+    hasGithub?: string
   }>
 }
 
@@ -30,7 +31,8 @@ async function ServerTabsWrapper({
   minRating,
   maxRating,
   dateFrom,
-  dateTo
+  dateTo,
+  hasGithub
 }: { 
   search?: string
   category?: string
@@ -40,6 +42,7 @@ async function ServerTabsWrapper({
   maxRating?: number
   dateFrom?: string
   dateTo?: string
+  hasGithub?: boolean
 }) {
   // Ensure servers exist (sync if empty)
   await ensureServersExist()
@@ -54,14 +57,15 @@ async function ServerTabsWrapper({
     maxRating,
     dateFrom,
     dateTo,
+    hasGithub,
   }
 
   // Fetch registry and user servers in parallel using shared query logic
   const [registryData, userData, registryCounts, userCounts] = await Promise.all([
     queryServers({ ...queryOptions, source: 'registry', limit: 12 }),
     queryServers({ ...queryOptions, source: 'user', limit: 20 }),
-    getCategoryCounts('registry', { search, minRating, maxRating, dateFrom, dateTo }),
-    getCategoryCounts('user', { search, minRating, maxRating, dateFrom, dateTo }),
+    getCategoryCounts('registry', { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
+    getCategoryCounts('user', { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
   ])
 
   return (
@@ -84,6 +88,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const maxRating = params.maxRating ? parseFloat(params.maxRating) : undefined
   const dateFrom = params.dateFrom
   const dateTo = params.dateTo
+  const hasGithub = params.hasGithub === 'true'
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -116,6 +121,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             maxRating={maxRating}
             dateFrom={dateFrom}
             dateTo={dateTo}
+            hasGithub={hasGithub}
           />
         </Suspense>
       </div>

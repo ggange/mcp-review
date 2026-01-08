@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { ChevronDown } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -8,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { AdvancedFilters } from './advanced-filters'
 
 type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
@@ -33,8 +37,17 @@ export function SortFilterControls() {
   
   const currentSort = (searchParams.get('sort') || 'most-reviewed') as SortOption
   const currentMinRating = (searchParams.get('minRating') || '0') as MinRatingOption
+  const currentHasGithub = searchParams.get('hasGithub') === 'true'
   const currentSearch = searchParams.get('q') || ''
   const currentCategory = searchParams.get('category') || 'all'
+  
+  // Check if advanced filters are active to determine default open state
+  const currentDateFrom = searchParams.get('dateFrom')
+  const currentDateTo = searchParams.get('dateTo')
+  const currentMaxRating = searchParams.get('maxRating')
+  const hasActiveFilters = !!(currentDateFrom || currentDateTo || currentMaxRating || 
+    (currentMinRating && !['0', '3', '4', '4.5'].includes(currentMinRating)))
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(hasActiveFilters)
 
   const updateParams = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams()
@@ -50,6 +63,12 @@ export function SortFilterControls() {
     if (dateFrom) params.set('dateFrom', dateFrom)
     if (dateTo) params.set('dateTo', dateTo)
     if (maxRating) params.set('maxRating', maxRating)
+    
+    // Preserve hasGithub if not being updated
+    if (!('hasGithub' in updates)) {
+      const hasGithub = searchParams.get('hasGithub')
+      if (hasGithub) params.set('hasGithub', hasGithub)
+    }
     
     // Apply updates
     Object.entries(updates).forEach(([key, value]) => {
@@ -72,6 +91,10 @@ export function SortFilterControls() {
 
   const handleMinRatingChange = (value: MinRatingOption) => {
     updateParams({ minRating: value })
+  }
+
+  const handleHasGithubChange = (checked: boolean) => {
+    updateParams({ hasGithub: checked ? 'true' : null })
   }
 
   return (
@@ -112,9 +135,37 @@ export function SortFilterControls() {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="has-github-checkbox" className="text-sm text-muted-foreground whitespace-nowrap cursor-pointer">
+            GitHub Repository
+          </label>
+          <input
+            type="checkbox"
+            id="has-github-checkbox"
+            checked={currentHasGithub}
+            onChange={(e) => handleHasGithubChange(e.target.checked)}
+            className="h-4 w-4 rounded border-border text-violet-600 focus:ring-violet-500 focus:ring-offset-0"
+          />
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsAdvancedFiltersOpen(!isAdvancedFiltersOpen)}
+          className="h-8 gap-1.5"
+        >
+          Advanced Filters
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 transition-transform duration-200",
+              isAdvancedFiltersOpen && "rotate-180"
+            )}
+          />
+        </Button>
       </div>
       
-      <AdvancedFilters />
+      <AdvancedFilters open={isAdvancedFiltersOpen} onOpenChange={setIsAdvancedFiltersOpen} />
     </div>
   )
 }

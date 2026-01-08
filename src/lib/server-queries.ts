@@ -31,6 +31,7 @@ export interface ServerQueryOptions {
   dateTo?: string
   source?: 'registry' | 'user' | 'all'
   limit?: number
+  hasGithub?: boolean
 }
 
 /**
@@ -117,6 +118,11 @@ export function buildWhereClause(options: ServerQueryOptions): ServerWhereInput 
       toDate.setHours(23, 59, 59, 999)
       where.createdAt.lte = toDate
     }
+  }
+
+  // GitHub repository filter
+  if (options.hasGithub === true) {
+    where.repositoryUrl = { not: null }
   }
 
   return where
