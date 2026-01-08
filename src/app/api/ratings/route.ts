@@ -66,12 +66,20 @@ export async function POST(request: Request) {
     // Check if server exists
     const server = await prisma.server.findUnique({
       where: { id: serverId },
-    })
+    }) as any
 
     if (!server) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Server not found' } },
         { status: 404 }
+      )
+    }
+
+    // Prevent users from rating their own servers
+    if (server.source === 'user' && server.userId && server.userId === session.user.id) {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'You cannot rate your own server' } },
+        { status: 403 }
       )
     }
 

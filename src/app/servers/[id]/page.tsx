@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
+import { ServerActions } from '@/components/server/server-actions'
 
 interface ServerPageProps {
   params: Promise<{ id: string }>
@@ -115,25 +116,50 @@ export default async function ServerPage({ params }: ServerPageProps) {
           <Card className="border-border bg-card">
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
-                <div
-                  className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${avatarColor}`}
-                >
-                  <span className="text-3xl font-bold text-white">
-                    {server.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                {server.iconUrl ? (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border">
+                    <img
+                      src={server.iconUrl}
+                      alt={server.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${avatarColor}`}
+                  >
+                    <span className="text-3xl font-bold text-white">
+                      {server.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
                       <h1 className="text-2xl font-bold text-card-foreground">{server.name}</h1>
-                      <p className="mt-1 text-muted-foreground">by {server.organization}</p>
+                      {server.source === 'user' ? (
+                        <p className="mt-1 text-muted-foreground">
+                          {(server as any).authorUsername && (
+                            <span className="ml-1">@{(server as any).authorUsername}</span>
+                          )}
+                          {server.organization 
+                            ? ` (${server.organization})`
+                            : ' '
+                          }
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-muted-foreground">by {server.organization}</p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {server.version && (
                         <Badge variant="outline" className="border-border text-muted-foreground">
                           v{server.version}
                         </Badge>
+                      )}
+                      {session?.user?.id && (server as any).userId === session.user.id && server.source === 'user' && (
+                        <ServerActions serverId={server.id} />
                       )}
                     </div>
                   </div>
@@ -171,6 +197,39 @@ export default async function ServerPage({ params }: ServerPageProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Tools */}
+          {server.tools && Array.isArray(server.tools) && server.tools.length > 0 && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-card-foreground">Tools</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {(server.tools as Array<{ name: string; description: string }>).map((tool, idx) => (
+                    <div key={idx} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                      <h4 className="text-base font-semibold text-card-foreground mb-1">{tool.name}</h4>
+                      <p className="text-sm text-muted-foreground">{tool.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Usage Tips */}
+          {server.usageTips && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-card-foreground">Usage Tips & Suggestions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-card-foreground whitespace-pre-wrap break-words leading-relaxed text-base">
+                  {server.usageTips}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Technical Details */}
           {(server.packages || server.remotes) && (
@@ -228,8 +287,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardContent>
           </Card>
 
-          {/* Rating Form - only show if user hasn't rated yet or isn't logged in */}
-          {!userRating && (
+          {/* Rating Form - only show if user hasn't rated yet, isn't logged in, and doesn't own the server */}
+          {!userRating && !(session?.user?.id && server.source === 'user' && (server as any).userId === session.user.id) && (
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">
@@ -251,6 +310,24 @@ export default async function ServerPage({ params }: ServerPageProps) {
                     </Link>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Show message if user owns the server */}
+          {session?.user?.id && server.source === 'user' && (server as any).userId === session.user.id && (
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-card-foreground">
+                  Rate This Server
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    You cannot rate your own server
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}

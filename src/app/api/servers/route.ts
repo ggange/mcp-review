@@ -98,10 +98,40 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, organization, description, version, repositoryUrl } = validationResult.data
+    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category } = validationResult.data
 
-    // Generate server ID in format: organization/name
-    const serverId = `${organization}/${name}`
+    // Get GitHub username for author
+    let authorUsername: string | null = null
+    const githubAccount = await prisma.account.findFirst({
+      where: {
+        userId: session.user.id,
+        provider: 'github',
+      },
+      select: {
+        access_token: true,
+      },
+    })
+
+    if (githubAccount?.access_token) {
+      try {
+        const response = await fetch('https://api.github.com/user', {
+          headers: {
+            Authorization: `token ${githubAccount.access_token}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        })
+
+        if (response.ok) {
+          const githubUser = await response.json()
+          authorUsername = githubUser.login
+        }
+      } catch (error) {
+        console.error('Failed to fetch GitHub username:', error)
+      }
+    }
+
+    // Generate server ID in format: organization/name or just name if no organization
+    const serverId = organization ? `${organization}/${name}` : name
 
     // Check if server already exists
     const existingServer = await prisma.server.findUnique({
@@ -110,28 +140,33 @@ export async function POST(request: Request) {
 
     if (existingServer) {
       return NextResponse.json(
-        { error: { code: 'CONFLICT', message: 'Server with this name and organization already exists' } },
+        { error: { code: 'CONFLICT', message: organization ? 'Server with this name and organization already exists' : 'Server with this name already exists' } },
         { status: 409 }
       )
     }
 
-    // Categorize server based on description
-    const category = categorizeServer(description || null)
+    // Use provided category or fall back to auto-categorization
+    const finalCategory = category || categorizeServer(description || null)
 
     // Create server
     const server = await prisma.server.create({
       data: {
         id: serverId,
         name,
-        organization,
+        organization: organization || null,
         description: description || null,
+        tools: tools ? (tools as Prisma.InputJsonValue) : Prisma.JsonNull,
+        usageTips: usageTips || null,
+        iconUrl: iconUrl || null,
         version: version || null,
         repositoryUrl: repositoryUrl || null,
         packages: Prisma.JsonNull,
         remotes: Prisma.JsonNull,
-        category,
+        category: finalCategory,
         source: 'user',
         syncedAt: new Date(),
+        userId: session.user.id,
+        authorUsername,
       },
     })
 

@@ -17,6 +17,11 @@ const mockServer = {
   category: 'search',
   syncedAt: new Date(),
   source: 'registry' as const,
+  iconUrl: null,
+  tools: null,
+  usageTips: null,
+  userId: null,
+  authorUsername: null,
 }
 
 describe('ServerCard', () => {

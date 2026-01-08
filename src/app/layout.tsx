@@ -19,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'MCP Review',
   description: 'Discover, rate, and review Model Context Protocol servers',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({
@@ -36,11 +39,13 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
         </Providers>
-        <Script
-          src="https://cloud.umami.is/script.js"
-          data-website-id="f83a6e52-9686-4064-9ecd-bef84e8d07ed"
-          strategy="afterInteractive"
-        />
+        {process.env.NODE_ENV === 'production' && (
+          <Script
+            src="https://cloud.umami.is/script.js"
+            data-website-id="f83a6e52-9686-4064-9ecd-bef84e8d07ed"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   )

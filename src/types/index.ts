@@ -44,7 +44,7 @@ export interface MCPRegistryResponse {
 export interface ServerWithRatings {
   id: string
   name: string
-  organization: string
+  organization: string | null
   description: string | null
   version: string | null
   repositoryUrl: string | null
@@ -56,6 +56,11 @@ export interface ServerWithRatings {
   category: string | null
   syncedAt: Date
   source: 'registry' | 'user'
+  iconUrl: string | null
+  tools: Array<{ name: string; description: string }> | null
+  usageTips: string | null
+  userId: string | null
+  authorUsername: string | null
 }
 
 export interface RatingInput {

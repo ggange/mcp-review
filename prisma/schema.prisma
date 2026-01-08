@@ -46,6 +46,7 @@ model User {
   ratings       Rating[]
   reviewVotes   ReviewVote[]
   reviewFlags   ReviewFlag[]
+  servers       Server[]     // Servers created by this user
 }
 
 model VerificationToken {
@@ -60,7 +61,7 @@ model VerificationToken {
 model Server {
   id                 String   @id
   name               String
-  organization       String
+  organization       String?  // Optional organization
   description        String?  @db.Text
   version            String?
   repositoryUrl      String?
@@ -80,8 +81,14 @@ model Server {
   createdAt          DateTime @default(now())
   syncedAt           DateTime @default(now())
   source             String   @default("registry") // "registry" | "user"
+  iconUrl            String?  // URL to custom icon stored in R2
+  tools              Json?    // Array of {name: string, description: string} objects
+  usageTips          String?  @db.Text // Optional usage tips and suggestions
+  userId             String?  // User who created this server (for user-uploaded servers)
+  authorUsername     String?  // GitHub username of the author (for display)
 
   ratings            Rating[]
+  user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([name])
   @@index([organization])

@@ -143,6 +143,11 @@ export const serverSelectFields = {
   createdAt: true,
   syncedAt: true,
   source: true,
+  iconUrl: true,
+  tools: true,
+  usageTips: true,
+  userId: true,
+  authorUsername: true,
 } as const
 
 /**

@@ -55,16 +55,29 @@ export const reviewUpdateSchema = z.object({
   usefulness: z.number().int().min(1).max(5).optional(),
 })
 
+const toolSchema = z.object({
+  name: z.string()
+    .min(1, 'Tool name is required')
+    .max(100, 'Tool name is too long'),
+  description: z.string()
+    .min(1, 'Tool description is required')
+    .max(500, 'Tool description is too long'),
+})
+
 export const serverUploadSchema = z.object({
   name: z.string()
     .min(1, 'Server name is required')
     .max(100, 'Server name is too long')
     .regex(SAFE_NAME_PATTERN, 'Server name can only contain letters, numbers, hyphens, underscores, and dots. Must start with a letter or number.'),
   organization: z.string()
-    .min(1, 'Organization is required')
     .max(100, 'Organization name is too long')
-    .regex(SAFE_NAME_PATTERN, 'Organization can only contain letters, numbers, hyphens, underscores, and dots. Must start with a letter or number.'),
-  description: sanitizedText.pipe(z.string().max(2000)).nullable().optional(),
+    .regex(SAFE_NAME_PATTERN, 'Organization can only contain letters, numbers, hyphens, underscores, and dots. Must start with a letter or number.')
+    .nullable()
+    .optional(),
+  description: sanitizedText.pipe(z.string().min(1, 'Description is required').max(2000)),
+  tools: z.array(toolSchema)
+    .min(1, 'At least one tool is required'),
+  usageTips: sanitizedText.pipe(z.string().max(2000)).nullable().optional(),
   version: z.string()
     .max(50, 'Version is too long')
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._+-]*$/, 'Invalid version format')
@@ -86,6 +99,12 @@ export const serverUploadSchema = z.object({
       { message: 'Repository URL must use HTTPS' }
     )
     .nullable()
+    .optional(),
+  iconUrl: z.string()
+    .url('Invalid icon URL')
+    .nullable()
+    .optional(),
+  category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
 })
 

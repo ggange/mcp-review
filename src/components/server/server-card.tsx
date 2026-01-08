@@ -12,26 +12,55 @@ interface ServerCardProps {
 export function ServerCard({ server }: ServerCardProps) {
   const initial = server.name.charAt(0).toUpperCase()
   const avatarColor = getAvatarColor(server.name)
+  const isUserUploaded = server.source === 'user'
+  const toolsCount = server.tools && Array.isArray(server.tools) ? server.tools.length : 0
+
+  // Different styling for user-uploaded servers
+  const cardClassName = isUserUploaded
+    ? "group h-full cursor-pointer border-2 border-dashed border-violet-500/30 bg-card/50 transition-all hover:border-violet-500/50 hover:shadow-md"
+    : "group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md"
 
   return (
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
-      <Card className="group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md">
+      <Card className={cardClassName}>
         <CardHeader className="pb-3 overflow-hidden">
           <div className="flex items-start gap-4 w-full min-w-0">
-            {/* Avatar placeholder */}
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor}`}
-            >
-              <span className="text-xl font-bold text-white">{initial}</span>
-            </div>
+            {/* Icon or Avatar */}
+            {server.iconUrl ? (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border">
+                <img
+                  src={server.iconUrl}
+                  alt={server.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor}`}
+              >
+                <span className="text-xl font-bold text-white">{initial}</span>
+              </div>
+            )}
             
             <div className="min-w-0 flex-1 overflow-hidden">
               <h3 className="truncate text-lg font-semibold text-card-foreground group-hover:text-foreground">
                 {server.name}
               </h3>
-              <p className="truncate text-sm text-muted-foreground">
-                by {server.organization}
-              </p>
+              {isUserUploaded ? (
+                <p className="truncate text-sm text-muted-foreground">
+                  {server.authorUsername && (
+                    <span className="ml-1">@{server.authorUsername}</span>
+                  )}
+                  {server.organization 
+                    ? ` (${server.organization})`
+                    : ``
+                  }
+                </p>
+              ) : (
+                <p className="truncate text-sm text-muted-foreground">
+                  by {server.organization}
+                </p>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -56,6 +85,11 @@ export function ServerCard({ server }: ServerCardProps) {
             />
             
             <div className="flex gap-2">
+              {toolsCount > 0 && (
+                <Badge variant="outline" className="border-border text-muted-foreground">
+                  {toolsCount} {toolsCount === 1 ? 'tool' : 'tools'}
+                </Badge>
+              )}
               {server.version && (
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   v{server.version}

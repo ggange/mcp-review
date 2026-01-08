@@ -8,6 +8,7 @@ import { SortFilterControls } from './sort-filter-controls'
 import { Pagination } from './pagination'
 import { SoonPlaceholder } from '@/components/soon-placeholder'
 import type { ServerWithRatings } from '@/types'
+import Link from 'next/link'
 
 interface PaginatedData {
   servers: ServerWithRatings[]
@@ -38,6 +39,10 @@ export function ServerTabs({ registryData, userData, registryCounts, userCounts 
       </TabsList>
       
       <TabsContent value="registry" className="mt-0">
+          <div className="mb-4 rounded-md bg-violet-100 dark:bg-violet-900/50 px-4 py-2 text-sm font-medium text-violet-900 dark:text-violet-200 border border-violet-200 dark:border-violet-700 shadow-sm flex items-center gap-2">
+            <svg className="h-4 w-4 text-violet-600 dark:text-violet-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01" /></svg>
+            Registry servers from the <Link href="https://registry.modelcontextprotocol.io" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">official MCP registry</Link>
+          </div>
         <CategoryFilter 
           categoryCounts={registryCounts} 
           source="registry"
