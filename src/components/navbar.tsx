@@ -23,7 +23,7 @@ export async function Navbar() {
         <div className="flex items-center gap-4">
           <Link href="/about">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              Our Mission
+              About us
             </Button>
           </Link>
           {session?.user ? (
