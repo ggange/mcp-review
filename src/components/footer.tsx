@@ -10,7 +10,7 @@ export function Footer() {
               Home
             </Link>
             <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Our Mission
+              About us
             </Link>
           </div>
           <div className="text-sm text-muted-foreground">
