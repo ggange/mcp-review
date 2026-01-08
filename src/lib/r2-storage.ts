@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 
 // R2 is compatible with S3 API
 const r2Client = new S3Client({
@@ -17,7 +17,7 @@ const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'mcp-server-icons'
  * @param file - File buffer or Uint8Array
  * @param key - Object key (path) in the bucket
  * @param contentType - MIME type of the file
- * @returns Public URL of the uploaded file
+ * @returns Proxy URL for accessing the file through Next.js API route
  */
 export async function uploadToR2(
   file: Buffer | Uint8Array,
@@ -37,17 +37,39 @@ export async function uploadToR2(
 
   await r2Client.send(command)
 
-  // Return public URL
-  const publicUrl = process.env.R2_PUBLIC_URL
-  if (!publicUrl) {
-    throw new Error('R2_PUBLIC_URL is not configured')
+  // Return proxy URL (bucket stays private)
+  // The key will be URL-encoded in the API route
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+  const cleanKey = key.startsWith('/') ? key.slice(1) : key
+  
+  // URL encode the key to handle special characters
+  const encodedKey = encodeURIComponent(cleanKey)
+  
+  return `${cleanBaseUrl}/api/icons/${encodedKey}`
+}
+
+/**
+ * Get an object from R2 storage
+ * @param key - Object key (path) in the bucket
+ * @returns Object with Body stream and ContentType
+ */
+export async function getFromR2(key: string): Promise<{ Body: ReadableStream<Uint8Array> | undefined; ContentType?: string }> {
+  if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
+    throw new Error('R2 credentials are not configured')
   }
 
-  // Ensure publicUrl doesn't end with / and key doesn't start with /
-  const cleanUrl = publicUrl.replace(/\/$/, '')
-  const cleanKey = key.startsWith('/') ? key.slice(1) : key
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  })
 
-  return `${cleanUrl}/${cleanKey}`
+  const response = await r2Client.send(command)
+  
+  return {
+    Body: response.Body as ReadableStream<Uint8Array> | undefined,
+    ContentType: response.ContentType,
+  }
 }
 
 /**

@@ -233,10 +233,25 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Delete icon from R2 if it exists
     if (server.iconUrl) {
       try {
-        // Extract key from URL (assuming format: {R2_PUBLIC_URL}/icons/{key})
-        const urlParts = server.iconUrl.split('/icons/')
-        if (urlParts.length > 1) {
-          const key = `icons/${urlParts[1]}`
+        // Extract key from proxy URL (format: /api/icons/{encodedKey})
+        // The key is URL-encoded in the proxy URL
+        // Also handle legacy format for backward compatibility
+        let key: string | null = null
+        
+        // Try new proxy URL format first
+        const proxyParts = server.iconUrl.split('/api/icons/')
+        if (proxyParts.length > 1) {
+          const encodedKey = proxyParts[1]
+          key = decodeURIComponent(encodedKey)
+        } else {
+          // Fallback to legacy format (for existing data)
+          const legacyParts = server.iconUrl.split('/icons/')
+          if (legacyParts.length > 1) {
+            key = `icons/${legacyParts[1]}`
+          }
+        }
+        
+        if (key && key.startsWith('icons/')) {
           await deleteFromR2(key)
         }
       } catch (error) {

@@ -113,7 +113,7 @@ export function ServerCard({ server }: ServerCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="border-border text-muted-foreground">
-                      From MCP Review Users
+                      User
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
