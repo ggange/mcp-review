@@ -213,7 +213,7 @@ export async function ensureServersExist(): Promise<void> {
  * Get category counts for servers
  */
 export async function getCategoryCounts(
-  source: 'registry' | 'user',
+  source: 'registry' | 'user' | 'all' = 'all',
   options?: Omit<ServerQueryOptions, 'source' | 'category' | 'page' | 'limit' | 'sort'>
 ): Promise<Record<string, number>> {
   const baseWhere = buildWhereClause({ ...options, source })

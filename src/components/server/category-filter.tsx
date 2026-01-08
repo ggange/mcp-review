@@ -6,7 +6,6 @@ import { getCategoryDisplayName, getCategories} from '@/lib/server-categories'
 
 interface CategoryFilterProps {
   categoryCounts?: Record<string, number>
-  source: 'registry' | 'user'
 }
 
 export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
@@ -22,6 +21,38 @@ export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
     // Preserve search query
     if (currentSearch) {
       params.set('q', currentSearch)
+    }
+    
+    // Preserve source filter
+    const currentSource = searchParams.get('source')
+    if (currentSource && currentSource !== 'all') {
+      params.set('source', currentSource)
+    }
+    
+    // Preserve other filters
+    const sort = searchParams.get('sort')
+    if (sort && sort !== 'most-reviewed') {
+      params.set('sort', sort)
+    }
+    const minRating = searchParams.get('minRating')
+    if (minRating && minRating !== '0') {
+      params.set('minRating', minRating)
+    }
+    const maxRating = searchParams.get('maxRating')
+    if (maxRating) {
+      params.set('maxRating', maxRating)
+    }
+    const dateFrom = searchParams.get('dateFrom')
+    if (dateFrom) {
+      params.set('dateFrom', dateFrom)
+    }
+    const dateTo = searchParams.get('dateTo')
+    if (dateTo) {
+      params.set('dateTo', dateTo)
+    }
+    const hasGithub = searchParams.get('hasGithub')
+    if (hasGithub) {
+      params.set('hasGithub', hasGithub)
     }
     
     // Set category (or remove if 'all')
@@ -43,24 +74,26 @@ export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
 
   return (
     <Tabs value={currentCategory} onValueChange={handleCategoryChange} className="w-full mb-6">
-      <TabsList className="flex-wrap h-auto p-1">
-        <TabsTrigger value="all" className="data-[state=active]:bg-background">
-          All {categoryCounts && categoryCounts.total !== undefined && `(${categoryCounts.total})`}
-        </TabsTrigger>
-        {categories.map((category) => {
-          const count = categoryCounts?.[category]
-          return (
-            <TabsTrigger
-              key={category}
-              value={category}
-              className="data-[state=active]:bg-background"
-            >
-              {getCategoryDisplayName(category)}
-              {count !== undefined && ` (${count})`}
-            </TabsTrigger>
-          )
-        })}
-      </TabsList>
+      <div className="flex justify-center">
+        <TabsList className="flex-wrap h-auto p-1 justify-center">
+          <TabsTrigger value="all" className="data-[state=active]:bg-background">
+            All {categoryCounts && categoryCounts.total !== undefined && `(${categoryCounts.total})`}
+          </TabsTrigger>
+          {categories.map((category) => {
+            const count = categoryCounts?.[category]
+            return (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="data-[state=active]:bg-background"
+              >
+                {getCategoryDisplayName(category)}
+                {count !== undefined && ` (${count})`}
+              </TabsTrigger>
+            )
+          })}
+        </TabsList>
+      </div>
     </Tabs>
   )
 }

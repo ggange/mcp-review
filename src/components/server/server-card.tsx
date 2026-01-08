@@ -1,3 +1,5 @@
+"use client"
+
 import Link from 'next/link'
 import { Github } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -17,10 +19,7 @@ export function ServerCard({ server }: ServerCardProps) {
   const isUserUploaded = server.source === 'user'
   const toolsCount = server.tools && Array.isArray(server.tools) ? server.tools.length : 0
 
-  // Different styling for user-uploaded servers
-  const cardClassName = isUserUploaded
-    ? "group h-full cursor-pointer border-2 border-dashed border-violet-500/30 bg-card/50 transition-all hover:border-violet-500/50 hover:shadow-md"
-    : "group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md"
+  const cardClassName = "group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md"
 
   return (
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
@@ -87,6 +86,41 @@ export function ServerCard({ server }: ServerCardProps) {
             />
             
             <div className="flex gap-2">
+              {/* Source badge */}
+              {server.source === 'registry' ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300">
+                      MCP Registry
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Registry servers from the{' '}
+                      <a 
+                        href="https://registry.modelcontextprotocol.io" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="underline hover:text-violet-600 dark:hover:text-violet-200"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        official MCP registry
+                      </a>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-border text-muted-foreground">
+                      From MCP Review Users
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Server uploaded by users on MCP Review</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {toolsCount > 0 && (
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   {toolsCount} {toolsCount === 1 ? 'tool' : 'tools'}

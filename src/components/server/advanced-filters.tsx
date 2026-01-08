@@ -58,6 +58,12 @@ export function AdvancedFilters({ open, onOpenChange }: AdvancedFiltersProps) {
       if (currentCategory && currentCategory !== 'all') params.set('category', currentCategory)
       if (currentSort && currentSort !== 'most-reviewed') params.set('sort', currentSort)
       
+      // Preserve source if not being updated
+      const source = searchParams.get('source')
+      if (!('source' in updates) && source && source !== 'all') {
+        params.set('source', source)
+      }
+      
       // Preserve minRating if not being updated (from simple filter dropdown)
       if (!('minRating' in updates) && currentMinRating) {
         params.set('minRating', currentMinRating)

@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { SearchBar } from '@/components/search-bar'
 import { ServerGridSkeleton } from '@/components/server/server-card-skeleton'
-import { ServerTabs } from '@/components/server/server-tabs'
+import { ServerList } from '@/components/server/server-tabs'
 import { 
   queryServers, 
   getCategoryCounts, 
@@ -20,10 +20,11 @@ interface HomePageProps {
     dateFrom?: string
     dateTo?: string
     hasGithub?: string
+    source?: string
   }>
 }
 
-async function ServerTabsWrapper({ 
+async function ServerListWrapper({ 
   search, 
   category, 
   page,
@@ -32,7 +33,8 @@ async function ServerTabsWrapper({
   maxRating,
   dateFrom,
   dateTo,
-  hasGithub
+  hasGithub,
+  source
 }: { 
   search?: string
   category?: string
@@ -43,9 +45,13 @@ async function ServerTabsWrapper({
   dateFrom?: string
   dateTo?: string
   hasGithub?: boolean
+  source?: string
 }) {
   // Ensure servers exist (sync if empty)
   await ensureServersExist()
+
+  // Determine source filter: 'all', 'registry', or 'user'
+  const sourceFilter: 'all' | 'registry' | 'user' = source === 'registry' || source === 'user' ? source : 'all'
 
   // Common query options
   const queryOptions = {
@@ -58,22 +64,19 @@ async function ServerTabsWrapper({
     dateFrom,
     dateTo,
     hasGithub,
+    source: sourceFilter,
   }
 
-  // Fetch registry and user servers in parallel using shared query logic
-  const [registryData, userData, registryCounts, userCounts] = await Promise.all([
-    queryServers({ ...queryOptions, source: 'registry', limit: 12 }),
-    queryServers({ ...queryOptions, source: 'user', limit: 20 }),
-    getCategoryCounts('registry', { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
-    getCategoryCounts('user', { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
+  // Fetch servers and category counts together
+  const [serverData, categoryCounts] = await Promise.all([
+    queryServers({ ...queryOptions, limit: 20 }),
+    getCategoryCounts(sourceFilter, { search, minRating, maxRating, dateFrom, dateTo, hasGithub }),
   ])
 
   return (
-    <ServerTabs
-      registryData={registryData}
-      userData={userData}
-      registryCounts={registryCounts}
-      userCounts={userCounts}
+    <ServerList
+      data={serverData}
+      categoryCounts={categoryCounts}
     />
   )
 }
@@ -89,6 +92,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const dateFrom = params.dateFrom
   const dateTo = params.dateTo
   const hasGithub = params.hasGithub === 'true'
+  const source = params.source
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -109,10 +113,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </Suspense>
       </div>
 
-      {/* Server Tabs */}
+      {/* Server List */}
       <div className="mb-12">
         <Suspense fallback={<ServerGridSkeleton />}>
-          <ServerTabsWrapper 
+          <ServerListWrapper 
             search={q} 
             category={category} 
             page={page} 
@@ -122,6 +126,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             dateFrom={dateFrom}
             dateTo={dateTo}
             hasGithub={hasGithub}
+            source={source}
           />
         </Suspense>
       </div>

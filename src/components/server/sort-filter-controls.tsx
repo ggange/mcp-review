@@ -16,6 +16,7 @@ import { AdvancedFilters } from './advanced-filters'
 
 type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
 type MinRatingOption = '0' | '3' | '4' | '4.5'
+type SourceOption = 'all' | 'registry' | 'user'
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'most-reviewed', label: 'Most Reviewed' },
@@ -31,10 +32,17 @@ const RATING_OPTIONS: { value: MinRatingOption; label: string }[] = [
   { value: '4.5', label: '4.5+ Stars' },
 ]
 
+const SOURCE_OPTIONS: { value: SourceOption; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'registry', label: 'MCP Registry' },
+  { value: 'user', label: 'MCP Review Users' },
+]
+
 export function SortFilterControls() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
+  const currentSource = (searchParams.get('source') || 'all') as SourceOption
   const currentSort = (searchParams.get('sort') || 'most-reviewed') as SortOption
   const currentMinRating = (searchParams.get('minRating') || '0') as MinRatingOption
   const currentHasGithub = searchParams.get('hasGithub') === 'true'
@@ -56,6 +64,13 @@ export function SortFilterControls() {
     if (currentSearch) params.set('q', currentSearch)
     if (currentCategory && currentCategory !== 'all') params.set('category', currentCategory)
     
+    // Preserve source if not being updated
+    if (!('source' in updates)) {
+      if (currentSource && currentSource !== 'all') {
+        params.set('source', currentSource)
+      }
+    }
+    
     // Preserve advanced filter params
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
@@ -72,7 +87,12 @@ export function SortFilterControls() {
     
     // Apply updates
     Object.entries(updates).forEach(([key, value]) => {
-      if (value && value !== '0' && value !== 'most-reviewed') {
+      if (key === 'source') {
+        // For source, omit if 'all', otherwise set it
+        if (value && value !== 'all') {
+          params.set(key, value)
+        }
+      } else if (value && value !== '0' && value !== 'most-reviewed') {
         params.set(key, value)
       } else if (value === null || value === '0' || value === 'most-reviewed') {
         params.delete(key)
@@ -97,9 +117,31 @@ export function SortFilterControls() {
     updateParams({ hasGithub: checked ? 'true' : null })
   }
 
+  const handleSourceChange = (value: SourceOption) => {
+    updateParams({ source: value === 'all' ? null : value })
+  }
+
   return (
     <div className="mb-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 justify-center">
+        <div className="flex items-center gap-2">
+          <label htmlFor="source-select" className="text-sm text-muted-foreground whitespace-nowrap">
+            Source:
+          </label>
+          <Select value={currentSource} onValueChange={handleSourceChange}>
+            <SelectTrigger id="source-select" className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center gap-2">
           <label htmlFor="sort-select" className="text-sm text-muted-foreground whitespace-nowrap">
             Sort:
@@ -148,21 +190,23 @@ export function SortFilterControls() {
             className="h-4 w-4 rounded border-border text-violet-600 focus:ring-violet-500 focus:ring-offset-0"
           />
         </div>
-
+      </div>
+      
+      <div className="flex justify-center">
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsAdvancedFiltersOpen(!isAdvancedFiltersOpen)}
           className="h-8 gap-1.5"
         >
-          Advanced Filters
-          <ChevronDown
-            className={cn(
-              "h-3.5 w-3.5 transition-transform duration-200",
-              isAdvancedFiltersOpen && "rotate-180"
-            )}
-          />
-        </Button>
+        Advanced Filters
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-200",
+            isAdvancedFiltersOpen && "rotate-180"
+          )}
+        />
+      </Button>
       </div>
       
       <AdvancedFilters open={isAdvancedFiltersOpen} onOpenChange={setIsAdvancedFiltersOpen} />
