@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTransition } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCategoryDisplayName, getCategories} from '@/lib/server-categories'
 
@@ -11,11 +12,13 @@ interface CategoryFilterProps {
 export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
   const currentCategory = searchParams.get('category') || 'all'
   const currentSearch = searchParams.get('q') || ''
   const currentPage = searchParams.get('page') || '1'
 
   const handleCategoryChange = (category: string) => {
+    startTransition(() => {
     const params = new URLSearchParams()
     
     // Preserve search query
@@ -67,7 +70,8 @@ export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
       params.set('page', currentPage)
     }
 
-    router.push(`?${params.toString()}`)
+    router.replace(`?${params.toString()}`, { scroll: false })
+    })
   }
 
   const categories = getCategories()
