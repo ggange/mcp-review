@@ -14,6 +14,13 @@ const SAFE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
 const SAFE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/
 
 /**
+ * CUID validation pattern
+ * CUIDs start with 'c' and are typically 25 characters long
+ * Format: c + 24 alphanumeric characters
+ */
+const CUID_PATTERN = /^c[a-z0-9]{24}$/
+
+/**
  * Sanitize text input to remove potentially dangerous HTML/script content
  * Note: React already escapes output, but this provides defense in depth
  */
@@ -106,5 +113,25 @@ export const serverUploadSchema = z.object({
     .optional(),
   category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
+})
+
+/**
+ * Route parameter validation schemas
+ */
+export const reviewIdParamSchema = z.object({
+  id: z.string().regex(CUID_PATTERN, 'Invalid review ID format'),
+})
+
+export const serverIdParamSchema = z.object({
+  id: z.string()
+    .min(1, 'Server ID is required')
+    .max(201, 'Server ID is too long')
+    .refine(
+      (id) => {
+        // Allow CUID format or organization/name format
+        return CUID_PATTERN.test(id) || SAFE_SERVER_ID_PATTERN.test(id)
+      },
+      { message: 'Invalid server ID format' }
+    ),
 })
 

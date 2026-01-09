@@ -89,6 +89,9 @@ export const RATE_LIMITS = {
   // Server uploads: 5 per hour per user
   serverUpload: { limit: 5, windowMs: 60 * 60 * 1000 },
   
+  // Icon uploads: 10 per hour per user
+  iconUpload: { limit: 10, windowMs: 60 * 60 * 1000 },
+  
   // Votes: 30 per minute per user (allow quick voting on multiple reviews)
   votes: { limit: 30, windowMs: 60 * 1000 },
   

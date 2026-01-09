@@ -84,7 +84,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
         setUserVote({ helpful })
         router.refresh()
       } catch (err) {
-        console.error('Vote error:', err)
+        // Error already handled by API response
       } finally {
         setIsVoting(false)
       }
@@ -112,7 +112,6 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
 
         router.refresh()
       } catch (err) {
-        console.error('Flag error:', err)
         alert(err instanceof Error ? err.message : 'Failed to flag review')
       } finally {
         setIsFlagging(false)
@@ -146,7 +145,6 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
 
         router.refresh()
       } catch (err) {
-        console.error('Delete error:', err)
         alert(err instanceof Error ? err.message : 'Failed to delete review')
       } finally {
         setIsDeleting(false)

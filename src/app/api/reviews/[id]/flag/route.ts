@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 
@@ -41,6 +42,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -48,9 +50,18 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const { id } = await params
 
+    // Validate route parameter
+    const paramValidation = reviewIdParamSchema.safeParse({ id })
+    if (!paramValidation.success) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_INPUT', message: 'Invalid review ID format' } },
+        { status: 400 }
+      )
+    }
+
     // Check if rating exists
     const rating = await prisma.rating.findUnique({
-      where: { id },
+      where: { id: paramValidation.data.id },
       select: { userId: true },
     })
 
@@ -77,7 +88,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const existingFlag = await (prisma as any).reviewFlag.findUnique({
       where: {
         ratingId_userId: {
-          ratingId: id,
+          ratingId: paramValidation.data.id,
           userId: session.user.id,
         },
       },
@@ -96,7 +107,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (tx as any).reviewFlag.create({
         data: {
-          ratingId: id,
+          ratingId: paramValidation.data.id,
           userId: session.user.id,
         },
       })
@@ -104,12 +115,12 @@ export async function POST(request: Request, { params }: RouteParams) {
       // Count total flags for this review
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const flagCount = await (tx as any).reviewFlag.count({
-        where: { ratingId: id },
+        where: { ratingId: paramValidation.data.id },
       })
 
       // Update the rating's flag count and potentially its status
       const updatedRating = await tx.rating.update({
-        where: { id },
+        where: { id: paramValidation.data.id },
         data: {
           flagCount,
           // Only auto-flag if threshold is reached and status is still approved
@@ -138,8 +149,9 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
-     
-    console.error('Flag error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Flag error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to flag review' } },
       { status: 500 }

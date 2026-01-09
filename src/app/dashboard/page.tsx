@@ -82,7 +82,9 @@ export default async function DashboardPage() {
       }
     } catch (error) {
       // Silently fail - we'll just not show the profile link
-      console.error('Failed to fetch GitHub username:', error)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch GitHub username:', error instanceof Error ? error.message : 'Unknown error')
+      }
     }
   }
 

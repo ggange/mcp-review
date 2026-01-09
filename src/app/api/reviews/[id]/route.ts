@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { reviewUpdateSchema } from '@/lib/validations'
+import { reviewUpdateSchema, reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 
@@ -42,6 +42,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -49,9 +50,18 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     const { id } = await params
 
+    // Validate route parameter
+    const paramValidation = reviewIdParamSchema.safeParse({ id })
+    if (!paramValidation.success) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_INPUT', message: 'Invalid review ID format' } },
+        { status: 400 }
+      )
+    }
+
     // Check if rating exists and user owns it
     const rating = await prisma.rating.findUnique({
-      where: { id },
+      where: { id: paramValidation.data.id },
       select: { userId: true, serverId: true },
     })
 
@@ -72,7 +82,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Delete the rating (this will cascade delete votes)
     await prisma.rating.delete({
-      where: { id },
+      where: { id: paramValidation.data.id },
     })
 
     // Recalculate server aggregates including combined score
@@ -119,8 +129,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ data: { success: true } })
   } catch (error) {
-     
-    console.error('Review delete error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Review delete error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to delete review' } },
       { status: 500 }
@@ -161,6 +172,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -168,6 +180,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const { id } = await params
     const body = await request.json()
+
+    // Validate route parameter
+    const paramValidation = reviewIdParamSchema.safeParse({ id })
+    if (!paramValidation.success) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_INPUT', message: 'Invalid review ID format' } },
+        { status: 400 }
+      )
+    }
 
     // Validate input
     const validationResult = reviewUpdateSchema.safeParse(body)
@@ -187,7 +208,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     // Check if rating exists and user owns it
     const rating = await prisma.rating.findUnique({
-      where: { id },
+      where: { id: paramValidation.data.id },
       select: { userId: true, serverId: true },
     })
 
@@ -225,7 +246,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     // Update the rating
     const updatedRating = await prisma.rating.update({
-      where: { id },
+      where: { id: paramValidation.data.id },
       data: updateData,
       include: {
         user: {
@@ -281,8 +302,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ data: updatedRating })
   } catch (error) {
-     
-    console.error('Review update error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Review update error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to update review' } },
       { status: 500 }

@@ -5,6 +5,7 @@ import { serverUploadSchema } from '@/lib/validations'
 import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
 import { deleteFromR2 } from '@/lib/r2-storage'
+import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -88,8 +89,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
-     
-    console.error('API error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('API error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch server' } },
       { status: 500 }
@@ -99,6 +101,12 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
+    // CSRF protection
+    const originCheck = validateOrigin(request)
+    if (!originCheck.isValid) {
+      return NextResponse.json(csrfErrorResponse(), { status: 403 })
+    }
+
     const session = await auth()
 
     if (!session?.user?.id) {
@@ -188,7 +196,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ data: updatedServer }, { status: 200 })
   } catch (error) {
-    console.error('Server update error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Server update error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to update server' } },
       { status: 500 }
@@ -198,6 +208,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    // CSRF protection
+    const originCheck = validateOrigin(request)
+    if (!originCheck.isValid) {
+      return NextResponse.json(csrfErrorResponse(), { status: 403 })
+    }
+
     const session = await auth()
 
     if (!session?.user?.id) {
@@ -255,7 +271,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
           await deleteFromR2(key)
         }
       } catch (error) {
-        console.error('Failed to delete icon from R2:', error)
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Failed to delete icon from R2:', error instanceof Error ? error.message : 'Unknown error')
+        }
         // Continue with server deletion even if icon deletion fails
       }
     }
@@ -267,7 +285,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ message: 'Server deleted successfully' }, { status: 200 })
   } catch (error) {
-    console.error('Server deletion error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Server deletion error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to delete server' } },
       { status: 500 }

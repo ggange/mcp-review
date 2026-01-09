@@ -208,12 +208,12 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
 export async function ensureServersExist(): Promise<void> {
   const serverCount = await prisma.server.count()
   if (serverCount === 0) {
-    console.log('Database is empty, triggering initial sync from MCP registry...')
     try {
       await syncRegistry()
-      console.log('Initial sync completed')
     } catch (error) {
-      console.error('Failed to sync from MCP registry:', error)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to sync from MCP registry:', error instanceof Error ? error.message : 'Unknown error')
+      }
       // Continue even if sync fails - user can manually trigger sync later
     }
   }

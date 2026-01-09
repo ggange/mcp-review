@@ -92,7 +92,7 @@ export async function deleteFromR2(key: string): Promise<void> {
 /**
  * Generate a unique key for an icon file
  * @param serverId - Server ID (organization/name)
- * @param extension - File extension (e.g., 'png', 'jpg', 'svg')
+ * @param extension - File extension (e.g., 'png', 'jpg')
  * @returns Unique key for the file
  */
 export function generateIconKey(serverId: string, extension: string): string {

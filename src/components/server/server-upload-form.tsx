@@ -73,7 +73,7 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
           setGithubUser(data)
         }
       } catch (err) {
-        console.error('Failed to fetch GitHub user:', err)
+        // Silently fail - GitHub user info is optional
       } finally {
         setLoadingGithub(false)
       }
@@ -107,9 +107,9 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
     }
 
     // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml']
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
     if (!allowedTypes.includes(file.type)) {
-      setIconError('File must be PNG, JPG, or SVG')
+      setIconError('File must be PNG or JPG')
       setIconFile(null)
       setIconPreview(null)
       return
@@ -444,12 +444,12 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
                 <Input
                   id="icon"
                   type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                  accept="image/png,image/jpeg,image/jpg"
                   onChange={handleIconChange}
                   className="bg-background border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  PNG, JPG, or SVG. Max 2 MB. Square (1:1) recommended, 256x256 or 512x512 pixels.
+                  PNG or JPG. Max 2 MB. Square (1:1) recommended, 256x256 or 512x512 pixels.
                 </p>
                 {iconError && (
                   <p className="text-xs text-destructive mt-1">{iconError}</p>

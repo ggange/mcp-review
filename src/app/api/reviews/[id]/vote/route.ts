@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { reviewVoteSchema } from '@/lib/validations'
+import { reviewVoteSchema, reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 
@@ -42,6 +42,7 @@ export async function POST(request: Request, { params }: RouteParams) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -49,6 +50,15 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const { id } = await params
     const body = await request.json()
+
+    // Validate route parameter
+    const paramValidation = reviewIdParamSchema.safeParse({ id })
+    if (!paramValidation.success) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_INPUT', message: 'Invalid review ID format' } },
+        { status: 400 }
+      )
+    }
 
     // Validate input
     const validationResult = reviewVoteSchema.safeParse(body)
@@ -70,7 +80,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Check if rating exists
     const rating = await prisma.rating.findUnique({
-      where: { id },
+      where: { id: paramValidation.data.id },
       select: { userId: true },
     })
 
@@ -95,12 +105,12 @@ export async function POST(request: Request, { params }: RouteParams) {
       await tx.reviewVote.upsert({
         where: {
           ratingId_userId: {
-            ratingId: id,
+            ratingId: paramValidation.data.id,
             userId: session.user.id,
           },
         },
         create: {
-          ratingId: id,
+          ratingId: paramValidation.data.id,
           userId: session.user.id,
           helpful,
         },
@@ -112,7 +122,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       // Get vote counts using groupBy (single query instead of two count queries)
       const voteCounts = await tx.reviewVote.groupBy({
         by: ['helpful'],
-        where: { ratingId: id },
+        where: { ratingId: paramValidation.data.id },
         _count: true,
       })
 
@@ -122,7 +132,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       // Update the rating with new counts
       await tx.rating.update({
-        where: { id },
+        where: { id: paramValidation.data.id },
         data: {
           helpfulCount,
           notHelpfulCount,
@@ -136,8 +146,9 @@ export async function POST(request: Request, { params }: RouteParams) {
       data: result,
     })
   } catch (error) {
-     
-    console.error('Vote error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Vote error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to submit vote' } },
       { status: 500 }

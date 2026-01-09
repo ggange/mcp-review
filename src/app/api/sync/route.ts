@@ -40,21 +40,18 @@ export async function POST(request: Request) {
         status: 429,
         headers: {
           'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+          'Retry-After': String(Math.ceil(resetIn / 1000)),
         }
       }
     )
   }
 
   try {
-     
-    console.log('Starting registry sync...')
     const startTime = Date.now()
     
     const result = await syncRegistry()
     
     const duration = Date.now() - startTime
-     
-    console.log(`Sync completed in ${duration}ms: ${result.synced} servers synced, ${result.errors.length} errors`)
 
     return NextResponse.json({
       success: true,
@@ -63,13 +60,14 @@ export async function POST(request: Request) {
       duration,
     })
   } catch (error) {
-     
-    console.error('Sync error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Sync error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { 
         error: { 
           code: 'SYNC_FAILED', 
-          message: error instanceof Error ? error.message : 'Unknown error' 
+          message: 'Failed to sync registry' 
         } 
       },
       { status: 500 }

@@ -34,8 +34,9 @@ export async function GET(request: Request) {
       totalPages: result.totalPages,
     })
   } catch (error) {
-     
-    console.error('API error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('API error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch servers' } },
       { status: 500 }
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -127,7 +129,9 @@ export async function POST(request: Request) {
           authorUsername = githubUser.login
         }
       } catch (error) {
-        console.error('Failed to fetch GitHub username:', error)
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Failed to fetch GitHub username:', error instanceof Error ? error.message : 'Unknown error')
+        }
       }
     }
 
@@ -173,8 +177,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: server }, { status: 201 })
   } catch (error) {
-     
-    console.error('Server upload error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Server upload error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to upload server' } },
       { status: 500 }

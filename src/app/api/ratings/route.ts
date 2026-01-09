@@ -38,6 +38,7 @@ export async function POST(request: Request) {
           headers: {
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
           }
         }
       )
@@ -151,8 +152,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: rating })
   } catch (error) {
-     
-    console.error('Rating error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Rating error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to submit rating' } },
       { status: 500 }

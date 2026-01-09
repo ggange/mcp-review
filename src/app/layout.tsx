@@ -22,6 +22,14 @@ export const metadata: Metadata = {
   icons: {
     apple: '/apple-touch-icon.png',
   },
+  openGraph: {
+    title: 'MCP Review',
+    description: 'Discover, rate, and review Model Context Protocol servers',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
 }
 
 export default function RootLayout({
@@ -39,10 +47,10 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
         </Providers>
-        {process.env.NODE_ENV === 'production' && (
+        {process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
           <Script
             src="https://cloud.umami.is/script.js"
-            data-website-id="f83a6e52-9686-4064-9ecd-bef84e8d07ed"
+            data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
             strategy="afterInteractive"
           />
         )}

@@ -53,14 +53,18 @@ export async function GET() {
         name: githubUser.name || githubUser.login,
       })
     } catch (error) {
-      console.error('Failed to fetch GitHub user:', error)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch GitHub user:', error instanceof Error ? error.message : 'Unknown error')
+      }
       return NextResponse.json(
         { error: { code: 'EXTERNAL_ERROR', message: 'Failed to fetch GitHub user info' } },
         { status: 500 }
       )
     }
   } catch (error) {
-    console.error('GitHub info error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('GitHub info error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to get GitHub info' } },
       { status: 500 }

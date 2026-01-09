@@ -148,7 +148,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Log error but allow sign-in to proceed with default behavior
         // This prevents authentication failures due to account linking issues
         // The allowDangerousEmailAccountLinking option will serve as a fallback
-        console.error('Error during account linking:', error)
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error during account linking:', error instanceof Error ? error.message : 'Unknown error')
+        }
         return true
       }
     },

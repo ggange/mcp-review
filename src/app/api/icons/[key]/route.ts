@@ -14,8 +14,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { key } = await params
     const decodedKey = decodeURIComponent(key)
 
-    // Security: Only allow keys that start with 'icons/'
-    if (!decodedKey.startsWith('icons/')) {
+    // Security: Only allow keys that start with 'icons/' and prevent path traversal
+    if (!decodedKey.startsWith('icons/') || decodedKey.includes('..')) {
       return NextResponse.json(
         { error: 'Invalid icon key' },
         { status: 400 }
@@ -44,7 +44,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     return response
   } catch (error) {
-    console.error('Icon proxy error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Icon proxy error:', error instanceof Error ? error.message : 'Unknown error')
+    }
     
     if (error instanceof Error && error.message.includes('R2 credentials')) {
       return NextResponse.json(

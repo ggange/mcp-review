@@ -101,8 +101,6 @@ export async function syncRegistry(): Promise<{
       cursor = response.metadata?.nextCursor
     } while (cursor)
 
-    console.log(`Fetched ${allServers.length} servers from registry`)
-
     // Group servers by ID and keep only the latest version
     const latestServers = new Map<string, MCPRegistryServer>()
     for (const server of allServers) {
@@ -120,8 +118,6 @@ export async function syncRegistry(): Promise<{
         }
       }
     }
-
-    console.log(`Processing ${latestServers.size} unique servers`)
 
     // Upsert each server
     for (const registryServer of latestServers.values()) {
@@ -144,7 +140,9 @@ export async function syncRegistry(): Promise<{
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         errors.push(`Failed to sync ${registryServer.server.name}: ${errorMessage}`)
-        console.error(`Failed to sync ${registryServer.server.name}:`, error)
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(`Failed to sync ${registryServer.server.name}:`, errorMessage)
+        }
       }
     }
 
@@ -152,7 +150,9 @@ export async function syncRegistry(): Promise<{
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     errors.push(`Registry sync failed: ${errorMessage}`)
-    console.error('Registry sync failed:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Registry sync failed:', errorMessage)
+    }
   }
 
   return { synced, errors }
