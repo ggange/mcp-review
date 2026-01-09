@@ -4,10 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Connection pooling for serverless (optional, required for Neon and similar providers)
-  // Set DIRECT_URL to the direct connection string (without pooling) if using a pooled DATABASE_URL
-  directUrl = env("DIRECT_URL")
+  // In Prisma 7+, connection URLs are configured in prisma.config.ts for migrations
+  // and via adapter in src/lib/db.ts for runtime connections
 }
 
 // NextAuth.js models
