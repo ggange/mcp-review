@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
-import { ServerCard } from '@/components/server/server-card'
 import { ServerCardWithActions } from '@/components/server/server-card-with-actions'
 
 export default async function DashboardPage() {
@@ -51,14 +50,21 @@ export default async function DashboardPage() {
   })
 
   // Fetch user's own servers
-  const userServers = await prisma.server.findMany({
+  const userServersRaw = await prisma.server.findMany({
     where: {
       userId: session.user.id,
       source: 'user',
-    } as any,
+    },
     orderBy: { createdAt: 'desc' },
     take: 20,
-  }) as any[]
+  })
+  
+  // Cast source field to the expected union type
+  const userServers = userServersRaw.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  }))
 
   // Construct GitHub profile URL
   // Try to fetch username from GitHub API using access token

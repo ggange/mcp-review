@@ -3,6 +3,7 @@
 import React, { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,10 +69,13 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
               {/* Icon or Avatar */}
               {server.iconUrl ? (
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border">
-                  <img
+                  <Image
                     src={server.iconUrl}
                     alt={server.name}
+                    width={48}
+                    height={48}
                     className="h-full w-full object-cover"
+                    unoptimized
                   />
                 </div>
               ) : (
@@ -190,9 +194,21 @@ interface ServerEditFormProps {
   onSuccess?: () => void
 }
 
+interface ServerFormData {
+  name: string
+  organization: string
+  description: string
+  tools: Array<{ name: string; description: string }>
+  usageTips: string
+  version: string
+  repositoryUrl: string
+  iconUrl: string
+  category: string
+}
+
 function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
   const [error, setError] = useState<string | null>(null)
-  const [serverData, setServerData] = useState<any>(null)
+  const [serverData, setServerData] = useState<ServerFormData | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load server data

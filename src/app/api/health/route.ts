@@ -23,7 +23,7 @@ export async function GET() {
         ...healthCheck,
         database: 'connected',
       })
-    } catch (error) {
+    } catch {
       // Database check failed, but still return 200 to indicate service is running
       // Monitoring systems can check the database field
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function GET() {
         { status: 200 }
       )
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         status: 'error',

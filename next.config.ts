@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is",
+              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev",
               "frame-ancestors 'none'",
             ].join('; '),
           },

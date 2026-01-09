@@ -89,7 +89,7 @@ export function AdvancedFilters({ open, onOpenChange }: AdvancedFiltersProps) {
       
       router.replace(`?${params.toString()}`, { scroll: false })
     })
-  }, [router, currentSearch, currentCategory, currentSort, currentMinRating])
+  }, [router, currentSearch, currentCategory, currentSort, currentMinRating, searchParams])
 
   const handleDateFromChange = (value: string) => {
     setDateFrom(value)

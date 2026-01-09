@@ -91,9 +91,21 @@ interface ServerEditFormProps {
   onSuccess?: () => void
 }
 
+interface ServerFormData {
+  name: string
+  organization: string
+  description: string
+  tools: Array<{ name: string; description: string }>
+  usageTips: string
+  version: string
+  repositoryUrl: string
+  iconUrl: string
+  category: string
+}
+
 function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
   const [error, setError] = useState<string | null>(null)
-  const [serverData, setServerData] = useState<any>(null)
+  const [serverData, setServerData] = useState<ServerFormData | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load server data

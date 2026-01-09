@@ -12,7 +12,7 @@ interface CategoryFilterProps {
 export function CategoryFilter({ categoryCounts }: CategoryFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const currentCategory = searchParams.get('category') || 'all'
   const currentSearch = searchParams.get('q') || ''
   const currentPage = searchParams.get('page') || '1'

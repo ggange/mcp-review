@@ -1,6 +1,7 @@
 "use client"
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Github } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,10 +30,13 @@ export function ServerCard({ server }: ServerCardProps) {
             {/* Icon or Avatar */}
             {server.iconUrl ? (
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border">
-                <img
+                <Image
                   src={server.iconUrl}
                   alt={server.name}
+                  width={48}
+                  height={48}
                   className="h-full w-full object-cover"
+                  unoptimized
                 />
               </div>
             ) : (

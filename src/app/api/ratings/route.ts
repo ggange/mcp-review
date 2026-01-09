@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // Rate limiting
     const rateLimitKey = getRateLimitKey(session.user.id, 'ratings')
-    const { allowed, remaining, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.ratings.limit,
       RATE_LIMITS.ratings.windowMs
@@ -67,7 +67,12 @@ export async function POST(request: Request) {
     // Check if server exists
     const server = await prisma.server.findUnique({
       where: { id: serverId },
-    }) as any
+      select: {
+        id: true,
+        source: true,
+        userId: true,
+      },
+    })
 
     if (!server) {
       return NextResponse.json(

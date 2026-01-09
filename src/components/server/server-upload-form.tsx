@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -72,7 +73,7 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
           const data = await response.json()
           setGithubUser(data)
         }
-      } catch (err) {
+      } catch {
         // Silently fail - GitHub user info is optional
       } finally {
         setLoadingGithub(false)
@@ -458,10 +459,13 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
               {iconPreview && (
                 <div className="flex-shrink-0">
                   <div className="h-16 w-16 rounded-lg overflow-hidden border border-border">
-                    <img
+                    <Image
                       src={iconPreview}
                       alt="Icon preview"
+                      width={64}
+                      height={64}
                       className="h-full w-full object-cover"
+                      unoptimized
                     />
                   </div>
                 </div>

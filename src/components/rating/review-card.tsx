@@ -83,7 +83,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
         setNotHelpfulCount(result.data.notHelpfulCount)
         setUserVote({ helpful })
         router.refresh()
-      } catch (err) {
+      } catch {
         // Error already handled by API response
       } finally {
         setIsVoting(false)

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { getAvatarColor } from '@/lib/utils'
@@ -118,10 +119,13 @@ export default async function ServerPage({ params }: ServerPageProps) {
               <div className="flex items-start gap-6">
                 {server.iconUrl ? (
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border">
-                    <img
+                    <Image
                       src={server.iconUrl}
                       alt={server.name}
+                      width={80}
+                      height={80}
                       className="h-full w-full object-cover"
+                      unoptimized
                     />
                   </div>
                 ) : (
@@ -140,8 +144,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
                       <h1 className="text-2xl font-bold text-card-foreground">{server.name}</h1>
                       {server.source === 'user' ? (
                         <p className="mt-1 text-muted-foreground">
-                          {(server as any).authorUsername && (
-                            <span className="ml-1">@{(server as any).authorUsername}</span>
+                          {server.authorUsername && (
+                            <span className="ml-1">@{server.authorUsername}</span>
                           )}
                           {server.organization 
                             ? ` (${server.organization})`
@@ -158,7 +162,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                           v{server.version}
                         </Badge>
                       )}
-                      {session?.user?.id && (server as any).userId === session.user.id && server.source === 'user' && (
+                      {session?.user?.id && server.userId === session.user.id && server.source === 'user' && (
                         <ServerActions serverId={server.id} />
                       )}
                     </div>
@@ -288,7 +292,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
           </Card>
 
           {/* Rating Form - only show if user hasn't rated yet, isn't logged in, and doesn't own the server */}
-          {!userRating && !(session?.user?.id && server.source === 'user' && (server as any).userId === session.user.id) && (
+          {!userRating && !(session?.user?.id && server.source === 'user' && server.userId === session.user.id) && (
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">
@@ -315,7 +319,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
           )}
           
           {/* Show message if user owns the server */}
-          {session?.user?.id && server.source === 'user' && (server as any).userId === session.user.id && (
+          {session?.user?.id && server.source === 'user' && server.userId === session.user.id && (
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-card-foreground">
