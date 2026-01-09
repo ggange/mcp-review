@@ -1,0 +1,35 @@
+# CODEOWNERS file
+# This file defines code owners for automatic review requests
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - all files default to @ggange
+* @ggange
+
+# Core library and security-critical code
+/src/lib/ @ggange
+/src/lib/auth.ts @ggange
+/src/lib/csrf.ts @ggange
+/src/lib/rate-limit.ts @ggange
+/src/lib/validations.ts @ggange
+/src/lib/db.ts @ggange
+
+# Database schema and migrations
+/prisma/ @ggange
+/prisma.config.ts @ggange
+
+# API routes (security-sensitive)
+/src/app/api/ @ggange
+
+# Configuration files
+/next.config.ts @ggange
+/vercel.json @ggange
+/package.json @ggange
+/tsconfig.json @ggange
+
+# GitHub configuration
+/.github/ @ggange
+
+# Security and legal files
+/SECURITY.md @ggange
+/LICENSE @ggange
+/CODE_OF_CONDUCT.md @ggange
