@@ -13,6 +13,7 @@ import {
   ensureServersExist,
   type SortOption 
 } from '@/lib/server-queries'
+import { auth } from '@/lib/auth'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -119,6 +120,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const hasGithub = params.hasGithub === 'true'
   const source = params.source
 
+  // Check authentication status for the Submit button
+  const session = await auth()
+  const submitServerHref = session?.user 
+    ? '/dashboard?upload=true' 
+    : '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
+
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -156,7 +163,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <br className="hidden sm:inline" /> Join the community to share and review the best products.
         </p>
         <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center gap-4">
-          <Link href="/auth/signin" className="w-full sm:w-auto">
+          <Link href={submitServerHref} className="w-full sm:w-auto">
             <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
               Submit a Server
             </Button>

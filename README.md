@@ -12,7 +12,10 @@
 - 🔍 **Browse & Search** - Discover MCP servers from the official registry with advanced filtering
 - ⭐ **Rate Servers** - Share your experience with trustworthiness and usefulness ratings
 - 📝 **Write Reviews** - Leave detailed reviews to help others make informed decisions
+- 👍 **Review Voting** - Vote reviews as helpful or not helpful
 - 📊 **Aggregated Ratings** - See community ratings and reviews in real-time
+- 📤 **Upload Servers** - Community members can upload their own MCP servers
+- 🖼️ **Custom Icons** - Upload custom icons for your servers (via Cloudflare R2)
 - 🔄 **Auto-Sync** - Automatically syncs with the MCP Registry daily
 - 🔐 **Authentication** - Sign in with GitHub or Google to rate servers
 - 🛡️ **Security First** - Built with rate limiting, CSRF protection, and input validation
@@ -67,6 +70,12 @@
    
    # App URL (Optional, for CSRF protection in production)
    NEXT_PUBLIC_APP_URL="https://your-domain.com"
+   
+   # Cloudflare R2 Storage (Optional - for custom server icons)
+   R2_ACCOUNT_ID="your-cloudflare-account-id"
+   R2_ACCESS_KEY_ID="your-r2-access-key-id"
+   R2_SECRET_ACCESS_KEY="your-r2-secret-access-key"
+   R2_BUCKET_NAME="mcp-server-icons"
    ```
 
 4. **Set up the database**
@@ -104,6 +113,21 @@ You can run the app without OAuth to browse servers. Authentication is only need
   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
   - Create OAuth 2.0 credentials
   - Redirect URI: `http://localhost:3000/api/auth/callback/google`
+
+#### Cloudflare R2 Setup (Optional)
+R2 storage is used for custom server icons. Without it, user-uploaded servers will use default gradient avatars.
+
+1. **Create R2 Bucket**: Go to [Cloudflare Dashboard](https://dash.cloudflare.com/) → R2 → Create bucket
+2. **Create API Token**: R2 → Manage R2 API Tokens → Create API token (Object Read & Write permissions)
+3. **Add to `.env`**:
+   ```bash
+   R2_ACCOUNT_ID="your-account-id"
+   R2_ACCESS_KEY_ID="your-access-key-id"
+   R2_SECRET_ACCESS_KEY="your-secret-access-key"
+   R2_BUCKET_NAME="mcp-server-icons"
+   ```
+
+> **Note**: The R2 bucket can remain private. Icons are served through a Next.js proxy route (`/api/icons/[key]`).
 
 ## 🛠️ Development
 
@@ -169,6 +193,7 @@ npm run test:watch
 - **UI Components**: [Radix UI](https://www.radix-ui.com/)
 - **Form Validation**: [Zod](https://zod.dev/)
 - **Testing**: [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/)
+- **Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/) (optional, for custom icons)
 
 ## 📊 Data Source
 
@@ -257,6 +282,7 @@ Vercel will automatically detect Next.js and configure the build settings.
 - [ ] Set `CRON_SECRET` for sync endpoint protection
 - [ ] Configure database connection pooling
 - [ ] Set up cron job for automatic syncing (or use Vercel Cron)
+- [ ] Configure R2 storage for custom icons (optional)
 
 ## 📚 Learn More
 
@@ -268,16 +294,16 @@ Vercel will automatically detect Next.js and configure the build settings.
 
 ## 🙏 Acknowledgments
 
-- Built with the amazing [Next.js](https://nextjs.org) framework
+- Built with the [Next.js](https://nextjs.org) framework
 - Server data provided by the [MCP Registry](https://registry.modelcontextprotocol.io)
 - UI components from [Radix UI](https://www.radix-ui.com/)
 - Icons from [Lucide](https://lucide.dev/)
 
 ## 📞 Support
 
-- **Documentation**: Check [NEXT_STEPS.md](./NEXT_STEPS.md) for detailed setup instructions
 - **Issues**: [GitHub Issues](https://github.com/ggange/mcp-review/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ggange/mcp-review/discussions) (if enabled)
+- **Security**: See [SECURITY.md](./SECURITY.md) for vulnerability reporting
 
 ---
 

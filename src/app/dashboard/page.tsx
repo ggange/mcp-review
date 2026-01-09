@@ -131,7 +131,7 @@ export default async function DashboardPage() {
               <Avatar className="h-16 w-16">
                 <AvatarImage src={session.user.image || undefined} alt={session.user.name || ''} />
                 <AvatarFallback className="bg-muted text-lg text-muted-foreground">
-                  {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase() || 'U'}
+                  {session.user.name?.charAt(0).toUpperCase() || githubUsername?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -140,9 +140,6 @@ export default async function DashboardPage() {
                     {session.user.name || 'User'}
                   </h2>
                 </div>
-                {session.user.email && (
-                  <p className="mt-1 text-muted-foreground">{session.user.email}</p>
-                )}
                 <div className="mt-4 flex flex-wrap gap-6 text-sm">
                   {memberSince && (
                     <div>

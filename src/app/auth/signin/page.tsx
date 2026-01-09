@@ -14,7 +14,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default function SignInPage() {
+interface SignInPageProps {
+  searchParams: Promise<{
+    callbackUrl?: string
+  }>
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const params = await searchParams
+  const callbackUrl = params.callbackUrl || '/'
   const hasProviders = hasGitHub
 
   return (
@@ -45,11 +53,13 @@ export default function SignInPage() {
             <>
               {hasGitHub && (
                 <form
-                  action={async () => {
+                  action={async (formData: FormData) => {
                     'use server'
-                    await signIn('github', { redirectTo: '/' })
+                    const redirectTo = formData.get('callbackUrl') as string || '/'
+                    await signIn('github', { redirectTo })
                   }}
                 >
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
                   <Button 
                     type="submit" 
                     variant="outline" 

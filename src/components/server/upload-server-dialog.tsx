@@ -1,12 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ServerUploadForm } from './server-upload-form'
 
-export function UploadServerDialog() {
-  const [open, setOpen] = useState(false)
+interface UploadServerDialogProps {
+  initialOpen?: boolean
+}
+
+export function UploadServerDialog({ initialOpen = false }: UploadServerDialogProps) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Initialize state based on URL param or prop
+  const [open, setOpen] = useState(() => {
+    if (initialOpen) return true
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('upload') === 'true'
+    }
+    return false
+  })
+
+  // Clean up URL param after opening dialog
+  useEffect(() => {
+    if (open && searchParams.get('upload') === 'true') {
+      // Remove the query param from URL without triggering a navigation
+      const url = new URL(window.location.href)
+      url.searchParams.delete('upload')
+      router.replace(url.pathname, { scroll: false })
+    }
+  }, [open, searchParams, router])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
