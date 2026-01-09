@@ -195,6 +195,7 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
     servers: servers.map(server => ({
       ...server,
       source: server.source as 'registry' | 'user',
+      tools: server.tools as Array<{ name: string; description: string }> | null,
     })),
     total,
     page,
