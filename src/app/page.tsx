@@ -142,23 +142,37 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
       <div className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <Card className="mb-12 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800">
-        <CardContent className="pt-6 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            MCP Review
-          </h1>
-          <p className="mx-auto mb-6 max-w-2xl text-lg text-muted-foreground">
-            Discover, rate, and review Model Context Protocol servers. <br /> 
-            <span className="font-medium text-foreground">Upload your own servers and get feedback from the community.</span>
-          </p>
-          <Link href="/auth/signin">
-            <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
-              Upload your MCP server
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center pt-8 pb-12 text-center lg:pt-12 lg:pb-20">
+        <Badge variant="secondary" className="mb-8 px-4 py-1.5 text-sm font-medium rounded-full">
+          The Community Hub for MCP
+        </Badge>
+        <h1 className="mb-6 max-w-4xl text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl">
+          Discover, Rate, and Review <br className="hidden sm:inline" />
+          <span className="text-foreground">MCP Servers</span>
+        </h1>
+        <p className="mx-auto mb-10 max-w-2xl text-xl text-muted-foreground leading-relaxed">
+          Find the best Model Context Protocol servers for your AI workflows.
+          <br className="hidden sm:inline" /> Join the community to share and review the best products.
+        </p>
+        <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center gap-4">
+          <Link href="/auth/signin" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
+              Submit a Server
             </Button>
           </Link>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="w-full sm:w-auto h-12 px-8 text-base font-medium"
+            asChild
+          >
+            <Link href="#servers">
+              Browse Collection
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       {/* Top Picks of the Week */}
       <Card className="mb-12">
@@ -182,7 +196,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </div>
 
       {/* Server List */}
-      <div className="mb-12">
+      <div id="servers" className="mb-12 scroll-mt-24">
         <Suspense fallback={<ServerGridSkeleton />}>
           <ServerListWrapper 
             search={q} 
