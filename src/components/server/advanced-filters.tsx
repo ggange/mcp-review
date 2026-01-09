@@ -87,7 +87,7 @@ export function AdvancedFilters({ open, onOpenChange }: AdvancedFiltersProps) {
       // Reset to page 1 when filters change
       params.set('page', '1')
       
-      router.push(`?${params.toString()}`)
+      router.replace(`?${params.toString()}`, { scroll: false })
     })
   }, [router, currentSearch, currentCategory, currentSort, currentMinRating])
 

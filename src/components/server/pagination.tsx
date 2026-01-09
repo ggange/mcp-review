@@ -18,7 +18,7 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
 
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())
-    router.push(`?${params.toString()}`)
+    router.push(`?${params.toString()}`, { scroll: false })
   }
 
   if (totalPages <= 1) {
