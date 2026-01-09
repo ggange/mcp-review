@@ -14,11 +14,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloud.umami.is",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io",
+              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is",
               "frame-ancestors 'none'",
             ].join('; '),
           },
