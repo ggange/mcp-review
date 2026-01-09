@@ -1,8 +1,18 @@
 import { signIn } from '@/lib/auth'
+import type { Metadata } from 'next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const hasGitHub = !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET)
+
+export const metadata: Metadata = {
+  title: 'Sign In - MCP Review',
+  description: 'Sign in to MCP Review to upload, rate, and review Model Context Protocol servers',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default function SignInPage() {
   const hasProviders = hasGitHub

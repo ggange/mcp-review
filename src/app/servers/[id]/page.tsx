@@ -17,6 +17,8 @@ interface ServerPageProps {
   params: Promise<{ id: string }>
 }
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
+
 export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
   const { id } = await params
   const decodedId = decodeURIComponent(id)
@@ -27,6 +29,10 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
       name: true,
       description: true,
       organization: true,
+      iconUrl: true,
+      avgTrustworthiness: true,
+      avgUsefulness: true,
+      totalRatings: true,
     },
   })
 
@@ -34,12 +40,50 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
     return {
       title: 'Server Not Found - MCP Review',
       description: 'The requested MCP server could not be found',
+      robots: {
+        index: false,
+        follow: false,
+      },
     }
   }
 
+  const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
+  const description = server.description || `Rate and review ${server.name} MCP server by ${server.organization}. ${server.totalRatings > 0 ? `Rated ${((server.avgTrustworthiness + server.avgUsefulness) / 2).toFixed(1)}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'user' : 'users'}.` : 'No ratings yet.'}`
+
   return {
     title: `${server.name} - MCP Review`,
-    description: server.description || `Rate and review ${server.name} MCP server by ${server.organization}`,
+    description,
+    openGraph: {
+      title: `${server.name} - MCP Review`,
+      description,
+      url: serverUrl,
+      type: 'website',
+      siteName: 'MCP Review',
+      images: server.iconUrl ? [
+        {
+          url: server.iconUrl,
+          width: 1200,
+          height: 630,
+          alt: `${server.name} MCP server icon`,
+        },
+      ] : [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: `${server.name} - MCP Review`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${server.name} - MCP Review`,
+      description,
+      images: server.iconUrl ? [server.iconUrl] : ['/og-image.png'],
+    },
+    alternates: {
+      canonical: serverUrl,
+    },
   }
 }
 
@@ -97,8 +141,55 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
   const avatarColor = getAvatarColor(server.name)
 
+  // Calculate aggregate rating
+  const avgRating = server.avgTrustworthiness && server.avgUsefulness
+    ? (server.avgTrustworthiness + server.avgUsefulness) / 2
+    : null
+
+  // Build JSON-LD structured data
+  const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: server.name,
+    description: server.description || `MCP server by ${server.organization}`,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Any',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    aggregateRating: server.totalRatings > 0 && avgRating ? {
+      '@type': 'AggregateRating',
+      ratingValue: avgRating.toFixed(1),
+      ratingCount: server.totalRatings,
+      bestRating: '5',
+      worstRating: '1',
+    } : undefined,
+    publisher: {
+      '@type': 'Organization',
+      name: server.organization || 'Unknown',
+    },
+    url: serverUrl,
+    image: server.iconUrl || undefined,
+  }
+
+  // Remove undefined fields
+  if (!productSchema.aggregateRating) {
+    delete productSchema.aggregateRating
+  }
+  if (!productSchema.image) {
+    delete productSchema.image
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <div className="container mx-auto px-4 py-8">
       {/* Back button */}
       <Link
         href="/"
@@ -382,6 +473,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

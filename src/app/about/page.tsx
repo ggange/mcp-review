@@ -1,8 +1,54 @@
 import Link from "next/link";
+import type { Metadata } from 'next'
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
+
+export const metadata: Metadata = {
+  title: 'About MCP Review',
+  description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community discover the best Model Context Protocol servers through community-driven ratings and reviews.',
+  openGraph: {
+    title: 'About MCP Review',
+    description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community discover the best Model Context Protocol servers.',
+    url: `${baseUrl}/about`,
+    type: 'website',
+  },
+  twitter: {
+    title: 'About MCP Review',
+    description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community.',
+  },
+  alternates: {
+    canonical: `${baseUrl}/about`,
+  },
+}
 
 export default function AboutPage() {
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'MCP Review',
+    description: 'A community-driven repository where developers can rate and review Model Context Protocol (MCP) servers',
+    url: baseUrl,
+    founder: {
+      '@type': 'Person',
+      name: 'ggange',
+      url: 'https://github.com/ggange',
+      sameAs: [
+        'https://x.com/ggange',
+        'https://www.reddit.com/user/ggange03',
+      ],
+    },
+    sameAs: [
+      'https://github.com/ggange',
+    ],
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
@@ -73,6 +119,7 @@ export default function AboutPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

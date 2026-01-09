@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
 import { ServerCardWithActions } from '@/components/server/server-card-with-actions'
+
+export const metadata: Metadata = {
+  title: 'Dashboard - MCP Review',
+  description: 'Manage your MCP servers and ratings',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default async function DashboardPage() {
   const session = await auth()

@@ -1,13 +1,70 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { getAvatarColor } from '@/lib/utils'
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
+
 interface UserProfilePageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: UserProfilePageProps): Promise<Metadata> {
+  const { id } = await params
+  
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      image: true,
+    },
+  })
+
+  if (!user) {
+    return {
+      title: 'User Not Found - MCP Review',
+      description: 'The requested user profile could not be found',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    }
+  }
+
+  const userName = user.name || 'Anonymous User'
+  const userUrl = `${baseUrl}/users/${id}`
+
+  return {
+    title: `${userName} - MCP Review`,
+    description: `View ${userName}'s profile and ratings on MCP Review. See their reviews and ratings of Model Context Protocol servers.`,
+    openGraph: {
+      title: `${userName} - MCP Review`,
+      description: `View ${userName}'s profile and ratings on MCP Review.`,
+      url: userUrl,
+      type: 'profile',
+      images: user.image ? [
+        {
+          url: user.image,
+          width: 400,
+          height: 400,
+          alt: `${userName}'s profile picture`,
+        },
+      ] : undefined,
+    },
+    twitter: {
+      card: 'summary',
+      title: `${userName} - MCP Review`,
+      description: `View ${userName}'s profile and ratings on MCP Review.`,
+      images: user.image ? [user.image] : undefined,
+    },
+    alternates: {
+      canonical: userUrl,
+    },
+  }
 }
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
