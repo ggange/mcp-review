@@ -72,9 +72,21 @@ export function ServerCard({ server }: ServerCardProps) {
         
         <CardContent>
           {server.description ? (
-            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
-              {server.description}
-            </p>
+            <div className="mb-4 flex items-start gap-2">
+              <p className="line-clamp-2 text-sm text-muted-foreground flex-1">
+                {server.description}
+              </p>
+              {server.source === 'registry' && (server.description.endsWith('...') || server.description.endsWith('…')) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full border-2 border-red-500 text-red-500 font-bold text-xs cursor-help shrink-0">!</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Complete description was not uploaded by the author</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           ) : (
             <p className="mb-4 text-sm italic text-muted-foreground/70">
               No description available

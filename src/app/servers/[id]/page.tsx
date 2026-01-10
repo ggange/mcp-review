@@ -9,6 +9,7 @@ import { getAvatarColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
@@ -461,8 +462,20 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardHeader>
             <CardContent>
               {server.description ? (
-                <div className="text-card-foreground whitespace-pre-wrap break-words leading-relaxed text-base">
-                  {server.description}
+                <div className="flex items-start gap-2">
+                  <div className="text-card-foreground whitespace-pre-wrap break-words leading-relaxed text-base flex-1">
+                    {server.description}
+                  </div>
+                  {server.source === 'registry' && (server.description.endsWith('...') || server.description.endsWith('…')) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center justify-center w-4 h-4 rounded-full border-2 border-red-500 text-red-500 font-bold text-xs cursor-help shrink-0">!</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Complete description was not uploaded by the author on the original reference.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               ) : (
                 <p className="text-muted-foreground/70 italic">No description available</p>
