@@ -21,21 +21,27 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || '
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'MCP Review',
+    default: 'MCP Review - Open Source MCP Server Directory',
     template: '%s | MCP Review',
   },
-  description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows with community-driven ratings and reviews.',
+  description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven ratings and reviews for MCP servers. Free, transparent, and built by developers for developers.',
   keywords: [
     'MCP',
     'Model Context Protocol',
     'MCP servers',
+    'open source',
+    'open-source',
+    'community-driven',
     'AI tools',
     'server reviews',
     'MCP registry',
     'AI workflows',
     'developer tools',
+    'free software',
+    'MIT license',
+    'GitHub',
   ],
-  authors: [{ name: 'MCP Review Team' }],
+  authors: [{ name: 'MCP Review Community' }, { name: 'ggange', url: 'https://github.com/ggange' }],
   creator: 'ggange',
   publisher: 'MCP Review',
   formatDetection: {
@@ -53,21 +59,21 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: baseUrl,
     siteName: 'MCP Review',
-    title: 'MCP Review - Discover, Rate, and Review Model Context Protocol Servers',
-    description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows with community-driven ratings and reviews.',
+    title: 'MCP Review - Open Source MCP Server Directory',
+    description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven, free, and transparent. Built by developers for developers.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'MCP Review - Discover, Rate, and Review Model Context Protocol Servers',
+        alt: 'MCP Review - Open Source MCP Server Directory',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MCP Review - Discover, Rate, and Review Model Context Protocol Servers',
-    description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows.',
+    title: 'MCP Review - Open Source MCP Server Directory',
+    description: 'Open-source platform to discover, rate, and review MCP servers. Community-driven, free, and transparent. ⭐ Star us on GitHub!',
     creator: '@ggange',
     images: ['/og-image.png'],
   },
@@ -93,7 +99,9 @@ export const metadata: Metadata = {
   category: 'technology',
   other: {
     'theme-color': '#7c3aed', // violet-600
+    'github:repo': 'https://github.com/ggange/mcp-review',
   },
+  applicationName: 'MCP Review',
 }
 
 export default function RootLayout({

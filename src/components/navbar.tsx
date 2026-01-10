@@ -3,6 +3,7 @@ import { auth, signOut } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { AvatarMenu } from '@/components/avatar-menu'
+import { Github } from 'lucide-react'
 
 export async function Navbar() {
   const session = await auth()
@@ -21,6 +22,20 @@ export async function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
+          <Link
+            href="https://github.com/ggange/mcp-review"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View on GitHub"
+          >
+            <Button
+              variant="ghost"
+              className="rounded-full bg-black text-white hover:bg-gray-800 hover:text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:hover:text-black border border-transparent"
+            >
+              <Github className="mr-2 h-4 w-4" />
+              GitHub
+            </Button>
+          </Link>
           <Link href="/about">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
               About us

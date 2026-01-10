@@ -4,17 +4,17 @@ import type { Metadata } from 'next'
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
 export const metadata: Metadata = {
-  title: 'About MCP Review',
-  description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community discover the best Model Context Protocol servers through community-driven ratings and reviews.',
+  title: 'About MCP Review - Open Source Project',
+  description: 'Learn about MCP Review, an open-source platform for discovering and reviewing MCP servers. MIT licensed, community-driven, and built transparently on GitHub. Contribute and help shape the future of MCP discovery.',
   openGraph: {
-    title: 'About MCP Review',
-    description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community discover the best Model Context Protocol servers.',
+    title: 'About MCP Review - Open Source Project',
+    description: 'Learn about MCP Review, an open-source platform for discovering and reviewing MCP servers. MIT licensed, community-driven, and transparent.',
     url: `${baseUrl}/about`,
     type: 'website',
   },
   twitter: {
-    title: 'About MCP Review',
-    description: 'Learn about the philosophy behind MCP Review and our mission to help the developer community.',
+    title: 'About MCP Review - Open Source Project',
+    description: 'Learn about MCP Review, an open-source, community-driven platform for MCP server discovery. MIT licensed. ⭐ Star us on GitHub!',
   },
   alternates: {
     canonical: `${baseUrl}/about`,
@@ -26,7 +26,7 @@ export default function AboutPage() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'MCP Review',
-    description: 'A community-driven repository where developers can rate and review Model Context Protocol (MCP) servers',
+    description: 'An open-source, community-driven platform where developers can discover, rate, and review Model Context Protocol (MCP) servers. Free, transparent, and MIT licensed.',
     url: baseUrl,
     founder: {
       '@type': 'Person',
@@ -38,8 +38,11 @@ export default function AboutPage() {
       ],
     },
     sameAs: [
+      'https://github.com/ggange/mcp-review',
       'https://github.com/ggange',
     ],
+    publishingPrinciples: 'https://github.com/ggange/mcp-review/blob/main/CONTRIBUTING.md',
+    license: 'https://opensource.org/licenses/MIT',
   }
 
   return (
@@ -101,9 +104,12 @@ export default function AboutPage() {
             </section>
 
             <section>
-              <h2 className="mb-4 text-2xl font-semibold text-foreground">How you can contribute</h2>
+              <h2 className="mb-4 text-2xl font-semibold text-foreground">Open Source</h2>
               <p className="text-base leading-7 text-muted-foreground">
-                We will soon open source the platform and you will be able to contribute to the project directly on GitHub.
+                MCP Review is fully open source under the MIT license. We believe in transparency, community collaboration, and building in public. 
+                You can explore the codebase, report issues, suggest features, or contribute directly on{' '}
+                <Link href="https://github.com/ggange/mcp-review" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">GitHub</Link>.
+                Whether you&apos;re fixing a bug, improving documentation, or adding new features, every contribution matters.
               </p>
             </section>
 

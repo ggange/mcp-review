@@ -18,17 +18,17 @@ import { auth } from '@/lib/auth'
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
 export const metadata: Metadata = {
-  title: 'Discover, Rate, and Review Model Context Protocol Servers',
-  description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows with community-driven ratings and reviews. Upload your own servers and get feedback from the community.',
+  title: 'Open Source MCP Server Directory - Discover, Rate, and Review',
+  description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven ratings and reviews. Free, transparent, and MIT licensed. Contribute on GitHub!',
   openGraph: {
-    title: 'MCP Review - Discover, Rate, and Review Model Context Protocol Servers',
-    description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows with community-driven ratings and reviews.',
+    title: 'MCP Review - Open Source MCP Server Directory',
+    description: 'Open-source platform to discover, rate, and review MCP servers. Community-driven, free, and transparent. Built by developers for developers.',
     url: baseUrl,
     type: 'website',
   },
   twitter: {
-    title: 'MCP Review - Discover, Rate, and Review Model Context Protocol Servers',
-    description: 'Discover, rate, and review Model Context Protocol servers. Find the best MCP servers for your AI workflows.',
+    title: 'MCP Review - Open Source MCP Server Directory',
+    description: 'Open-source platform to discover, rate, and review MCP servers. Community-driven, free, and transparent. ⭐ Star us on GitHub!',
   },
   alternates: {
     canonical: baseUrl,
@@ -130,7 +130,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'MCP Review',
-    description: 'Discover, rate, and review Model Context Protocol servers',
+    description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven, free, and transparent.',
     url: baseUrl,
     potentialAction: {
       '@type': 'SearchAction',
@@ -139,6 +139,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         urlTemplate: `${baseUrl}/?q={search_term_string}`,
       },
       'query-input': 'required name=search_term_string',
+    },
+    license: 'https://opensource.org/licenses/MIT',
+    isAccessibleForFree: true,
+    maintainer: {
+      '@type': 'Person',
+      name: 'ggange',
+      url: 'https://github.com/ggange',
     },
   }
 

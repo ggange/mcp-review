@@ -1,11 +1,14 @@
 {
-  "name": "MCP Review",
+  "name": "MCP Review - Open Source MCP Server Directory",
   "short_name": "MCP Review",
-  "description": "Discover, rate, and review Model Context Protocol servers",
+  "description": "Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven, free, and transparent.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#7c3aed",
+  "categories": ["developer tools", "utilities", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon.svg",
@@ -17,5 +20,7 @@
       "sizes": "180x180",
       "type": "image/png"
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
