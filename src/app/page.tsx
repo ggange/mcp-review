@@ -11,8 +11,11 @@ import {
   queryServers, 
   getCategoryCounts, 
   ensureServersExist,
+  getLatestUserServers,
+  getTopRatedServers,
   type SortOption 
 } from '@/lib/server-queries'
+import { HeroServerCard } from '@/components/server/hero-server-card'
 import { auth } from '@/lib/auth'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
@@ -120,6 +123,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const hasGithub = params.hasGithub === 'true'
   const source = params.source
 
+  // Fetch hero section servers
+  const [latestUserServers, topRatedServers] = await Promise.all([
+    getLatestUserServers(4),
+    getTopRatedServers(4),
+  ])
+
   // Check authentication status for the Submit button
   const session = await auth()
   const submitServerHref = session?.user 
@@ -157,50 +166,91 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       />
       <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center pt-8 pb-12 text-center lg:pt-12 lg:pb-20">
-        <Badge variant="secondary" className="mb-8 px-4 py-1.5 text-sm font-medium rounded-full">
-          The Community Hub for MCP
-        </Badge>
-        <h1 className="mb-6 max-w-4xl text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl">
-          Discover, Rate, and Review <br className="hidden sm:inline" />
-          <span className="text-foreground">MCP Servers</span>
-        </h1>
-        <p className="mx-auto mb-10 max-w-2xl text-xl text-muted-foreground leading-relaxed">
-          Find the best Model Context Protocol servers for your AI workflows.
-          <br className="hidden sm:inline" /> Join the community to share and review the best products.
-        </p>
-        <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center gap-4">
-          <Link href={submitServerHref} className="w-full sm:w-auto">
-            <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
-              Submit a Server
-            </Button>
-          </Link>
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="w-full sm:w-auto h-12 px-8 text-base font-medium"
-            asChild
-          >
-            <Link href="#servers">
-              Browse Collection
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">
+        {/* Left: Title, subtitle, badge, buttons */}
+        <div className="flex flex-col justify-center">
+          <Badge variant="secondary" className="w-fit mb-6 px-4 py-1.5 text-sm font-medium rounded-full">
+            The Community Hub for MCP
+          </Badge>
+          <h1 className="mb-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            Discover, Rate, and Review{' '}
+            <span className="text-violet-600 dark:text-violet-400">MCP Servers</span>
+          </h1>
+          <p className="mb-8 max-w-lg text-lg text-muted-foreground leading-relaxed">
+            Find the best Model Context Protocol servers for your AI workflows.
+            Join the community to share and review the best products.
+          </p>
+          <div className="flex flex-col sm:flex-row items-start gap-3">
+            <Link href={submitServerHref}>
+              <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
+                Submit a Server
+              </Button>
             </Link>
-          </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="h-11 px-6 text-base font-medium"
+              asChild
+            >
+              <Link href="#servers">
+                Browse Collection
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Right: Server columns */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Fresh from community */}
+          <div className="flex flex-col">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Fresh from our community
+            </h3>
+            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-2">
+                <div className="flex flex-col divide-y divide-border/30">
+                  {latestUserServers.length > 0 ? (
+                    latestUserServers.map((server) => (
+                      <HeroServerCard key={server.id} server={server} />
+                    ))
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No community uploads yet
+                      </p>
+                      <Link href={submitServerHref} className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline">
+                        Be the first to upload your server!
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Picks */}
+          <div className="flex flex-col">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Top Picks
+            </h3>
+            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-2">
+                <div className="flex flex-col divide-y divide-border/30">
+                  {topRatedServers.length > 0 ? (
+                    topRatedServers.map((server) => (
+                      <HeroServerCard key={server.id} server={server} />
+                    ))
+                  ) : (
+                    <p className="p-4 text-sm text-muted-foreground text-center">
+                      No rated servers yet
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
-
-      {/* Top Picks of the Week */}
-      <Card className="mb-12">
-        <CardContent className="py-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-left text-base font-semibold text-foreground">
-              Top Picks of the Week
-            </h2>
-            <Badge variant="outline" className="text-xs">
-              Coming soon
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Search */}
       <div className="mx-auto mb-8 max-w-xl">

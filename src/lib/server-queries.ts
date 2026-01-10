@@ -223,6 +223,49 @@ export async function ensureServersExist(): Promise<void> {
 /**
  * Get category counts for servers
  */
+/**
+ * Get the latest user-uploaded servers (not from registry)
+ */
+export async function getLatestUserServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  const servers = await prisma.server.findMany({
+    where: { source: 'user' },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: serverSelectFields,
+  })
+
+  return servers.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  }))
+}
+
+/**
+ * Get the top rated servers
+ */
+export async function getTopRatedServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  const servers = await prisma.server.findMany({
+    where: { totalRatings: { gt: 0 } },
+    orderBy: [
+      { combinedScore: 'desc' },
+      { totalRatings: 'desc' },
+      { name: 'asc' },
+    ],
+    take: limit,
+    select: serverSelectFields,
+  })
+
+  return servers.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  }))
+}
+
+/**
+ * Get category counts for servers
+ */
 export async function getCategoryCounts(
   source: 'registry' | 'user' | 'all' = 'all',
   options?: Omit<ServerQueryOptions, 'source' | 'category' | 'page' | 'limit' | 'sort'>
