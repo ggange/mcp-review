@@ -31,9 +31,9 @@ export default function AboutPage() {
     founder: {
       '@type': 'Person',
       name: 'ggange',
-      url: 'https://github.com/ggange',
+      url: 'https://github.com/Ggangemi03',
       sameAs: [
-        'https://x.com/ggange',
+        'https://x.com/Ggangemi03',
         'https://www.reddit.com/user/ggange03',
       ],
     },
@@ -118,7 +118,7 @@ export default function AboutPage() {
               <p className="text-base leading-7 text-muted-foreground">
                 Or better, who am I? I am <Link href="https://github.com/ggange" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">ggange</Link> and I created MCP Review because I felt lost navigating the MCP ecosystem.
                 With this platform, I would like to bring peer-review to MCP servers and help the community discover the best MCP servers for their AI workflows. <br />
-                If you have any questions or suggestions, please feel free to contact me via <Link href="https://www.linkedin.com/in/giuseppe-gangemi-10823715b" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">LinkedIn</Link>, <Link href="https://x.com/ggange" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">X</Link> or <Link href="https://www.reddit.com/user/ggange03" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">Reddit</Link>.
+                If you have any questions or suggestions, please feel free to contact me via <Link href="https://www.linkedin.com/in/giuseppe-gangemi-10823715b" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">LinkedIn</Link>, <Link href="https://x.com/Ggangemi03" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">X</Link> or <Link href="https://www.reddit.com/user/ggange03" className="text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200">Reddit</Link>.
               </p>
             </section>
           </div>
