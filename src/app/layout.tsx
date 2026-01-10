@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Montserrat, Geist_Mono } from 'next/font/google'
 import Script from 'next/script'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
@@ -126,6 +127,7 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         )}
+        <SpeedInsights />
       </body>
     </html>
   )
