@@ -1,20 +1,26 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Montserrat, Geist_Mono } from 'next/font/google'
 import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Navbar } from '@/components/navbar'
+import { NavbarSkeleton } from '@/components/navbar-skeleton'
 import { Footer } from '@/components/footer'
 
 const montserrat = Montserrat({
   variable: '--font-montserrat',
   subsets: ['latin'],
+  display: 'swap',
+  preload: true,
 })
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap',
+  preload: true,
 })
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
@@ -112,11 +118,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Preconnect to critical external domains for faster resource loading */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body
         className={`${montserrat.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
         <Providers>
-          <Navbar />
+          <Suspense fallback={<NavbarSkeleton />}>
+            <Navbar />
+          </Suspense>
           <main>{children}</main>
           <Footer />
         </Providers>

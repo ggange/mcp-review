@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from 'next'
 
+// Force static generation - this page has no dynamic content
+export const dynamic = 'force-static'
+export const revalidate = 3600 // Revalidate every hour
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
 export const metadata: Metadata = {
