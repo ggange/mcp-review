@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-7.2-2D3748?logo=prisma)](https://www.prisma.io/)
 
-> An open-source marketplace for discovering and rating MCP (Model Context Protocol) servers. Browse, search, and review servers from the official MCP Registry.
+> An open-source repository for discovering and rating MCP (Model Context Protocol) servers. Browse, search, and review servers from the official MCP Registry.
 
 ## ✨ Features
 
