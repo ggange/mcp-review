@@ -1,3 +1,4 @@
+import { Suspense, cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import { getAvatarColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
@@ -17,24 +19,42 @@ interface ServerPageProps {
   params: Promise<{ id: string }>
 }
 
+// Enable ISR with 60 second revalidation for better TTFB on repeat visits
+export const revalidate = 60
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
-export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
-  const { id } = await params
-  const decodedId = decodeURIComponent(id)
-  
-  const server = await prisma.server.findUnique({
+// Cache the server fetch to avoid duplicate queries between generateMetadata and page
+const getServer = cache(async (decodedId: string) => {
+  return prisma.server.findUnique({
     where: { id: decodedId },
     select: {
+      id: true,
       name: true,
       description: true,
       organization: true,
       iconUrl: true,
+      version: true,
+      repositoryUrl: true,
+      source: true,
+      userId: true,
+      authorUsername: true,
+      tools: true,
+      packages: true,
+      remotes: true,
+      usageTips: true,
       avgTrustworthiness: true,
       avgUsefulness: true,
       totalRatings: true,
     },
   })
+})
+
+export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
+  const { id } = await params
+  const decodedId = decodeURIComponent(id)
+  
+  const server = await getServer(decodedId)
 
   if (!server) {
     return {
@@ -87,64 +107,221 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 }
 
+// Reviews component that streams in after initial paint
+async function ServerReviews({ 
+  serverId, 
+  currentUserId 
+}: { 
+  serverId: string
+  currentUserId?: string
+}) {
+  const ratings = await prisma.rating.findMany({
+    where: {
+      serverId,
+      status: 'approved',
+    },
+    include: {
+      user: {
+        select: { name: true, image: true },
+      },
+      reviewVotes: currentUserId
+        ? {
+            where: { userId: currentUserId },
+            select: { helpful: true },
+            take: 1,
+          }
+        : false,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 12,
+  })
+
+  if (ratings.length === 0) {
+    return null
+  }
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle className="text-card-foreground">Reviews</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {ratings.map((rating) => {
+            const userVote =
+              rating.reviewVotes && Array.isArray(rating.reviewVotes) && rating.reviewVotes.length > 0
+                ? { helpful: rating.reviewVotes[0].helpful }
+                : null
+
+            return (
+              <ReviewCard
+                key={rating.id}
+                review={{
+                  id: rating.id,
+                  trustworthiness: rating.trustworthiness,
+                  usefulness: rating.usefulness,
+                  text: rating.text,
+                  status: rating.status,
+                  helpfulCount: rating.helpfulCount,
+                  notHelpfulCount: rating.notHelpfulCount,
+                  createdAt: rating.createdAt,
+                  updatedAt: rating.updatedAt,
+                  userId: rating.userId,
+                  user: {
+                    name: rating.user.name,
+                    image: rating.user.image,
+                  },
+                  userVote,
+                }}
+                currentUserId={currentUserId}
+                serverId={serverId}
+              />
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ReviewsSkeleton() {
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <Skeleton className="h-6 w-24" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Rating form wrapper that fetches user's existing rating
+async function RatingFormWrapper({ 
+  serverId, 
+  userId,
+  isOwner,
+}: { 
+  serverId: string
+  userId?: string
+  isOwner: boolean
+}) {
+  if (isOwner) {
+    return (
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              You cannot rate your own server
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!userId) {
+    return (
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <p className="mb-4 text-sm text-muted-foreground">
+              Sign in to rate this server
+            </p>
+            <Link href="/auth/signin">
+              <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
+                Sign in
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const userRating = await prisma.rating.findUnique({
+    where: {
+      serverId_userId: {
+        serverId,
+        userId,
+      },
+    },
+  })
+
+  if (userRating) {
+    return null // User already rated
+  }
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <RatingForm serverId={serverId} />
+      </CardContent>
+    </Card>
+  )
+}
+
+function RatingFormSkeleton() {
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <Skeleton className="h-6 w-32" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default async function ServerPage({ params }: ServerPageProps) {
   const { id } = await params
   const decodedId = decodeURIComponent(id)
   
-  const session = await auth()
-  
-  const server = await prisma.server.findUnique({
-    where: { id: decodedId },
-    include: {
-      ratings: {
-        where: {
-          status: 'approved', // Only show approved reviews
-        },
-        include: {
-          user: {
-            select: { name: true, image: true },
-          },
-          reviewVotes: session?.user?.id
-            ? {
-                where: {
-                  userId: session.user.id,
-                },
-                select: {
-                  helpful: true,
-                },
-                take: 1,
-              }
-            : false,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 12,
-      },
-    },
-  })
+  // Parallel fetch: auth and server data at the same time
+  const [session, server] = await Promise.all([
+    auth(),
+    getServer(decodedId),
+  ])
 
   if (!server) {
     notFound()
   }
 
-  // Get user's existing rating if logged in
-  let userRating = null
-  if (session?.user?.id) {
-    userRating = await prisma.rating.findUnique({
-      where: {
-        serverId_userId: {
-          serverId: server.id,
-          userId: session.user.id,
-        },
-      },
-    })
-  }
-
   const avatarColor = getAvatarColor(server.name)
-
-  // Calculate aggregate rating
   const avgRating = server.avgTrustworthiness && server.avgUsefulness
     ? (server.avgTrustworthiness + server.avgUsefulness) / 2
     : null
+
+  const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
 
   // Build JSON-LD structured data
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
@@ -202,9 +379,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
       </Link>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Main content */}
+        {/* Main content - LCP target: render this first */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Header */}
+          {/* Header Card - Critical LCP element */}
           <Card className="border-border bg-card">
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
@@ -216,7 +393,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                       width={80}
                       height={80}
                       className="h-full w-full object-cover"
-                      unoptimized
+                      priority
                     />
                   </div>
                 ) : (
@@ -253,7 +430,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                           v{server.version}
                         </Badge>
                       )}
-                      {session?.user?.id && server.userId === session.user.id && server.source === 'user' && (
+                      {isOwner && (
                         <ServerActions serverId={server.id} />
                       )}
                     </div>
@@ -368,7 +545,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Rating Card */}
+          {/* Rating Card - renders immediately with cached server data */}
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="text-card-foreground">Ratings</CardTitle>
@@ -382,98 +559,25 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardContent>
           </Card>
 
-          {/* Rating Form - only show if user hasn't rated yet, isn't logged in, and doesn't own the server */}
-          {!userRating && !(session?.user?.id && server.source === 'user' && server.userId === session.user.id) && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">
-                  Rate This Server
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {session?.user ? (
-                  <RatingForm serverId={server.id} />
-                ) : (
-                  <div className="text-center">
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      Sign in to rate this server
-                    </p>
-                    <Link href="/auth/signin">
-                      <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
-                        Sign in
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Show message if user owns the server */}
-          {session?.user?.id && server.source === 'user' && server.userId === session.user.id && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">
-                  Rate This Server
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    You cannot rate your own server
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Rating Form - streamed in */}
+          <Suspense fallback={<RatingFormSkeleton />}>
+            <RatingFormWrapper 
+              serverId={server.id} 
+              userId={session?.user?.id}
+              isOwner={isOwner}
+            />
+          </Suspense>
 
-          {/* Reviews */}
-          {server.ratings.length > 0 && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Reviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {server.ratings.map((rating: (typeof server.ratings)[0]) => {
-                    const userVote =
-                      rating.reviewVotes && Array.isArray(rating.reviewVotes) && rating.reviewVotes.length > 0
-                        ? { helpful: rating.reviewVotes[0].helpful }
-                        : null
-
-                    return (
-                      <ReviewCard
-                        key={rating.id}
-                        review={{
-                          id: rating.id,
-                          trustworthiness: rating.trustworthiness,
-                          usefulness: rating.usefulness,
-                          text: rating.text,
-                          status: rating.status,
-                          helpfulCount: rating.helpfulCount,
-                          notHelpfulCount: rating.notHelpfulCount,
-                          createdAt: rating.createdAt,
-                          updatedAt: rating.updatedAt,
-                          userId: rating.userId,
-                          user: {
-                            name: rating.user.name,
-                            image: rating.user.image,
-                          },
-                          userVote,
-                        }}
-                        currentUserId={session?.user?.id}
-                        serverId={server.id}
-                      />
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Reviews - streamed in after LCP */}
+          <Suspense fallback={<ReviewsSkeleton />}>
+            <ServerReviews 
+              serverId={server.id} 
+              currentUserId={session?.user?.id}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
     </>
   )
 }
-

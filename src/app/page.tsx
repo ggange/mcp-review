@@ -7,6 +7,7 @@ import { ServerList } from '@/components/server/server-tabs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { 
   queryServers, 
   getCategoryCounts, 
@@ -17,6 +18,9 @@ import {
 } from '@/lib/server-queries'
 import { HeroServerCard } from '@/components/server/hero-server-card'
 import { auth } from '@/lib/auth'
+
+// Enable ISR with 60 second revalidation for better TTFB
+export const revalidate = 60
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -51,6 +55,70 @@ interface HomePageProps {
     hasGithub?: string
     source?: string
   }>
+}
+
+// Hero server cards skeleton for streaming
+function HeroCardsSkeleton() {
+  return (
+    <div className="flex flex-col divide-y divide-border/30">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-2">
+          <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+          <div className="flex-1 min-w-0 space-y-1">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Streamed component for latest user servers
+async function LatestUserServers({ submitServerHref }: { submitServerHref: string }) {
+  const latestUserServers = await getLatestUserServers(4)
+  
+  if (latestUserServers.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-sm text-muted-foreground mb-2">
+          No community uploads yet
+        </p>
+        <Link href={submitServerHref} className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline">
+          Be the first to upload your server!
+        </Link>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="flex flex-col divide-y divide-border/30">
+      {latestUserServers.map((server) => (
+        <HeroServerCard key={server.id} server={server} />
+      ))}
+    </div>
+  )
+}
+
+// Streamed component for top rated servers
+async function TopRatedServers() {
+  const topRatedServers = await getTopRatedServers(4)
+  
+  if (topRatedServers.length === 0) {
+    return (
+      <p className="p-4 text-sm text-muted-foreground text-center">
+        No rated servers yet
+      </p>
+    )
+  }
+  
+  return (
+    <div className="flex flex-col divide-y divide-border/30">
+      {topRatedServers.map((server) => (
+        <HeroServerCard key={server.id} server={server} />
+      ))}
+    </div>
+  )
 }
 
 async function ServerListWrapper({ 
@@ -110,6 +178,22 @@ async function ServerListWrapper({
   )
 }
 
+// Streamed submit button that depends on auth
+async function SubmitServerButton() {
+  const session = await auth()
+  const submitServerHref = session?.user 
+    ? '/dashboard?upload=true' 
+    : '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
+  
+  return (
+    <Link href={submitServerHref}>
+      <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
+        Submit a Server
+      </Button>
+    </Link>
+  )
+}
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams
   const q = params.q
@@ -123,17 +207,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const hasGithub = params.hasGithub === 'true'
   const source = params.source
 
-  // Fetch hero section servers
-  const [latestUserServers, topRatedServers] = await Promise.all([
-    getLatestUserServers(4),
-    getTopRatedServers(4),
-  ])
-
-  // Check authentication status for the Submit button
-  const session = await auth()
-  const submitServerHref = session?.user 
-    ? '/dashboard?upload=true' 
-    : '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
+  // Default href for non-auth contexts (will be replaced by streamed component)
+  const defaultSubmitHref = '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
 
   const websiteSchema = {
     '@context': 'https://schema.org',
@@ -165,7 +240,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
       <div className="container mx-auto px-4 py-8">
-      {/* Hero Section */}
+      {/* Hero Section - Static shell renders immediately, data streams in */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">
         {/* Left: Title, subtitle, badge, buttons */}
         <div className="flex flex-col justify-center">
@@ -181,11 +256,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             Join the community to share and review the best products.
           </p>
           <div className="flex flex-col sm:flex-row items-start gap-3">
-            <Link href={submitServerHref}>
-              <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
-                Submit a Server
-              </Button>
-            </Link>
+            <Suspense fallback={
+              <Link href={defaultSubmitHref}>
+                <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
+                  Submit a Server
+                </Button>
+              </Link>
+            }>
+              <SubmitServerButton />
+            </Suspense>
             <Button 
               variant="outline" 
               size="lg" 
@@ -199,7 +278,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </div>
         </div>
 
-        {/* Right: Server columns */}
+        {/* Right: Server columns - Stream in after initial paint */}
         <div className="grid grid-cols-2 gap-4">
           {/* Fresh from community */}
           <div className="flex flex-col">
@@ -208,22 +287,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </h3>
             <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
               <CardContent className="p-2">
-                <div className="flex flex-col divide-y divide-border/30">
-                  {latestUserServers.length > 0 ? (
-                    latestUserServers.map((server) => (
-                      <HeroServerCard key={server.id} server={server} />
-                    ))
-                  ) : (
-                    <div className="p-4 text-center">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        No community uploads yet
-                      </p>
-                      <Link href={submitServerHref} className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline">
-                        Be the first to upload your server!
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                <Suspense fallback={<HeroCardsSkeleton />}>
+                  <LatestUserServers submitServerHref={defaultSubmitHref} />
+                </Suspense>
               </CardContent>
             </Card>
           </div>
@@ -235,17 +301,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </h3>
             <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
               <CardContent className="p-2">
-                <div className="flex flex-col divide-y divide-border/30">
-                  {topRatedServers.length > 0 ? (
-                    topRatedServers.map((server) => (
-                      <HeroServerCard key={server.id} server={server} />
-                    ))
-                  ) : (
-                    <p className="p-4 text-sm text-muted-foreground text-center">
-                      No rated servers yet
-                    </p>
-                  )}
-                </div>
+                <Suspense fallback={<HeroCardsSkeleton />}>
+                  <TopRatedServers />
+                </Suspense>
               </CardContent>
             </Card>
           </div>
