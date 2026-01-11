@@ -6,20 +6,37 @@
  */
 
 /**
+ * Normalize origin by removing trailing slash
+ */
+function normalizeOrigin(origin: string): string {
+  return origin.replace(/\/$/, '')
+}
+
+/**
  * Get the allowed origins for CSRF validation
  * In production, this should be explicitly set via environment variable
  */
 function getAllowedOrigins(): string[] {
   const origins: string[] = []
   
-  // Add production URL if set
+  // Add production URL if set (normalize to remove trailing slash)
   if (process.env.NEXT_PUBLIC_APP_URL) {
-    origins.push(process.env.NEXT_PUBLIC_APP_URL)
+    origins.push(normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL))
+  }
+  
+  // Add NEXTAUTH_URL as allowed origin (often set for auth callbacks)
+  if (process.env.NEXTAUTH_URL) {
+    origins.push(normalizeOrigin(process.env.NEXTAUTH_URL))
   }
   
   // Add Vercel deployment URLs
   if (process.env.VERCEL_URL) {
     origins.push(`https://${process.env.VERCEL_URL}`)
+  }
+  
+  // Add Vercel production URL (custom domain without protocol)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    origins.push(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
   }
   
   // In development, allow localhost
@@ -28,7 +45,8 @@ function getAllowedOrigins(): string[] {
     origins.push('http://127.0.0.1:3000')
   }
   
-  return origins
+  // Remove duplicates
+  return [...new Set(origins)]
 }
 
 /**
@@ -49,6 +67,8 @@ export function validateOrigin(request: Request): { isValid: boolean; error?: st
   
   // In production, require origin header for mutations
   if (process.env.NODE_ENV === 'production') {
+    const allowedOrigins = getAllowedOrigins()
+    
     if (!origin) {
       // Some browsers might not send Origin but send Referer
       if (!referer) {
@@ -60,8 +80,7 @@ export function validateOrigin(request: Request): { isValid: boolean; error?: st
       // Validate referer instead
       try {
         const refererUrl = new URL(referer)
-        const refererOrigin = refererUrl.origin
-        const allowedOrigins = getAllowedOrigins()
+        const refererOrigin = normalizeOrigin(refererUrl.origin)
         
         if (!allowedOrigins.some(allowed => refererOrigin === allowed)) {
           return { 
@@ -78,8 +97,9 @@ export function validateOrigin(request: Request): { isValid: boolean; error?: st
       }
     }
     
-    const allowedOrigins = getAllowedOrigins()
-    if (!allowedOrigins.some(allowed => origin === allowed)) {
+    // Normalize the incoming origin for comparison
+    const normalizedOrigin = normalizeOrigin(origin)
+    if (!allowedOrigins.some(allowed => normalizedOrigin === allowed)) {
       return { 
         isValid: false, 
         error: 'Invalid request origin' 
