@@ -109,6 +109,18 @@ export interface PaginatedResponse<T> {
   total?: number
 }
 
+// GitHub repository parsing
+export interface GitHubRepoParseResult {
+  name: string
+  organization: string | null
+  description: string
+  tools: Array<{ name: string; description: string }>
+  usageTips: string | null
+  version: string | null
+  repositoryUrl: string
+  category: string
+}
+
 // NextAuth type extensions
 import { DefaultSession } from 'next-auth'
 

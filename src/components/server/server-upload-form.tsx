@@ -16,6 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getCategories, getCategoryDisplayName, type ServerCategory } from '@/lib/server-categories'
+import { Sparkles } from 'lucide-react'
+import type { GitHubRepoParseResult } from '@/types'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 interface Tool {
   name: string
@@ -53,6 +56,7 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
   const [success, setSuccess] = useState(false)
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null)
   const [loadingGithub, setLoadingGithub] = useState(true)
+  const [isFetchingRepo, setIsFetchingRepo] = useState(false)
   
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -178,6 +182,60 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
     setTools(updatedTools)
   }
 
+  const handleImportFromGitHub = async () => {
+    const repoUrl = formData.repositoryUrl.trim()
+    
+    if (!repoUrl) {
+      setError('Please enter a GitHub repository URL first')
+      return
+    }
+    
+    // Basic validation for GitHub URL
+    const githubUrlRegex = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)/
+    if (!githubUrlRegex.test(repoUrl)) {
+      setError('Please enter a valid GitHub repository URL (e.g., https://github.com/owner/repo)')
+      return
+    }
+    
+    setIsFetchingRepo(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/servers/parse-github-repo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repositoryUrl: repoUrl }),
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error?.message || 'Failed to fetch repository data')
+      }
+      
+      const data: GitHubRepoParseResult = await response.json()
+      
+      // Populate form with fetched data
+      setFormData({
+        name: data.name || formData.name,
+        organization: data.organization || formData.organization,
+        description: data.description || formData.description,
+        version: data.version || formData.version,
+        repositoryUrl: data.repositoryUrl || formData.repositoryUrl,
+        usageTips: data.usageTips || formData.usageTips,
+        category: (data.category || formData.category) as ServerCategory,
+      })
+      
+      if (data.tools && data.tools.length > 0) {
+        setTools(data.tools)
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch repository data')
+    } finally {
+      setIsFetchingRepo(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -300,6 +358,51 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
                 <p className="text-sm text-muted-foreground">GitHub account not linked</p>
               </div>
             )}
+          </div>
+
+          {/* Repository URL with Import button */}
+          <div className="space-y-2">
+            <Label htmlFor="repositoryUrl" className="text-muted-foreground">
+              Repository URL
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="repositoryUrl"
+                type="url"
+                value={formData.repositoryUrl}
+                onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
+                placeholder="https://github.com/..."
+                className="bg-background border-border text-foreground flex-1"
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleImportFromGitHub}
+                      disabled={isFetchingRepo || !formData.repositoryUrl.trim()}
+                      className="gap-2"
+                    >
+                      {isFetchingRepo ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          Import from GitHub
+                        </>
+                      )}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={5}>
+                  <p>Auto-fill the form with repository information</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -483,20 +586,6 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
                 value={formData.version}
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                 placeholder="e.g., 1.0.0"
-                className="bg-background border-border text-foreground"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="repositoryUrl" className="text-muted-foreground">
-                Repository URL
-              </Label>
-              <Input
-                id="repositoryUrl"
-                type="url"
-                value={formData.repositoryUrl}
-                onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
-                placeholder="https://github.com/..."
                 className="bg-background border-border text-foreground"
               />
             </div>

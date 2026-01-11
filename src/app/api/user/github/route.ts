@@ -62,8 +62,9 @@ export async function GET() {
       )
     }
   } catch (error) {
+    // Always log in development for debugging
     if (process.env.NODE_ENV !== 'production') {
-      console.error('GitHub info error:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('GitHub info error:', error)
     }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to get GitHub info' } },
