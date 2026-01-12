@@ -106,6 +106,7 @@ interface ServerFormData {
 function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [serverData, setServerData] = useState<ServerFormData | null>(null)
+  const [serverSource, setServerSource] = useState<'registry' | 'user' | 'official' | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Load server data
@@ -115,6 +116,7 @@ function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
       .then(data => {
         if (data.data) {
           const server = data.data
+          setServerSource(server.source || null)
           setServerData({
             name: server.name,
             organization: server.organization || '',
@@ -150,6 +152,7 @@ function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
       serverId={serverId}
       onSuccess={onSuccess}
       mode="edit"
+      serverSource={serverSource || undefined}
     />
   )
 }
