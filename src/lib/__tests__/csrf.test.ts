@@ -27,6 +27,12 @@ describe('getAllowedOrigins', () => {
     process.env = { ...originalEnv }
   })
 
+  // Helper to safely set NODE_ENV for testing
+  const setNodeEnv = (value: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(process.env as any).NODE_ENV = value
+  }
+
   it('includes NEXT_PUBLIC_APP_URL when set', () => {
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com/'
     const origins = getAllowedOrigins()
@@ -56,7 +62,7 @@ describe('getAllowedOrigins', () => {
   })
 
   it('includes localhost in development', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     const origins = getAllowedOrigins()
     
     expect(origins).toContain('http://localhost:3000')
@@ -64,7 +70,7 @@ describe('getAllowedOrigins', () => {
   })
 
   it('does not include localhost in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     delete process.env.NEXT_PUBLIC_APP_URL
     delete process.env.NEXTAUTH_URL
     delete process.env.VERCEL_URL
@@ -105,6 +111,12 @@ describe('validateOrigin', () => {
     process.env = { ...originalEnv }
   })
 
+  // Helper to safely set NODE_ENV for testing
+  const setNodeEnv = (value: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(process.env as any).NODE_ENV = value
+  }
+
   it('skips validation for GET requests', () => {
     const request = new Request('https://example.com/api', {
       method: 'GET',
@@ -136,7 +148,7 @@ describe('validateOrigin', () => {
   })
 
   it('validates POST requests in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -152,7 +164,7 @@ describe('validateOrigin', () => {
   })
 
   it('rejects POST requests with invalid origin in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -169,7 +181,7 @@ describe('validateOrigin', () => {
   })
 
   it('uses referer when origin is missing in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -185,7 +197,7 @@ describe('validateOrigin', () => {
   })
 
   it('rejects when both origin and referer are missing in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -199,7 +211,7 @@ describe('validateOrigin', () => {
   })
 
   it('rejects invalid referer URL in production', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -216,7 +228,7 @@ describe('validateOrigin', () => {
   })
 
   it('allows all origins in development for POST', () => {
-    process.env.NODE_ENV = 'development'
+    setNodeEnv('development')
     
     const request = new Request('https://example.com/api', {
       method: 'POST',
@@ -231,7 +243,7 @@ describe('validateOrigin', () => {
   })
 
   it('normalizes origin before comparison', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -247,7 +259,7 @@ describe('validateOrigin', () => {
   })
 
   it('validates PATCH requests', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -263,7 +275,7 @@ describe('validateOrigin', () => {
   })
 
   it('validates DELETE requests', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {
@@ -279,7 +291,7 @@ describe('validateOrigin', () => {
   })
 
   it('handles case-insensitive HTTP methods', () => {
-    process.env.NODE_ENV = 'production'
+    setNodeEnv('production')
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
     
     const request = new Request('https://example.com/api', {

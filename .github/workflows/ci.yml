@@ -84,6 +84,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Generate Prisma Client
+        run: npm run db:generate
+        env:
+          # Use dummy values for Prisma generation - actual DB not needed for tests
+          DATABASE_URL: postgresql://user:password@localhost:5432/db
+      
       - name: Run tests
         run: npm test
 
