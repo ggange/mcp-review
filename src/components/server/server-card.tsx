@@ -153,11 +153,15 @@ export function ServerCard({ server }: ServerCardProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
-              {toolsCount > 0 && (
+              {server.hasManyTools ? (
+                <Badge variant="outline" className="border-violet-500/50 text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/30">
+                  5+ tools
+                </Badge>
+              ) : toolsCount > 0 ? (
                 <Badge variant="outline" className="border-border text-muted-foreground">
                   {toolsCount} {toolsCount === 1 ? 'tool' : 'tools'}
                 </Badge>
-              )}
+              ) : null}
               {server.repositoryUrl && (
                 <Tooltip>
                   <TooltipTrigger asChild>

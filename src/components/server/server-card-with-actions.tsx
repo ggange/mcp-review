@@ -136,11 +136,15 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
               />
               
               <div className="flex gap-2">
-                {toolsCount > 0 && (
+                {server.hasManyTools ? (
+                  <Badge variant="outline" className="border-violet-500/50 text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/30">
+                    5+ tools
+                  </Badge>
+                ) : toolsCount > 0 ? (
                   <Badge variant="outline" className="border-border text-muted-foreground">
                     {toolsCount} {toolsCount === 1 ? 'tool' : 'tools'}
                   </Badge>
-                )}
+                ) : null}
                 {server.version && (
                   <Badge variant="outline" className="border-border text-muted-foreground">
                     v{server.version}
@@ -218,6 +222,8 @@ interface ServerFormData {
   repositoryUrl: string
   iconUrl: string
   category: string
+  hasManyTools?: boolean
+  completeToolsUrl?: string
 }
 
 function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
@@ -244,6 +250,8 @@ function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
             repositoryUrl: server.repositoryUrl || '',
             iconUrl: server.iconUrl || '',
             category: server.category || 'other',
+            hasManyTools: server.hasManyTools || false,
+            completeToolsUrl: server.completeToolsUrl || '',
           })
         }
         setLoading(false)

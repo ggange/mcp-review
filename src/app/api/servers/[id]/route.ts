@@ -194,7 +194,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       )
     }
 
-    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category: providedCategory } = validationResult.data
+    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category: providedCategory, hasManyTools, completeToolsUrl } = validationResult.data
 
     // Generate new server ID if name or organization changed
     // For official servers, organization is required
@@ -234,6 +234,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         repositoryUrl: repositoryUrl || null,
         category,
         syncedAt: new Date(),
+        hasManyTools: hasManyTools || false,
+        completeToolsUrl: completeToolsUrl || null,
       },
     })
 

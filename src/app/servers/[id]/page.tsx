@@ -496,7 +496,19 @@ export default async function ServerPage({ params }: ServerPageProps) {
           {server.tools && Array.isArray(server.tools) && server.tools.length > 0 && (
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-card-foreground">Tools</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-card-foreground">Tools</CardTitle>
+                  {server.hasManyTools && server.completeToolsUrl && (
+                    <a
+                      href={server.completeToolsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline"
+                    >
+                      View complete list →
+                    </a>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -507,6 +519,21 @@ export default async function ServerPage({ params }: ServerPageProps) {
                     </div>
                   ))}
                 </div>
+                {server.hasManyTools && server.completeToolsUrl && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      This server has 5+ tools. View the complete list:
+                    </p>
+                    <a
+                      href={server.completeToolsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline"
+                    >
+                      {server.completeToolsUrl}
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
