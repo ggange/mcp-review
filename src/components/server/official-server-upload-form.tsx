@@ -375,6 +375,8 @@ You can also list tools in a simpler format:
         repositoryUrl: data.repositoryUrl || formData.repositoryUrl,
         usageTips: data.usageTips || formData.usageTips,
         category: (data.category || formData.category) as ServerCategory,
+        hasManyTools: formData.hasManyTools,
+        completeToolsUrl: formData.completeToolsUrl,
       })
       
       if (data.tools && data.tools.length > 0) {

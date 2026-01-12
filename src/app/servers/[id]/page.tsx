@@ -47,8 +47,31 @@ const getServer = cache(async (decodedId: string) => {
       avgTrustworthiness: true,
       avgUsefulness: true,
       totalRatings: true,
-    },
-  })
+      hasManyTools: true,
+      completeToolsUrl: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  }) as Promise<{
+    id: string
+    name: string
+    description: string | null
+    organization: string | null
+    iconUrl: string | null
+    version: string | null
+    repositoryUrl: string | null
+    source: string
+    userId: string | null
+    authorUsername: string | null
+    tools: Array<{ name: string; description: string }> | null
+    packages: Array<{ registryType?: string; identifier?: string }> | null
+    remotes: Array<{ type?: string; url?: string }> | null
+    usageTips: string | null
+    avgTrustworthiness: number
+    avgUsefulness: number
+    totalRatings: number
+    hasManyTools: boolean
+    completeToolsUrl: string | null
+  } | null>
 })
 
 export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {

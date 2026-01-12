@@ -61,6 +61,8 @@ export interface ServerWithRatings {
   usageTips: string | null
   userId: string | null
   authorUsername: string | null
+  hasManyTools: boolean
+  completeToolsUrl: string | null
 }
 
 export interface RatingInput {

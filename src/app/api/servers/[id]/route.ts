@@ -234,9 +234,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         repositoryUrl: repositoryUrl || null,
         category,
         syncedAt: new Date(),
-        hasManyTools: hasManyTools || false,
-        completeToolsUrl: completeToolsUrl || null,
-      },
+        hasManyTools: Boolean(hasManyTools ?? false),
+        completeToolsUrl: completeToolsUrl ?? null,
+      } as Prisma.ServerUpdateInput,
     })
 
     return NextResponse.json({ data: updatedServer }, { status: 200 })
