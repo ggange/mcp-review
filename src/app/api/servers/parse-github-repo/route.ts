@@ -3,133 +3,15 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { categorizeServer } from '@/lib/server-categories'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import {
+  extractToolsFromMarkdownFile,
+  extractToolsFromReadme,
+  extractDescription,
+  extractUsageTips,
+  extractVersionFromReadme,
+  validateGitHubUrl,
+} from '@/lib/github-parsing'
 import type { GitHubRepoParseResult } from '@/types'
-
-/**
- * Extract tools from README content using multiple strategies
- */
-function extractToolsFromReadme(readme: string): Array<{ name: string; description: string }> {
-  const tools: Array<{ name: string; description: string }> = []
-  
-  // Strategy 1: Look for ## Tools or ## Features section
-  const toolsSectionRegex = /##\s*(?:Tools|Features|Capabilities|Functions)[\s\S]*?(?=##|$)/i
-  const toolsMatch = readme.match(toolsSectionRegex)
-  
-  if (toolsMatch) {
-    const toolsContent = toolsMatch[0]
-    // Match list items with tool names and descriptions
-    // Pattern: - **tool_name**: description or - **tool_name** - description
-    const toolItemRegex = /[-*]\s*\*\*([^*]+)\*\*[:\-]?\s*(.+?)(?=\n[-*]|\n\n|$)/g
-    let match
-    while ((match = toolItemRegex.exec(toolsContent)) !== null) {
-      const name = match[1].trim()
-      const description = match[2].trim()
-      if (name && description && description.length > 5) {
-        tools.push({ name, description })
-      }
-    }
-  }
-  
-  // Strategy 2: Look for MCP server configuration patterns in code blocks
-  const codeBlockRegex = /```(?:json|yaml|toml)?\s*\{[\s\S]*?"tools?"[\s\S]*?\}[\s\S]*?```/i
-  const codeMatch = readme.match(codeBlockRegex)
-  if (codeMatch) {
-    try {
-      // Extract JSON from code block
-      let jsonStr = codeMatch[0]
-      jsonStr = jsonStr.replace(/```[a-z]*\n?/g, '').replace(/```/g, '').trim()
-      
-      // Try to find tools array in the JSON
-      const toolsMatch = jsonStr.match(/"tools"\s*:\s*\[([\s\S]*?)\]/i)
-      if (toolsMatch) {
-        const toolsArray = toolsMatch[1]
-        const toolRegex = /\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"description"\s*:\s*"([^"]+)"\s*\}/g
-        let match
-        while ((match = toolRegex.exec(toolsArray)) !== null) {
-          tools.push({ 
-            name: match[1].trim(), 
-            description: match[2].trim() 
-          })
-        }
-      }
-    } catch {
-      // Ignore JSON parse errors
-    }
-  }
-  
-  // Strategy 3: Look for inline MCP config patterns
-  const mcpConfigRegex = /"tools"\s*:\s*\[([\s\S]*?)\]/i
-  const mcpMatch = readme.match(mcpConfigRegex)
-  if (mcpMatch && tools.length === 0) {
-    const toolsArray = mcpMatch[1]
-    const toolRegex = /\{\s*"name"\s*:\s*"([^"]+)"\s*,\s*"description"\s*:\s*"([^"]+)"\s*\}/g
-    let match
-    while ((match = toolRegex.exec(toolsArray)) !== null) {
-      tools.push({ 
-        name: match[1].trim(), 
-        description: match[2].trim() 
-      })
-    }
-  }
-  
-  return tools
-}
-
-/**
- * Extract description from README or repository description
- */
-function extractDescription(readme: string, repoDescription: string | null): string {
-  // Use repo description if available and meaningful
-  if (repoDescription && repoDescription.length > 10) {
-    return repoDescription
-  }
-  
-  // Extract first paragraph from README
-  const lines = readme.split('\n')
-  let description = ''
-  
-  // Skip title and badges
-  let startIndex = 0
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith('# ')) {
-      startIndex = i + 1
-      break
-    }
-  }
-  
-  // Find first meaningful paragraph
-  for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i].trim()
-    // Skip badges, empty lines, and headers
-    if (line && 
-        !line.startsWith('![') && 
-        !line.startsWith('[') && 
-        !line.startsWith('#') &&
-        !line.startsWith('<!--')) {
-      description += line + ' '
-      if (description.length > 200) break
-    }
-    // Stop at first empty line after we have content
-    if (description && line === '') break
-  }
-  
-  return description.trim() || 'An MCP server'
-}
-
-/**
- * Extract usage tips from README
- */
-function extractUsageTips(readme: string): string | null {
-  const usageSectionRegex = /##\s*(?:Usage|Getting Started|Installation|Examples?|Quick Start)[\s\S]*?(?=##|$)/i
-  const match = readme.match(usageSectionRegex)
-  if (match) {
-    const content = match[0]
-    // Remove the header and get first 500 chars
-    const text = content.replace(/^##\s*[^\n]+\n/i, '').trim()
-    return text.substring(0, 500).trim() || null
-  }
-  return null
-}
 
 /**
  * Extract version from README or package.json
@@ -141,10 +23,9 @@ async function extractVersion(
   githubToken: string | null
 ): Promise<string | null> {
   // Strategy 1: Try to find version in README
-  const versionRegex = /(?:version|v)\s*[:=]\s*v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/i
-  const match = readme.match(versionRegex)
-  if (match) {
-    return match[1]
+  const versionFromReadme = extractVersionFromReadme(readme)
+  if (versionFromReadme) {
+    return versionFromReadme
   }
   
   // Strategy 2: Try to fetch package.json
@@ -204,18 +85,16 @@ export async function POST(request: Request) {
     }
     
     // Validate GitHub URL format
-    const githubUrlRegex = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/.*)?$/
-    const match = repositoryUrl.trim().match(githubUrlRegex)
+    const urlValidation = validateGitHubUrl(repositoryUrl)
     
-    if (!match) {
+    if (!urlValidation.valid || !urlValidation.owner || !urlValidation.repo) {
       return NextResponse.json(
         { error: { code: 'INVALID_INPUT', message: 'Invalid GitHub repository URL. Must be in format: https://github.com/owner/repo' } },
         { status: 400 }
       )
     }
     
-    const [, owner, repo] = match
-    const cleanRepo = repo.replace(/\.git$/, '')
+    const { owner, repo: cleanRepo } = urlValidation
     
     // Get GitHub token if available (reuse from sign-in)
     let githubToken: string | null = null
@@ -284,8 +163,43 @@ export async function POST(request: Request) {
       // README is optional - continue with what we have
     }
     
-    // Extract information
-    const tools = extractToolsFromReadme(readmeContent)
+    // Try to fetch a dedicated tools markdown file
+    // Check common locations: TOOLS.md, docs/TOOLS.md, example_TOOLS.md, docs/example_TOOLS.md
+    let toolsMarkdownContent = ''
+    const toolsFilePaths = [
+      'TOOLS.md',
+      'docs/TOOLS.md',
+      'example_TOOLS.md',
+      'docs/example_TOOLS.md',
+    ]
+    
+    for (const filePath of toolsFilePaths) {
+      try {
+        const toolsResponse = await fetch(
+          `https://api.github.com/repos/${owner}/${cleanRepo}/contents/${filePath}`,
+          { headers }
+        )
+        
+        if (toolsResponse.ok) {
+          const toolsData = await toolsResponse.json()
+          toolsMarkdownContent = Buffer.from(toolsData.content, 'base64').toString('utf-8')
+          break // Found a tools file, stop searching
+        }
+      } catch {
+        // Continue to next file path
+      }
+    }
+    
+    // Extract tools - prioritize tools markdown file, fallback to README
+    let tools: Array<{ name: string; description: string }> = []
+    if (toolsMarkdownContent) {
+      tools = extractToolsFromMarkdownFile(toolsMarkdownContent)
+    }
+    
+    // If no tools found in dedicated file, try README
+    if (tools.length === 0) {
+      tools = extractToolsFromReadme(readmeContent)
+    }
     const description = extractDescription(readmeContent, repoData.description)
     const usageTips = extractUsageTips(readmeContent)
     const version = await extractVersion(readmeContent, owner, cleanRepo, githubToken)

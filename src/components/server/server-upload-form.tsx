@@ -16,9 +16,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getCategories, getCategoryDisplayName, type ServerCategory } from '@/lib/server-categories'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Upload, Download, FileText } from 'lucide-react'
 import type { GitHubRepoParseResult } from '@/types'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 interface Tool {
   name: string
@@ -57,6 +65,8 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null)
   const [loadingGithub, setLoadingGithub] = useState(true)
   const [isFetchingRepo, setIsFetchingRepo] = useState(false)
+  const [toolsDialogOpen, setToolsDialogOpen] = useState(false)
+  const [toolsFileError, setToolsFileError] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -180,6 +190,192 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
     const updatedTools = [...tools]
     updatedTools[index] = { ...updatedTools[index], [field]: value }
     setTools(updatedTools)
+  }
+
+  /**
+   * Extract tools from a markdown file content
+   * Uses the same logic as the API endpoint
+   */
+  const extractToolsFromMarkdown = (content: string): Array<{ name: string; description: string }> => {
+    const extractedTools: Array<{ name: string; description: string }> = []
+    
+    // Strategy 1: Detailed format with ### headers
+    const detailedToolRegex = /###\s+`?([^`\n]+)`?\s*\n([\s\S]*?)(?=###|---|$)/g
+    let match
+    while ((match = detailedToolRegex.exec(content)) !== null) {
+      const name = match[1].trim()
+      const description = match[2].trim()
+      
+      // Extract description from the content
+      const lines = description.split('\n')
+      let descText = ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        // Skip empty lines, code blocks, parameter lists, examples
+        if (trimmed && 
+            !trimmed.startsWith('**Arguments:**') &&
+            !trimmed.startsWith('**Parameters:**') &&
+            !trimmed.startsWith('**Example:**') &&
+            !trimmed.startsWith('```') &&
+            !trimmed.startsWith('- `') &&
+            !trimmed.match(/^[A-Z][a-z]+ \(/)) {
+          descText += trimmed + ' '
+          if (descText.length > 200) break
+        }
+        // Stop at first code block or parameter section
+        if (trimmed.startsWith('**Arguments:**') || trimmed.startsWith('**Parameters:**') || trimmed.startsWith('```')) {
+          break
+        }
+      }
+      
+      if (name && descText.trim().length > 5) {
+        extractedTools.push({ name, description: descText.trim() })
+      }
+    }
+    
+    // Strategy 2: Simple list format (- **tool_name**: description)
+    if (extractedTools.length === 0) {
+      const listItemRegex = /[-*]\s*\*\*`?([^`*\n]+)`?\*\*[:\-]?\s*(.+?)(?=\n[-*]|\n\n|$)/g
+      while ((match = listItemRegex.exec(content)) !== null) {
+        const name = match[1].trim()
+        const description = match[2].trim()
+        if (name && description && description.length > 5) {
+          extractedTools.push({ name, description })
+        }
+      }
+    }
+    
+    return extractedTools
+  }
+
+  const handleToolsFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setToolsFileError(null)
+
+    // Validate file type
+    if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+      setToolsFileError('Please upload a Markdown file (.md or .markdown)')
+      return
+    }
+
+    try {
+      const content = await file.text()
+      const extractedTools = extractToolsFromMarkdown(content)
+
+      if (extractedTools.length === 0) {
+        setToolsFileError('No tools found in the file. Please check the format matches the example.')
+        return
+      }
+
+      // Update tools with extracted data
+      setTools(extractedTools)
+      setToolsDialogOpen(false)
+      setError(null) // Clear any previous errors
+    } catch (err) {
+      setToolsFileError(err instanceof Error ? err.message : 'Failed to read file')
+    }
+  }
+
+  const handleDownloadExample = async () => {
+    try {
+      // Fetch the example file from the public directory
+      const response = await fetch('/example_TOOLS.md')
+      if (response.ok) {
+        const content = await response.text()
+        const blob = new Blob([content], { type: 'text/markdown' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'example_TOOLS.md'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } else {
+        // Fallback: create blob with example content
+        const exampleContent = `# Tools Documentation
+
+This file documents all available tools provided by this MCP server.
+
+## Tools
+
+### \`search_web\`
+
+Searches the web for information using a search engine. Returns relevant results with titles, URLs, and snippets.
+
+**Arguments:**
+- \`query\` (string, required): The search query
+- \`max_results\` (number, optional): Maximum number of results to return (default: 10)
+
+**Example:**
+\`\`\`json
+{
+  "query": "latest TypeScript features",
+  "max_results": 5
+}
+\`\`\`
+
+---
+
+### \`fetch_url\`
+
+Fetches content from a URL and returns the HTML or text content.
+
+**Arguments:**
+- \`url\` (string, required): The URL to fetch
+- \`timeout\` (number, optional): Request timeout in seconds (default: 30)
+
+**Example:**
+\`\`\`json
+{
+  "url": "https://example.com/article",
+  "timeout": 10
+}
+\`\`\`
+
+---
+
+### \`summarize_text\`
+
+Summarizes long text content into a concise summary.
+
+**Arguments:**
+- \`text\` (string, required): The text to summarize
+- \`max_length\` (number, optional): Maximum length of summary in words (default: 100)
+
+**Example:**
+\`\`\`json
+{
+  "text": "Long article content here...",
+  "max_length": 50
+}
+\`\`\`
+
+---
+
+## Alternative Format
+
+You can also list tools in a simpler format:
+
+- **\`tool_name\`**: Brief description of what the tool does
+- **\`another_tool\`**: Another tool description
+- **\`yet_another\`**: Yet another tool with its description
+`
+        const blob = new Blob([exampleContent], { type: 'text/markdown' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'example_TOOLS.md'
+        document.body.appendChild(a)  
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    } catch (err) {
+      console.error('Failed to download example file:', err)
+    }
   }
 
   const handleImportFromGitHub = async () => {
@@ -455,31 +651,91 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
               <Label className="text-muted-foreground">
                 Tools <span className="text-destructive">*</span>
               </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addTool}
-                className="text-xs"
-              >
-                + Add Tool
-              </Button>
+              <div className="flex gap-2">
+                <Dialog open={toolsDialogOpen} onOpenChange={setToolsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1"
+                    >
+                      <Upload className="h-3 w-3" />
+                      Upload Tools File
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Upload Tools Markdown File</DialogTitle>
+                      <DialogDescription>
+                        Upload a markdown file containing your tool definitions. The file will be parsed to extract tool names and descriptions.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="tools-file" className="text-sm">
+                          Select Markdown File
+                        </Label>
+                        <Input
+                          id="tools-file"
+                          type="file"
+                          accept=".md,.markdown"
+                          onChange={handleToolsFileUpload}
+                          className="bg-background border-border text-foreground"
+                        />
+                        {toolsFileError && (
+                          <p className="text-xs text-destructive">{toolsFileError}</p>
+                        )}
+                      </div>
+                      <div className="border-t pt-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm font-medium">Need an example?</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Download the example file to see the supported format.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadExample}
+                          className="w-full gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Example File
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTool}
+                  className="text-xs"
+                >
+                  + Add Tool
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               {tools.map((tool, index) => (
-                <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1 grid gap-2 sm:grid-cols-2">
+                <div key={index} className="flex gap-2 items-start p-3 rounded-md border border-border bg-muted/30">
+                  <div className="flex-1 space-y-2">
                     <Input
                       placeholder="Tool name"
                       value={tool.name}
                       onChange={(e) => updateTool(index, 'name', e.target.value)}
                       className="bg-background border-border text-foreground"
                     />
-                    <Input
-                      placeholder="Tool description"
+                    <Textarea
+                      placeholder="Tool description - describe what this tool does..."
                       value={tool.description}
                       onChange={(e) => updateTool(index, 'description', e.target.value)}
-                      className="bg-background border-border text-foreground"
+                      className="bg-background border-border text-foreground min-h-[60px] resize-y"
+                      rows={2}
                     />
                   </div>
                   {tools.length > 1 && (
@@ -488,7 +744,7 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
                       variant="ghost"
                       size="sm"
                       onClick={() => removeTool(index)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive mt-1"
                     >
                       ×
                     </Button>

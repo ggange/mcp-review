@@ -8,7 +8,7 @@
 /**
  * Normalize origin by removing trailing slash
  */
-function normalizeOrigin(origin: string): string {
+export function normalizeOrigin(origin: string): string {
   return origin.replace(/\/$/, '')
 }
 
@@ -16,7 +16,7 @@ function normalizeOrigin(origin: string): string {
  * Get the allowed origins for CSRF validation
  * In production, this should be explicitly set via environment variable
  */
-function getAllowedOrigins(): string[] {
+export function getAllowedOrigins(): string[] {
   const origins: string[] = []
   
   // Add production URL if set (normalize to remove trailing slash)
