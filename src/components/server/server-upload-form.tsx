@@ -48,6 +48,7 @@ interface ServerUploadFormProps {
   }
   serverId?: string
   mode?: 'create' | 'edit'
+  serverSource?: 'registry' | 'user' | 'official'
 }
 
 interface GitHubUser {
@@ -56,7 +57,7 @@ interface GitHubUser {
   name: string
 }
 
-export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'create' }: ServerUploadFormProps = {}) {
+export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'create', serverSource }: ServerUploadFormProps = {}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isUploadingIcon, setIsUploadingIcon] = useState(false)
@@ -443,6 +444,13 @@ You can also list tools in a simpler format:
       return
     }
 
+    // For official servers, organization is required
+    const isOfficialServer = mode === 'edit' && serverSource === 'official'
+    if (isOfficialServer && !formData.organization.trim()) {
+      setError('Organization is required for official servers')
+      return
+    }
+
     // Validate tools
     const validTools = tools.filter(t => t.name.trim() && t.description.trim())
     if (validTools.length === 0) {
@@ -469,12 +477,15 @@ You can also list tools in a simpler format:
           : '/api/servers'
         const method = mode === 'edit' ? 'PATCH' : 'POST'
 
+        // For official servers, organization is required
+        const isOfficialServerEdit = mode === 'edit' && serverSource === 'official'
+
         const response = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name.trim(),
-            organization: formData.organization.trim() || null,
+            organization: isOfficialServerEdit ? formData.organization.trim() : (formData.organization.trim() || null),
             description: formData.description.trim(),
             tools: validTools.map(t => ({
               name: t.name.trim(),
@@ -618,13 +629,14 @@ You can also list tools in a simpler format:
             
             <div className="space-y-2">
               <Label htmlFor="organization" className="text-muted-foreground">
-                Organization (Optional)
+                Organization {mode === 'edit' && serverSource === 'official' ? '(Required)' : '(Optional)'}
               </Label>
               <Input
                 id="organization"
                 value={formData.organization}
                 onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                 placeholder="e.g., my-org"
+                required={mode === 'edit' && serverSource === 'official'}
                 className="bg-background border-border text-foreground"
               />
             </div>
