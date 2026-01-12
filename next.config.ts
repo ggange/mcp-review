@@ -1,6 +1,44 @@
 import type { NextConfig } from "next";
 
+// Build remote patterns array
+const remotePatterns: Array<{
+  protocol: 'http' | 'https'
+  hostname: string
+  port?: string
+  pathname: string
+}> = [
+  {
+    protocol: 'http',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/api/icons/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/api/icons/**',
+  },
+]
+
+// Add production domain if set
+if (process.env.NEXT_PUBLIC_APP_URL) {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_APP_URL)
+    remotePatterns.push({
+      protocol: 'https',
+      hostname: url.hostname,
+      pathname: '/api/icons/**',
+    })
+  } catch {
+    // Invalid URL, skip
+  }
+}
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns,
+  },
   async headers() {
     return [
       {

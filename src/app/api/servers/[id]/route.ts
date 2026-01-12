@@ -6,6 +6,7 @@ import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
 import { deleteFromR2 } from '@/lib/r2-storage'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { isAdmin } from '@/lib/admin'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -226,7 +227,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const { id } = await params
     const decodedId = decodeURIComponent(id)
 
-    // Check if server exists and user owns it
+    // Check if server exists
     const server = await prisma.server.findUnique({
       where: { id: decodedId },
       select: { userId: true, source: true, iconUrl: true },
@@ -239,7 +240,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    if (server.source !== 'user' || server.userId !== session.user.id) {
+    // Check if user is admin
+    const userIsAdmin = await isAdmin(session.user.id)
+
+    // Allow deletion if:
+    // 1. User is admin (can delete any server, including official ones)
+    // 2. OR server is user-owned and user owns it
+    if (!userIsAdmin && (server.source !== 'user' || server.userId !== session.user.id)) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You can only delete your own servers' } },
         { status: 403 }

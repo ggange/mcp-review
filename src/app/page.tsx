@@ -12,7 +12,7 @@ import {
   queryServers, 
   getCategoryCounts, 
   ensureServersExist,
-  getLatestUserServers,
+  getHotServers,
   getTopRatedServers,
   type SortOption 
 } from '@/lib/server-queries'
@@ -74,15 +74,15 @@ function HeroCardsSkeleton() {
   )
 }
 
-// Streamed component for latest user servers
-async function LatestUserServers({ submitServerHref }: { submitServerHref: string }) {
-  const latestUserServers = await getLatestUserServers(4)
+// Streamed component for hot servers (official + user, most recent first)
+async function HotServers({ submitServerHref }: { submitServerHref: string }) {
+  const hotServers = await getHotServers(4)
   
-  if (latestUserServers.length === 0) {
+  if (hotServers.length === 0) {
     return (
       <div className="p-4 text-center">
         <p className="text-sm text-muted-foreground mb-2">
-          No community uploads yet
+          No servers yet
         </p>
         <Link href={submitServerHref} className="text-sm font-medium text-violet-600 dark:text-violet-400 hover:underline">
           Be the first to upload your server!
@@ -93,7 +93,7 @@ async function LatestUserServers({ submitServerHref }: { submitServerHref: strin
   
   return (
     <div className="flex flex-col divide-y divide-border/30">
-      {latestUserServers.map((server) => (
+      {hotServers.map((server) => (
         <HeroServerCard key={server.id} server={server} />
       ))}
     </div>
@@ -147,8 +147,9 @@ async function ServerListWrapper({
   // Ensure servers exist (sync if empty)
   await ensureServersExist()
 
-  // Determine source filter: 'all', 'registry', or 'user'
-  const sourceFilter: 'all' | 'registry' | 'user' = source === 'registry' || source === 'user' ? source : 'all'
+  // Determine source filter: 'all', 'registry', 'user', or 'official'
+  const sourceFilter: 'all' | 'registry' | 'user' | 'official' = 
+    source === 'registry' || source === 'user' || source === 'official' ? source : 'all'
 
   // Common query options
   const queryOptions = {
@@ -288,15 +289,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
         {/* Right: Server columns - Stream in after initial paint */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Fresh from community */}
+          {/* Hot servers */}
           <div className="flex flex-col">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Fresh from our community
+              Hot
             </h3>
             <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
               <CardContent className="p-2">
                 <Suspense fallback={<HeroCardsSkeleton />}>
-                  <LatestUserServers submitServerHref={defaultSubmitHref} />
+                  <HotServers submitServerHref={defaultSubmitHref} />
                 </Suspense>
               </CardContent>
             </Card>
