@@ -47,8 +47,31 @@ const getServer = cache(async (decodedId: string) => {
       avgTrustworthiness: true,
       avgUsefulness: true,
       totalRatings: true,
-    },
-  })
+      hasManyTools: true,
+      completeToolsUrl: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  }) as Promise<{
+    id: string
+    name: string
+    description: string | null
+    organization: string | null
+    iconUrl: string | null
+    version: string | null
+    repositoryUrl: string | null
+    source: string
+    userId: string | null
+    authorUsername: string | null
+    tools: Array<{ name: string; description: string }> | null
+    packages: Array<{ registryType?: string; identifier?: string }> | null
+    remotes: Array<{ type?: string; url?: string }> | null
+    usageTips: string | null
+    avgTrustworthiness: number
+    avgUsefulness: number
+    totalRatings: number
+    hasManyTools: boolean
+    completeToolsUrl: string | null
+  } | null>
 })
 
 export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
@@ -496,7 +519,19 @@ export default async function ServerPage({ params }: ServerPageProps) {
           {server.tools && Array.isArray(server.tools) && server.tools.length > 0 && (
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-card-foreground">Tools</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-card-foreground">Tools</CardTitle>
+                  {server.hasManyTools && server.completeToolsUrl && (
+                    <a
+                      href={server.completeToolsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline"
+                    >
+                      View complete list →
+                    </a>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -507,6 +542,21 @@ export default async function ServerPage({ params }: ServerPageProps) {
                     </div>
                   ))}
                 </div>
+                {server.hasManyTools && server.completeToolsUrl && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      This server has 5+ tools. View the complete list:
+                    </p>
+                    <a
+                      href={server.completeToolsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline"
+                    >
+                      {server.completeToolsUrl}
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

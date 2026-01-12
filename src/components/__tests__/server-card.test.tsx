@@ -22,6 +22,8 @@ const mockServer = {
   usageTips: null,
   userId: null,
   authorUsername: null,
+  hasManyTools: false,
+  completeToolsUrl: null,
 }
 
 describe('ServerCard', () => {

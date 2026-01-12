@@ -162,6 +162,8 @@ export const serverSelectFields = {
   usageTips: true,
   userId: true,
   authorUsername: true,
+  hasManyTools: true,
+  completeToolsUrl: true,
 } as const
 
 /**

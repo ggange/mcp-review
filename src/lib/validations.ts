@@ -92,8 +92,7 @@ export const serverUploadSchema = z.object({
     .nullable()
     .optional(),
   description: sanitizedText.pipe(z.string().min(1, 'Description is required').max(2000)),
-  tools: z.array(toolSchema)
-    .min(1, 'At least one tool is required'),
+  tools: z.array(toolSchema).optional(),
   usageTips: sanitizedText.pipe(z.string().max(2000)).nullable().optional(),
   version: z.string()
     .max(50, 'Version is too long')
@@ -123,6 +122,41 @@ export const serverUploadSchema = z.object({
     .optional(),
   category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
+  hasManyTools: z.boolean().optional().default(false),
+  completeToolsUrl: z.string()
+    .url('Invalid complete tools URL')
+    .refine(
+      (url) => {
+        try {
+          const parsed = new URL(url)
+          // Only allow HTTPS URLs (or HTTP in development)
+          return parsed.protocol === 'https:' || 
+            (process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:')
+        } catch {
+          return false
+        }
+      },
+      { message: 'Complete tools URL must use HTTPS' }
+    )
+    .nullable()
+    .optional(),
+}).superRefine((data, ctx) => {
+  // If hasManyTools is true, completeToolsUrl is required
+  if (data.hasManyTools && !data.completeToolsUrl) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Complete tools URL is required when hasManyTools is true',
+      path: ['completeToolsUrl'],
+    })
+  }
+  // If hasManyTools is false, tools array must have at least one tool
+  if (!data.hasManyTools && (!data.tools || data.tools.length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one tool is required when hasManyTools is false',
+      path: ['tools'],
+    })
+  }
 })
 
 /**
@@ -139,8 +173,7 @@ export const officialServerUploadSchema = z.object({
     .max(100, 'Organization name is too long')
     .regex(SAFE_ORGANIZATION_PATTERN, 'Organization can only contain letters, numbers, hyphens, underscores, dots, and spaces. Must start with a letter or number.'),
   description: sanitizedText.pipe(z.string().min(1, 'Description is required').max(2000)),
-  tools: z.array(toolSchema)
-    .min(1, 'At least one tool is required'),
+  tools: z.array(toolSchema).optional(),
   usageTips: sanitizedText.pipe(z.string().max(2000)).nullable().optional(),
   version: z.string()
     .max(50, 'Version is too long')
@@ -170,6 +203,41 @@ export const officialServerUploadSchema = z.object({
     .optional(),
   category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
+  hasManyTools: z.boolean().optional().default(false),
+  completeToolsUrl: z.string()
+    .url('Invalid complete tools URL')
+    .refine(
+      (url) => {
+        try {
+          const parsed = new URL(url)
+          // Only allow HTTPS URLs (or HTTP in development)
+          return parsed.protocol === 'https:' || 
+            (process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:')
+        } catch {
+          return false
+        }
+      },
+      { message: 'Complete tools URL must use HTTPS' }
+    )
+    .nullable()
+    .optional(),
+}).superRefine((data, ctx) => {
+  // If hasManyTools is true, completeToolsUrl is required
+  if (data.hasManyTools && !data.completeToolsUrl) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Complete tools URL is required when hasManyTools is true',
+      path: ['completeToolsUrl'],
+    })
+  }
+  // If hasManyTools is false, tools array must have at least one tool
+  if (!data.hasManyTools && (!data.tools || data.tools.length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one tool is required when hasManyTools is false',
+      path: ['tools'],
+    })
+  }
 })
 
 /**

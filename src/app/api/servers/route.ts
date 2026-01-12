@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category } = validationResult.data
+    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category, hasManyTools, completeToolsUrl } = validationResult.data
 
     // Get GitHub username for author
     let authorUsername: string | null = null
@@ -195,6 +195,8 @@ export async function POST(request: Request) {
         syncedAt: new Date(),
         userId: session.user.id,
         authorUsername,
+        hasManyTools: hasManyTools || false,
+        completeToolsUrl: completeToolsUrl || null,
       },
     })
 

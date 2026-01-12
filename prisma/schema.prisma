@@ -87,6 +87,8 @@ model Server {
   iconUrl            String?  // URL to custom icon stored in R2
   tools              Json?    // Array of {name: string, description: string} objects
   usageTips          String?  @db.Text // Optional usage tips and suggestions
+  hasManyTools       Boolean  @default(false) // Flag indicating server has 5+ tools
+  completeToolsUrl   String?  // URL to complete list of tools (when hasManyTools is true)
   userId             String?  // User who created this server (for user-uploaded servers)
   authorUsername     String?  // GitHub username of the author (for display)
 

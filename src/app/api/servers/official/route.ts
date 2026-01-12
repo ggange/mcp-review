@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category } = validationResult.data
+    const { name, organization, description, tools, usageTips, iconUrl, version, repositoryUrl, category, hasManyTools, completeToolsUrl } = validationResult.data
 
     // Generate server ID in format: organization/name (organization is required for official servers)
     const serverId = `${organization}/${name}`
@@ -92,6 +92,8 @@ export async function POST(request: Request) {
         syncedAt: new Date(),
         userId: null, // Official servers are not tied to a user
         authorUsername: null, // Official servers represent organizations, not authors
+        hasManyTools: hasManyTools || false,
+        completeToolsUrl: completeToolsUrl || null,
       },
     })
 

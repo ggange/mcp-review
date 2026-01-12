@@ -45,6 +45,8 @@ interface ServerUploadFormProps {
     repositoryUrl: string
     iconUrl: string
     category: string
+    hasManyTools?: boolean
+    completeToolsUrl?: string
   }
   serverId?: string
   mode?: 'create' | 'edit'
@@ -77,6 +79,8 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
     repositoryUrl: initialData?.repositoryUrl || '',
     usageTips: initialData?.usageTips || '',
     category: (initialData?.category || 'other') as ServerCategory,
+    hasManyTools: initialData?.hasManyTools || false,
+    completeToolsUrl: initialData?.completeToolsUrl || '',
   })
 
   // Fetch GitHub user info on mount
@@ -420,6 +424,8 @@ You can also list tools in a simpler format:
         repositoryUrl: data.repositoryUrl || formData.repositoryUrl,
         usageTips: data.usageTips || formData.usageTips,
         category: (data.category || formData.category) as ServerCategory,
+        hasManyTools: formData.hasManyTools,
+        completeToolsUrl: formData.completeToolsUrl,
       })
       
       if (data.tools && data.tools.length > 0) {
@@ -451,10 +457,18 @@ You can also list tools in a simpler format:
       return
     }
 
-    // Validate tools
+    // Validate tools only if hasManyTools is not checked
     const validTools = tools.filter(t => t.name.trim() && t.description.trim())
-    if (validTools.length === 0) {
-      setError('At least one tool with name and description is required')
+    if (!formData.hasManyTools) {
+      if (validTools.length === 0) {
+        setError('At least one tool with name and description is required, or check "Has 5+ tools" and provide a URL')
+        return
+      }
+    }
+
+    // Validate complete tools URL if hasManyTools is checked
+    if (formData.hasManyTools && !formData.completeToolsUrl.trim()) {
+      setError('Complete tools URL is required when "Has 5+ tools" is checked')
       return
     }
 
@@ -487,7 +501,7 @@ You can also list tools in a simpler format:
             name: formData.name.trim(),
             organization: isOfficialServerEdit ? formData.organization.trim() : (formData.organization.trim() || null),
             description: formData.description.trim(),
-            tools: validTools.map(t => ({
+            tools: formData.hasManyTools ? [] : validTools.map(t => ({
               name: t.name.trim(),
               description: t.description.trim(),
             })),
@@ -496,6 +510,8 @@ You can also list tools in a simpler format:
             version: formData.version.trim() || null,
             repositoryUrl: formData.repositoryUrl.trim() || null,
             category: formData.category,
+            hasManyTools: formData.hasManyTools,
+            completeToolsUrl: formData.hasManyTools ? (formData.completeToolsUrl.trim() || null) : null,
           }),
         })
 
@@ -513,6 +529,8 @@ You can also list tools in a simpler format:
           repositoryUrl: '',
           usageTips: '',
           category: 'other',
+          hasManyTools: false,
+          completeToolsUrl: '',
         })
         setTools([{ name: '', description: '' }])
         setIconFile(null)
@@ -660,9 +678,24 @@ You can also list tools in a simpler format:
           {/* Tools Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-muted-foreground">
-                Tools <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center gap-3">
+                <Label className="text-muted-foreground">
+                  Tools {!formData.hasManyTools && <span className="text-destructive">*</span>}
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="hasManyTools"
+                    checked={formData.hasManyTools}
+                    onChange={(e) => setFormData({ ...formData, hasManyTools: e.target.checked })}
+                    className="h-4 w-4 rounded border-border text-violet-600 focus:ring-violet-500"
+                  />
+                  <Label htmlFor="hasManyTools" className="text-sm font-medium text-foreground cursor-pointer">
+                    Has 5+ tools
+                  </Label>
+                </div>
+              </div>
+              {!formData.hasManyTools && (
               <div className="flex gap-2">
                 <Dialog open={toolsDialogOpen} onOpenChange={setToolsDialogOpen}>
                   <DialogTrigger asChild>
@@ -731,42 +764,65 @@ You can also list tools in a simpler format:
                   + Add Tool
                 </Button>
               </div>
+              )}
             </div>
-            <div className="space-y-3">
-              {tools.map((tool, index) => (
-                <div key={index} className="flex gap-2 items-start p-3 rounded-md border border-border bg-muted/30">
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      placeholder="Tool name"
-                      value={tool.name}
-                      onChange={(e) => updateTool(index, 'name', e.target.value)}
-                      className="bg-background border-border text-foreground"
-                    />
-                    <Textarea
-                      placeholder="Tool description - describe what this tool does..."
-                      value={tool.description}
-                      onChange={(e) => updateTool(index, 'description', e.target.value)}
-                      className="bg-background border-border text-foreground min-h-[60px] resize-y"
-                      rows={2}
-                    />
-                  </div>
-                  {tools.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeTool(index)}
-                      className="text-destructive hover:text-destructive mt-1"
-                    >
-                      ×
-                    </Button>
-                  )}
+            {!formData.hasManyTools ? (
+              <>
+                <div className="space-y-3">
+                  {tools.map((tool, index) => (
+                    <div key={index} className="flex gap-2 items-start p-3 rounded-md border border-border bg-muted/30">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          placeholder="Tool name"
+                          value={tool.name}
+                          onChange={(e) => updateTool(index, 'name', e.target.value)}
+                          className="bg-background border-border text-foreground"
+                        />
+                        <Textarea
+                          placeholder="Tool description - describe what this tool does..."
+                          value={tool.description}
+                          onChange={(e) => updateTool(index, 'description', e.target.value)}
+                          className="bg-background border-border text-foreground min-h-[60px] resize-y"
+                          rows={2}
+                        />
+                      </div>
+                      {tools.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeTool(index)}
+                          className="text-destructive hover:text-destructive mt-1"
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              At least one tool with name and description is required
-            </p>
+                <p className="text-xs text-muted-foreground">
+                  At least one tool with name and description is required
+                </p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="completeToolsUrl" className="text-muted-foreground">
+                  Complete Tools List URL <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="completeToolsUrl"
+                  type="url"
+                  value={formData.completeToolsUrl}
+                  onChange={(e) => setFormData({ ...formData, completeToolsUrl: e.target.value })}
+                  placeholder="https://example.com/tools"
+                  className="bg-background border-border text-foreground"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide a URL to the complete list of tools (e.g., documentation page, tools list)
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Category Selection */}
