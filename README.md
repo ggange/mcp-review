@@ -15,6 +15,8 @@
 - 👍 **Review Voting** - Vote reviews as helpful or not helpful
 - 📊 **Aggregated Ratings** - See community ratings and reviews in real-time
 - 📤 **Upload Servers** - Community members can upload their own MCP servers
+- 🚀 **GitHub Import** - Auto-fill server forms by importing from GitHub repositories
+- 📄 **Tools Markdown Upload** - Upload tools markdown files to quickly populate tool definitions
 - 🖼️ **Custom Icons** - Upload custom icons for your servers (via Cloudflare R2)
 - 🔄 **Auto-Sync** - Automatically syncs with the MCP Registry daily
 - 🔐 **Authentication** - Sign in with GitHub or Google to rate servers
@@ -202,6 +204,57 @@ This project syncs server data from the [Official MCP Registry](https://registry
 - Servers are automatically synced daily via cron job
 - Manual sync available via the `/api/sync` endpoint
 - Sync respects rate limits and includes error handling
+
+## 🚀 Uploading Servers
+
+### GitHub Repository Import
+
+When uploading a new server, you can automatically populate the form by importing from a GitHub repository:
+
+1. Enter the GitHub repository URL in the "Repository URL" field
+2. Click "Import from GitHub repo"
+3. The form will be auto-filled with:
+   - Server name (from repository name)
+   - Description (from README or repository description)
+   - Tools (parsed from README or tools markdown file)
+   - Version (from package.json or README)
+   - Usage tips (from README)
+   - Category (auto-categorized based on description)
+
+The import feature parses:
+- Repository metadata from GitHub API
+- README content for descriptions and tool definitions
+- Tools markdown files (`TOOLS.md`, `docs/TOOLS.md`, `example_TOOLS.md`, etc.)
+- Package.json for version information
+
+### Tools Markdown File
+
+You can document your MCP server tools in a markdown file and upload it directly:
+
+1. Click "Upload Tools File" in the Tools section
+2. Select a markdown file (`.md` or `.markdown`)
+3. The file will be parsed to extract tool names and descriptions
+4. Download the example file (`example_TOOLS.md`) to see the supported format
+
+**Supported formats:**
+
+**Detailed format:**
+```markdown
+### `tool_name`
+
+Description of what the tool does.
+
+**Arguments:**
+- `param1` (type): Description
+```
+
+**Simple list format:**
+```markdown
+- **`tool_name`**: Brief description
+- **`another_tool`**: Another description
+```
+
+The parser automatically detects both formats and extracts tool information.
 
 ## 🤝 Contributing
 

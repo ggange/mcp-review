@@ -42,7 +42,14 @@ export async function GET() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch GitHub user')
+        // Token might be expired - return 401 so frontend knows to re-auth
+        if (response.status === 401) {
+          return NextResponse.json(
+            { error: { code: 'TOKEN_EXPIRED', message: 'GitHub token expired. Please sign out and sign in again.' } },
+            { status: 401 }
+          )
+        }
+        throw new Error(`GitHub API returned ${response.status}`)
       }
 
       const githubUser = await response.json()
@@ -62,8 +69,9 @@ export async function GET() {
       )
     }
   } catch (error) {
+    // Always log in development for debugging
     if (process.env.NODE_ENV !== 'production') {
-      console.error('GitHub info error:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('GitHub info error:', error)
     }
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to get GitHub info' } },

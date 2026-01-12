@@ -256,15 +256,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             Join the community to share and review the best products.
           </p>
           <div className="flex flex-col sm:flex-row items-start gap-3">
-            <Suspense fallback={
-              <Link href={defaultSubmitHref}>
-                <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
-                  Submit a Server
-                </Button>
-              </Link>
-            }>
-              <SubmitServerButton />
-            </Suspense>
             <Button 
               variant="outline" 
               size="lg" 
@@ -275,6 +266,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 Browse Collection
               </Link>
             </Button>
+            <div className="flex flex-col gap-1.5">
+              <Suspense fallback={
+                <Link href={defaultSubmitHref}>
+                  <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
+                    Submit a Server
+                  </Button>
+                </Link>
+              }>
+                <SubmitServerButton />
+              </Suspense>
+              <span className="inline-flex items-center gap-0.5 text-sm font-medium text-violet-600 dark:text-violet-400">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                </svg>
+                Under 2 min with GitHub
+              </span>
+            </div>
           </div>
         </div>
 
