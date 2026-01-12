@@ -76,7 +76,6 @@ describe('serverUploadSchema', () => {
       ' org', // starts with space
       '-org', // starts with hyphen
       'org/name', // contains slash
-      'org name', // contains space
       'a'.repeat(101), // too long
     ]
 
@@ -89,6 +88,27 @@ describe('serverUploadSchema', () => {
       })
       
       expect(result.success).toBe(false)
+    })
+  })
+
+  it('accepts organization names with spaces (spaces are allowed)', () => {
+    const validOrgs = [
+      'org name', // contains space (allowed)
+      'my org name', // multiple spaces (allowed)
+      'org-name', // hyphen (allowed)
+      'org_name', // underscore (allowed)
+      'org.name', // dot (allowed)
+    ]
+
+    validOrgs.forEach(organization => {
+      const result = serverUploadSchema.safeParse({
+        name: 'server',
+        organization,
+        description: 'Description',
+        tools: [{ name: 'tool', description: 'Tool description' }],
+      })
+      
+      expect(result.success).toBe(true)
     })
   })
 
@@ -429,18 +449,28 @@ describe('reviewUpdateSchema', () => {
 
 describe('reviewIdParamSchema', () => {
   it('validates CUID format', () => {
-    const validCuid = 'c' + 'a'.repeat(24)
-    const result = reviewIdParamSchema.safeParse({ id: validCuid })
-    
-    expect(result.success).toBe(true)
+    // Test various valid CUID lengths (20-30 characters)
+    const validCuids = [
+      'c' + 'a'.repeat(20), // minimum length
+      'c' + 'a'.repeat(24), // typical length
+      'c' + 'a'.repeat(30), // maximum length
+      'c' + '1'.repeat(25), // with numbers
+    ]
+
+    validCuids.forEach(validCuid => {
+      const result = reviewIdParamSchema.safeParse({ id: validCuid })
+      expect(result.success).toBe(true)
+    })
   })
 
   it('rejects invalid CUID format', () => {
     const invalidCuids = [
       'invalid',
-      'c' + 'a'.repeat(23), // too short
-      'c' + 'a'.repeat(25), // too long
+      'c' + 'a'.repeat(19), // too short (less than 20)
+      'c' + 'a'.repeat(31), // too long (more than 30)
       'd' + 'a'.repeat(24), // wrong prefix
+      'c' + 'A'.repeat(24), // uppercase not allowed
+      'c' + 'a'.repeat(20) + '-', // invalid character
     ]
 
     invalidCuids.forEach(id => {

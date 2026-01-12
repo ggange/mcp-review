@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { deleteFromR2 } from '@/lib/r2-storage'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { isAdmin } from '@/lib/admin'
+import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -14,6 +15,29 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    // Rate limiting for read endpoints to prevent DoS
+    const clientIp = getClientIp(request)
+    const rateLimitKey = getIpRateLimitKey(clientIp, 'serverDetail')
+    const { allowed, resetIn } = checkRateLimit(
+      rateLimitKey,
+      RATE_LIMITS.read.limit,
+      RATE_LIMITS.read.windowMs
+    )
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
+          }
+        }
+      )
+    }
+
     const { id } = await params
     const decodedId = decodeURIComponent(id)
     const session = await auth()

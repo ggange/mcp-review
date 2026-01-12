@@ -24,10 +24,11 @@ const SAFE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*\/[a-zA-Z0-9][a-zA-
 
 /**
  * CUID validation pattern
- * CUIDs start with 'c' and are typically 25 characters long
- * Format: c + 24 alphanumeric characters
+ * CUIDs start with 'c' followed by alphanumeric characters
+ * Length can vary (typically 20-30 characters) depending on implementation
+ * This pattern is flexible enough to handle different CUID versions
  */
-const CUID_PATTERN = /^c[a-z0-9]{24}$/
+const CUID_PATTERN = /^c[a-z0-9]{20,30}$/
 
 /**
  * Sanitize text input to remove potentially dangerous HTML/script content

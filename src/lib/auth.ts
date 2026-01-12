@@ -12,9 +12,8 @@ if (process.env.GITHUB_ID && process.env.GITHUB_SECRET) {
     GitHub({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
-      // Enable automatic account linking for verified emails
-      // GitHub verifies emails, so we can safely link accounts with the same email
-      allowDangerousEmailAccountLinking: true,
+      // Note: We handle account linking manually in the signIn callback below
+      // using email normalization for security rather than allowDangerousEmailAccountLinking
     })
   )
 }

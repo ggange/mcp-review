@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev",
               "frame-ancestors 'none'",
+              // Additional security directives
+              "object-src 'none'", // Prevent plugins (Flash, Java, etc.)
+              "base-uri 'self'", // Prevent base tag injection attacks
+              "form-action 'self'", // Restrict form submissions to same origin
+              "upgrade-insecure-requests", // Auto-upgrade HTTP to HTTPS
             ].join('; '),
           },
         ],

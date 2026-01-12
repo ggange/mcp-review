@@ -35,15 +35,17 @@ export interface ServerQueryOptions {
 }
 
 
+type ServerOrderBy = Prisma.ServerOrderByWithRelationInput | Prisma.ServerOrderByWithRelationInput[]
+
 /**
  * Get order by clause for sorting
  */
-export function getOrderBy(sort: SortOption, prioritizeSourceOrder: boolean = false) {
+export function getOrderBy(sort: SortOption, prioritizeSourceOrder: boolean = false): ServerOrderBy | null {
   // Base ordering for most-reviewed (default)
-  const mostReviewedOrder = [
-    { totalRatings: 'desc' as const },
-    { combinedScore: 'desc' as const },
-    { name: 'asc' as const },
+  const mostReviewedOrder: Prisma.ServerOrderByWithRelationInput[] = [
+    { totalRatings: 'desc' },
+    { combinedScore: 'desc' },
+    { name: 'asc' },
   ]
 
   switch (sort) {
@@ -52,22 +54,22 @@ export function getOrderBy(sort: SortOption, prioritizeSourceOrder: boolean = fa
       // We'll handle this with raw SQL in queryServers function
       if (prioritizeSourceOrder) {
         // Return null to indicate we need custom ordering
-        return null as any
+        return null
       }
       return mostReviewedOrder
     case 'top-rated':
       return [
-        { combinedScore: 'desc' as const },
-        { totalRatings: 'desc' as const },
-        { name: 'asc' as const },
+        { combinedScore: 'desc' },
+        { totalRatings: 'desc' },
+        { name: 'asc' },
       ]
     case 'newest':
-      return [{ createdAt: 'desc' as const }, { name: 'asc' as const }]
+      return [{ createdAt: 'desc' }, { name: 'asc' }]
     case 'trending':
       return [
-        { recentRatingsCount: 'desc' as const },
-        { combinedScore: 'desc' as const },
-        { name: 'asc' as const },
+        { recentRatingsCount: 'desc' },
+        { combinedScore: 'desc' },
+        { name: 'asc' },
       ]
     default:
       return mostReviewedOrder
@@ -241,7 +243,7 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
-      orderBy: orderBy as any,
+      orderBy: orderBy as Prisma.ServerOrderByWithRelationInput[],
       skip,
       take: limit,
       select: serverSelectFields,
