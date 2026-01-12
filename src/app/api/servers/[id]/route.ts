@@ -6,6 +6,8 @@ import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
 import { deleteFromR2 } from '@/lib/r2-storage'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { isAdmin } from '@/lib/admin'
+import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -13,6 +15,29 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    // Rate limiting for read endpoints to prevent DoS
+    const clientIp = getClientIp(request)
+    const rateLimitKey = getIpRateLimitKey(clientIp, 'serverDetail')
+    const { allowed, resetIn } = checkRateLimit(
+      rateLimitKey,
+      RATE_LIMITS.read.limit,
+      RATE_LIMITS.read.windowMs
+    )
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
+          }
+        }
+      )
+    }
+
     const { id } = await params
     const decodedId = decodeURIComponent(id)
     const session = await auth()
@@ -226,7 +251,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const { id } = await params
     const decodedId = decodeURIComponent(id)
 
-    // Check if server exists and user owns it
+    // Check if server exists
     const server = await prisma.server.findUnique({
       where: { id: decodedId },
       select: { userId: true, source: true, iconUrl: true },
@@ -239,7 +264,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    if (server.source !== 'user' || server.userId !== session.user.id) {
+    // Check if user is admin
+    const userIsAdmin = await isAdmin(session.user.id)
+
+    // Allow deletion if:
+    // 1. User is admin (can delete any server, including official ones)
+    // 2. OR server is user-owned and user owns it
+    if (!userIsAdmin && (server.source !== 'user' || server.userId !== session.user.id)) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You can only delete your own servers' } },
         { status: 403 }

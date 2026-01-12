@@ -16,7 +16,7 @@ import { AdvancedFilters } from './advanced-filters'
 
 type SortOption = 'most-reviewed' | 'top-rated' | 'newest' | 'trending'
 type MinRatingOption = '0' | '3' | '4' | '4.5'
-type SourceOption = 'all' | 'registry' | 'user'
+type SourceOption = 'all' | 'registry' | 'user' | 'official'
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'most-reviewed', label: 'Most Reviewed' },
@@ -34,8 +34,9 @@ const RATING_OPTIONS: { value: MinRatingOption; label: string }[] = [
 
 const SOURCE_OPTIONS: { value: SourceOption; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'registry', label: 'MCP Registry' },
   { value: 'user', label: 'MCP Review Users' },
+  { value: 'official', label: 'Official' },
+  { value: 'registry', label: 'MCP Registry' },
 ]
 
 export function SortFilterControls() {

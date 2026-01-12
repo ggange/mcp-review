@@ -1,6 +1,44 @@
 import type { NextConfig } from "next";
 
+// Build remote patterns array
+const remotePatterns: Array<{
+  protocol: 'http' | 'https'
+  hostname: string
+  port?: string
+  pathname: string
+}> = [
+  {
+    protocol: 'http',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/api/icons/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/api/icons/**',
+  },
+]
+
+// Add production domain if set
+if (process.env.NEXT_PUBLIC_APP_URL) {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_APP_URL)
+    remotePatterns.push({
+      protocol: 'https',
+      hostname: url.hostname,
+      pathname: '/api/icons/**',
+    })
+  } catch {
+    // Invalid URL, skip
+  }
+}
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns,
+  },
   async headers() {
     return [
       {
@@ -20,6 +58,11 @@ const nextConfig: NextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev",
               "frame-ancestors 'none'",
+              // Additional security directives
+              "object-src 'none'", // Prevent plugins (Flash, Java, etc.)
+              "base-uri 'self'", // Prevent base tag injection attacks
+              "form-action 'self'", // Restrict form submissions to same origin
+              "upgrade-insecure-requests", // Auto-upgrade HTTP to HTTPS
             ].join('; '),
           },
         ],

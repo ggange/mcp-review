@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { randomBytes } from 'crypto'
 
 // R2 is compatible with S3 API
 const r2Client = new S3Client({
@@ -91,12 +92,16 @@ export async function deleteFromR2(key: string): Promise<void> {
 
 /**
  * Generate a unique key for an icon file
- * @param serverId - Server ID (organization/name)
+ * @param serverId - Server ID (organization/name, may contain spaces)
  * @param extension - File extension (e.g., 'png', 'jpg')
  * @returns Unique key for the file
  */
 export function generateIconKey(serverId: string, extension: string): string {
   const timestamp = Date.now()
-  const sanitizedServerId = serverId.replace(/[^a-zA-Z0-9._-]/g, '_')
-  return `icons/${sanitizedServerId}-${timestamp}.${extension}`
+  // Add random component to prevent enumeration and collision attacks
+  const random = randomBytes(8).toString('hex')
+  // Replace spaces with hyphens and keep other safe characters
+  // This preserves the organization/name structure while making it filesystem-safe
+  const sanitizedServerId = serverId.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._\/-]/g, '_')
+  return `icons/${sanitizedServerId}-${timestamp}-${random}.${extension}`
 }

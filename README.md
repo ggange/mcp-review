@@ -15,6 +15,7 @@
 - 👍 **Review Voting** - Vote reviews as helpful or not helpful
 - 📊 **Aggregated Ratings** - See community ratings and reviews in real-time
 - 📤 **Upload Servers** - Community members can upload their own MCP servers
+- 👑 **Official Servers** - Admins can upload official servers representing organizations
 - 🚀 **GitHub Import** - Auto-fill server forms by importing from GitHub repositories
 - 📄 **Tools Markdown Upload** - Upload tools markdown files to quickly populate tool definitions
 - 🖼️ **Custom Icons** - Upload custom icons for your servers (via Cloudflare R2)
@@ -85,6 +86,11 @@
    npm run db:database
    ```
    This will push the Prisma schema to your database and generate the Prisma client.
+   
+   **Note**: After the initial setup, if you need to add admin users, you can update the user role in the database:
+   ```sql
+   UPDATE "User" SET role = 'admin' WHERE email = 'your-email@example.com';
+   ```
 
 5. **Start the development server**
    ```bash
@@ -206,6 +212,27 @@ This project syncs server data from the [Official MCP Registry](https://registry
 - Sync respects rate limits and includes error handling
 
 ## 🚀 Uploading Servers
+
+### Official Servers (Admin Only)
+
+Administrators can upload official servers representing organizations:
+
+1. **Set up Admin Access**: Update a user's role in the database to `'admin'`:
+   ```sql
+   UPDATE "User" SET role = 'admin' WHERE email = 'admin@example.com';
+   ```
+
+2. **Upload Official Server**: 
+   - Navigate to Dashboard (only visible to admins)
+   - Click "Upload Official Server" button
+   - Fill in the form (organization is required for official servers)
+   - Official servers are marked with a gold "Official" badge
+
+**Key Differences from User Servers:**
+- Organization field is **required** (not optional)
+- No author username displayed (represents organization, not individual)
+- Only admins can upload official servers
+- Official servers have a distinct gold badge
 
 ### GitHub Repository Import
 

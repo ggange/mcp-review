@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
 import { ServerCardWithActions } from '@/components/server/server-card-with-actions'
+import { UploadOfficialServerDialog } from '@/components/server/upload-official-server-dialog'
 
 export const metadata: Metadata = {
   title: 'Dashboard - MCP Review',
@@ -25,13 +26,17 @@ export default async function DashboardPage() {
     redirect('/auth/signin')
   }
 
-  // Fetch user data including createdAt
+  // Fetch user data including createdAt and role
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
       createdAt: true,
+      role: true,
     },
   })
+
+  // Check if user is admin
+  const userIsAdmin = user?.role === 'admin'
 
   // Fetch GitHub account to get access token and providerAccountId for profile link
   const githubAccount = await prisma.account.findFirst({
@@ -72,7 +77,25 @@ export default async function DashboardPage() {
   // Cast source field to the expected union type
   const userServers = userServersRaw.map(server => ({
     ...server,
-    source: server.source as 'registry' | 'user',
+    source: server.source as 'registry' | 'user' | 'official',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  }))
+
+  // Fetch official servers (admin only)
+  const officialServersRaw = userIsAdmin
+    ? await prisma.server.findMany({
+        where: {
+          source: 'official',
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      })
+    : []
+  
+  // Cast source field to the expected union type
+  const officialServers = officialServersRaw.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user' | 'official',
     tools: server.tools as Array<{ name: string; description: string }> | null,
   }))
 
@@ -186,6 +209,50 @@ export default async function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Admin: Official Servers Section */}
+      {userIsAdmin && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Official Servers</h1>
+            </div>
+            <UploadOfficialServerDialog />
+          </div>
+
+          {officialServers.length === 0 ? (
+            <Card className="border-border bg-card">
+              <CardContent className="py-12 text-center">
+                <div className="mb-4 inline-block rounded-full bg-muted p-4">
+                  <svg
+                    className="h-8 w-8 text-muted-foreground/70"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-card-foreground">No official servers yet</h3>
+                <p className="mt-1 text-muted-foreground/70">
+                  Upload your first official server to get started
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {officialServers.map((server) => (
+                <ServerCardWithActions key={server.id} server={server} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* My Servers Section */}
       <div className="mb-8">

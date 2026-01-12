@@ -18,6 +18,7 @@ export function ServerCard({ server }: ServerCardProps) {
   const initial = server.name.charAt(0).toUpperCase()
   const avatarColor = getAvatarColor(server.name)
   const isUserUploaded = server.source === 'user'
+  const isOfficial = server.source === 'official'
   const toolsCount = server.tools && Array.isArray(server.tools) ? server.tools.length : 0
 
   const cardClassName = "group h-full cursor-pointer border-border bg-card transition-all hover:border-border hover:shadow-md"
@@ -51,10 +52,14 @@ export function ServerCard({ server }: ServerCardProps) {
               <h3 className="truncate text-lg font-semibold text-card-foreground group-hover:text-foreground">
                 {server.name}
               </h3>
-              {isUserUploaded ? (
+              {isOfficial ? (
+                <p className="truncate text-sm text-muted-foreground">
+                  {server.organization}
+                </p>
+              ) : isUserUploaded ? (
                 <p className="truncate text-sm text-muted-foreground">
                   {server.authorUsername && (
-                    <span className="ml-1">@{server.authorUsername}</span>
+                    <span>@{server.authorUsername}</span>
                   )}
                   {server.organization 
                     ? ` (${server.organization})`
@@ -63,7 +68,7 @@ export function ServerCard({ server }: ServerCardProps) {
                 </p>
               ) : (
                 <p className="truncate text-sm text-muted-foreground">
-                  by {server.organization}
+                  {server.organization}
                 </p>
               )}
             </div>
@@ -103,7 +108,18 @@ export function ServerCard({ server }: ServerCardProps) {
             
             <div className="flex gap-2">
               {/* Source badge */}
-              {server.source === 'registry' ? (
+              {isOfficial ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="border-amber-500 dark:border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950">
+                      Official
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Official server uploaded by administrators</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : server.source === 'registry' ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300">

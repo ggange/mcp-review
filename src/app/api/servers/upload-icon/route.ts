@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { uploadToR2, generateIconKey } from '@/lib/r2-storage'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { isAdmin } from '@/lib/admin'
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg']
@@ -101,24 +102,45 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verify server ownership
+    // Check if user is admin
+    const userIsAdmin = await isAdmin(session.user.id)
+
+    // Verify server ownership or allow admin for official servers
     const server = await prisma.server.findUnique({
       where: { id: serverId },
       select: { userId: true, source: true },
     })
 
-    if (!server) {
-      return NextResponse.json(
-        { error: { code: 'NOT_FOUND', message: 'Server not found' } },
-        { status: 404 }
-      )
-    }
-
-    if (server.source !== 'user' || server.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: { code: 'FORBIDDEN', message: 'You can only upload icons for your own servers' } },
-        { status: 403 }
-      )
+    if (server) {
+      // Server exists - check ownership
+      if (server.source === 'user' && server.userId !== session.user.id) {
+        return NextResponse.json(
+          { error: { code: 'FORBIDDEN', message: 'You can only upload icons for your own servers' } },
+          { status: 403 }
+        )
+      }
+      
+      // For official servers, only admins can upload icons
+      if (server.source === 'official' && !userIsAdmin) {
+        return NextResponse.json(
+          { error: { code: 'FORBIDDEN', message: 'Only admins can upload icons for official servers' } },
+          { status: 403 }
+        )
+      }
+    } else {
+      // Server doesn't exist yet - allow if:
+      // 1. User is admin (creating official server), OR
+      // 2. Server ID format suggests it's a user server (no slash = user server, or we can check the format)
+      // For now, we'll allow admins to upload icons for servers that don't exist yet
+      // (they're creating a new official server)
+      if (!userIsAdmin) {
+        // For non-admins, the server must exist and be owned by them
+        return NextResponse.json(
+          { error: { code: 'NOT_FOUND', message: 'Server not found' } },
+          { status: 404 }
+        )
+      }
+      // Admin can upload icon for new official server (server doesn't exist yet)
     }
 
     // Validate file

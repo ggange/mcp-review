@@ -55,7 +55,7 @@ export interface ServerWithRatings {
   totalRatings: number
   category: string | null
   syncedAt: Date
-  source: 'registry' | 'user'
+  source: 'registry' | 'user' | 'official'
   iconUrl: string | null
   tools: Array<{ name: string; description: string }> | null
   usageTips: string | null

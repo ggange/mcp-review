@@ -29,46 +29,47 @@ export interface ServerQueryOptions {
   maxRating?: number
   dateFrom?: string
   dateTo?: string
-  source?: 'registry' | 'user' | 'all'
+  source?: 'registry' | 'user' | 'official' | 'all'
   limit?: number
   hasGithub?: boolean
 }
 
+
+type ServerOrderBy = Prisma.ServerOrderByWithRelationInput | Prisma.ServerOrderByWithRelationInput[]
+
 /**
  * Get order by clause for sorting
  */
-export function getOrderBy(sort: SortOption, prioritizeUserUploads: boolean = false) {
+export function getOrderBy(sort: SortOption, prioritizeSourceOrder: boolean = false): ServerOrderBy | null {
   // Base ordering for most-reviewed (default)
-  const mostReviewedOrder = [
-    { totalRatings: 'desc' as const },
-    { combinedScore: 'desc' as const },
-    { name: 'asc' as const },
+  const mostReviewedOrder: Prisma.ServerOrderByWithRelationInput[] = [
+    { totalRatings: 'desc' },
+    { combinedScore: 'desc' },
+    { name: 'asc' },
   ]
 
   switch (sort) {
     case 'most-reviewed':
-      // When prioritizing user uploads, add source ordering first
-      // Note: 'user' comes after 'registry' alphabetically, so we use desc to reverse
-      if (prioritizeUserUploads) {
-        return [
-          { source: 'desc' as const }, // 'user' > 'registry' in desc order
-          ...mostReviewedOrder,
-        ]
+      // When prioritizing source order: user > official > registry
+      // We'll handle this with raw SQL in queryServers function
+      if (prioritizeSourceOrder) {
+        // Return null to indicate we need custom ordering
+        return null
       }
       return mostReviewedOrder
     case 'top-rated':
       return [
-        { combinedScore: 'desc' as const },
-        { totalRatings: 'desc' as const },
-        { name: 'asc' as const },
+        { combinedScore: 'desc' },
+        { totalRatings: 'desc' },
+        { name: 'asc' },
       ]
     case 'newest':
-      return [{ createdAt: 'desc' as const }, { name: 'asc' as const }]
+      return [{ createdAt: 'desc' }, { name: 'asc' }]
     case 'trending':
       return [
-        { recentRatingsCount: 'desc' as const },
-        { combinedScore: 'desc' as const },
-        { name: 'asc' as const },
+        { recentRatingsCount: 'desc' },
+        { combinedScore: 'desc' },
+        { name: 'asc' },
       ]
     default:
       return mostReviewedOrder
@@ -166,6 +167,18 @@ export const serverSelectFields = {
 /**
  * Query servers with pagination and filters
  */
+/**
+ * Get source priority for custom ordering (user=1, official=2, registry=3)
+ */
+function getSourcePriority(source: string): number {
+  switch (source) {
+    case 'user': return 1
+    case 'official': return 2
+    case 'registry': return 3
+    default: return 4
+  }
+}
+
 export async function queryServers(options: ServerQueryOptions): Promise<PaginatedServers> {
   const page = Math.max(1, options.page ?? 1)
   const limit = options.limit ?? 20
@@ -174,14 +187,63 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
   
   const where = buildWhereClause(options)
   
-  // Prioritize user-uploaded servers when using default sort and source is 'all'
-  const prioritizeUserUploads = sort === 'most-reviewed' && (!options.source || options.source === 'all')
-  const orderBy = getOrderBy(sort, prioritizeUserUploads)
+  // Prioritize source order (user > official > registry) when using default sort and source is 'all'
+  const prioritizeSourceOrder = sort === 'most-reviewed' && (!options.source || options.source === 'all')
+  const orderBy = getOrderBy(sort, prioritizeSourceOrder)
 
+  // If we need custom source ordering, fetch all matching servers, sort, then paginate
+  if (prioritizeSourceOrder && orderBy === null) {
+    // Fetch all matching servers (we'll paginate after sorting)
+    const allServers = await prisma.server.findMany({
+      where,
+      select: serverSelectFields,
+    })
+
+    // Sort by source priority, then by other criteria
+    const sortedServers = allServers.sort((a, b) => {
+      // First, sort by source priority (user > official > registry)
+      const priorityA = getSourcePriority(a.source)
+      const priorityB = getSourcePriority(b.source)
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB
+      }
+      
+      // Then by totalRatings (desc)
+      if (a.totalRatings !== b.totalRatings) {
+        return b.totalRatings - a.totalRatings
+      }
+      
+      // Then by combinedScore (desc)
+      if (a.combinedScore !== b.combinedScore) {
+        return b.combinedScore - a.combinedScore
+      }
+      
+      // Finally by name (asc)
+      return a.name.localeCompare(b.name)
+    })
+
+    // Paginate after sorting
+    const total = sortedServers.length
+    const totalPages = Math.ceil(total / limit)
+    const paginatedServers = sortedServers.slice(skip, skip + limit)
+
+    return {
+      servers: paginatedServers.map(server => ({
+        ...server,
+        source: server.source as 'registry' | 'user' | 'official',
+        tools: server.tools as Array<{ name: string; description: string }> | null,
+      })),
+      total,
+      page,
+      totalPages,
+    }
+  }
+
+  // Standard Prisma query for other cases
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
-      orderBy,
+      orderBy: orderBy as Prisma.ServerOrderByWithRelationInput[],
       skip,
       take: limit,
       select: serverSelectFields,
@@ -194,7 +256,7 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
   return {
     servers: servers.map(server => ({
       ...server,
-      source: server.source as 'registry' | 'user',
+      source: server.source as 'registry' | 'user' | 'official',
       tools: server.tools as Array<{ name: string; description: string }> | null,
     })),
     total,
@@ -236,7 +298,27 @@ export async function getLatestUserServers(limit: number = 4): Promise<ServerWit
 
   return servers.map(server => ({
     ...server,
-    source: server.source as 'registry' | 'user',
+    source: server.source as 'registry' | 'user' | 'official',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  }))
+}
+
+/**
+ * Get the latest official and user servers (hot servers - most recent first)
+ */
+export async function getHotServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  const servers = await prisma.server.findMany({
+    where: { 
+      source: { in: ['user', 'official'] }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: serverSelectFields,
+  })
+
+  return servers.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user' | 'official',
     tools: server.tools as Array<{ name: string; description: string }> | null,
   }))
 }
@@ -258,7 +340,7 @@ export async function getTopRatedServers(limit: number = 4): Promise<ServerWithR
 
   return servers.map(server => ({
     ...server,
-    source: server.source as 'registry' | 'user',
+    source: server.source as 'registry' | 'user' | 'official',
     tools: server.tools as Array<{ name: string; description: string }> | null,
   }))
 }
@@ -267,7 +349,7 @@ export async function getTopRatedServers(limit: number = 4): Promise<ServerWithR
  * Get category counts for servers
  */
 export async function getCategoryCounts(
-  source: 'registry' | 'user' | 'all' = 'all',
+  source: 'registry' | 'user' | 'official' | 'all' = 'all',
   options?: Omit<ServerQueryOptions, 'source' | 'category' | 'page' | 'limit' | 'sort'>
 ): Promise<Record<string, number>> {
   const baseWhere = buildWhereClause({ ...options, source })

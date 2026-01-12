@@ -4,12 +4,35 @@ import { prisma } from '@/lib/db'
 import { serverUploadSchema } from '@/lib/validations'
 import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
-import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
+import { checkRateLimit, getRateLimitKey, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { queryServers, type SortOption } from '@/lib/server-queries'
 
 export async function GET(request: Request) {
   try {
+    // Rate limiting for read endpoints to prevent DoS
+    const clientIp = getClientIp(request)
+    const rateLimitKey = getIpRateLimitKey(clientIp, 'serverList')
+    const { allowed, resetIn } = checkRateLimit(
+      rateLimitKey,
+      RATE_LIMITS.serverList.limit,
+      RATE_LIMITS.serverList.windowMs
+    )
+
+    if (!allowed) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
+            'Retry-After': String(Math.ceil(resetIn / 1000)),
+          }
+        }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     
     // Parse query parameters

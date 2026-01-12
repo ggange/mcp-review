@@ -32,7 +32,7 @@ describe('ServerCard', () => {
 
   it('renders organization', () => {
     render(<ServerCard server={mockServer} />)
-    expect(screen.getByText('by ai.exa')).toBeInTheDocument()
+    expect(screen.getByText('ai.exa')).toBeInTheDocument()
   })
 
   it('renders description', () => {

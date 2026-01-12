@@ -410,8 +410,17 @@ export default async function ServerPage({ params }: ServerPageProps) {
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="text-2xl font-bold text-card-foreground">{server.name}</h1>
-                      {server.source === 'user' ? (
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-bold text-card-foreground">{server.name}</h1>
+                        {server.source === 'official' && (
+                          <Badge variant="outline" className="border-amber-500 dark:border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950">
+                            Official
+                          </Badge>
+                        )}
+                      </div>
+                      {server.source === 'official' ? (
+                        <p className="mt-1 text-muted-foreground">by {server.organization}</p>
+                      ) : server.source === 'user' ? (
                         <p className="mt-1 text-muted-foreground">
                           {server.authorUsername && (
                             <span className="ml-1">@{server.authorUsername}</span>

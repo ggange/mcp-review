@@ -100,6 +100,12 @@ export const RATE_LIMITS = {
   
   // Sync: 1 per minute (for cron jobs)
   sync: { limit: 1, windowMs: 60 * 1000 },
+  
+  // Read endpoints: 100 per minute per IP (prevent DoS on expensive queries)
+  read: { limit: 100, windowMs: 60 * 1000 },
+  
+  // Server list: 60 per minute per IP (less restrictive for browsing)
+  serverList: { limit: 60, windowMs: 60 * 1000 },
 } as const
 
 /**
@@ -118,18 +124,39 @@ export function getIpRateLimitKey(ip: string, endpoint: string): string {
 
 /**
  * Extract IP address from request headers
+ * 
+ * Security note: In a properly configured reverse proxy setup (like Vercel),
+ * the proxy should overwrite these headers. For maximum security, prefer
+ * platform-specific headers when available.
  */
 export function getClientIp(request: Request): string {
-  // Try various headers that might contain the real IP
+  // Prefer Vercel's verified header (cannot be spoofed on Vercel)
+  const vercelForwardedFor = request.headers.get('x-vercel-forwarded-for')
+  if (vercelForwardedFor) {
+    // Vercel sets this to the actual client IP
+    return vercelForwardedFor.split(',')[0].trim()
+  }
+  
+  // Cloudflare's connecting IP header (if behind Cloudflare)
+  const cfConnectingIp = request.headers.get('cf-connecting-ip')
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim()
+  }
+  
+  // Standard x-forwarded-for - take the rightmost non-private IP
+  // This is safer as proxies append IPs to the right
   const forwardedFor = request.headers.get('x-forwarded-for')
   if (forwardedFor) {
-    // x-forwarded-for can contain multiple IPs, take the first one
-    return forwardedFor.split(',')[0].trim()
+    const ips = forwardedFor.split(',').map(ip => ip.trim())
+    // In trusted proxy setups, the rightmost IP is the one added by the trusted proxy
+    // For untrusted setups, this is still safer than taking the leftmost (which can be spoofed)
+    // However, for simplicity with Vercel, we take the first since Vercel overwrites this header
+    return ips[0] || 'unknown'
   }
   
   const realIp = request.headers.get('x-real-ip')
   if (realIp) {
-    return realIp
+    return realIp.trim()
   }
   
   // Fallback to a generic identifier

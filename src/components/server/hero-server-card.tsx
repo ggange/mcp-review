@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { getAvatarColor } from '@/lib/utils'
 import type { ServerWithRatings } from '@/types'
 
@@ -64,15 +66,29 @@ export function HeroServerCard({ server }: HeroServerCardProps) {
         </p>
       </div>
 
-      {/* Rating */}
-      {hasRatings ? (
-        <div className="flex items-center gap-1 shrink-0">
-          <StarIcon className="h-3.5 w-3.5 text-amber-400" />
-          <span className="text-xs font-medium text-muted-foreground">{avgRating.toFixed(1)}</span>
-        </div>
-      ) : (
-        <span className="text-xs text-muted-foreground/60 shrink-0">New</span>
-      )}
+      {/* Rating and Badge */}
+      <div className="flex items-center gap-2 shrink-0">
+        {server.source === 'official' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="border-amber-500 dark:border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 text-[10px] px-1.5 py-0">
+                Official
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Official server uploaded by administrators</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {hasRatings ? (
+          <div className="flex items-center gap-1">
+            <StarIcon className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-xs font-medium text-muted-foreground">{avgRating.toFixed(1)}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground/60">New</span>
+        )}
+      </div>
     </Link>
   )
 }
