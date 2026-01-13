@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     default: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
     template: '%s | MCP Review',
   },
-  description: 'The #1 open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings, reviews, and discovery platform for AI developers. Find trusted MCP servers for Claude, Cursor, and other AI tools. Free, transparent, MIT licensed.',
+  description: 'The #1 open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings, reviews, and discovery platform for AI developers. Find trusted MCP servers for Claude, Cursor, and other AI tools. Free to use, transparent, MIT licensed.',
   keywords: [
     'MCP',
     'Model Context Protocol',
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
     url: baseUrl,
     siteName: 'MCP Review',
     title: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
-    description: 'The #1 open-source directory for Model Context Protocol servers. Community-driven ratings and reviews for AI developers. Free, transparent, and MIT licensed.',
+    description: 'The open-source directory for Model Context Protocol servers. Community-driven ratings and reviews for AI developers. Free to use, transparent, and MIT licensed.',
     images: [
       {
         url: '/og-image.png',
@@ -96,7 +96,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'MCP Review - Open Source MCP Server Directory',
-    description: 'The #1 open-source directory for MCP servers. Community-driven ratings & reviews for AI developers. Free & MIT licensed. ⭐ Star us on GitHub!',
+    description: 'The open-source directory for MCP servers. Community-driven ratings & reviews for AI developers. Free to use & MIT licensed. ⭐ Star us on GitHub!',
     creator: '@ggange',
     images: ['/og-image.png'],
   },

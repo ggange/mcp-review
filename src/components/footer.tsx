@@ -65,7 +65,7 @@ export function Footer() {
               </a>
             </nav>
             <p className="text-xs text-muted-foreground/70">
-              MIT License • Free & Open Source
+              MIT License • Free to use & Open Source
             </p>
           </div>
         </div>

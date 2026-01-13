@@ -28,16 +28,16 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || '
 
 export const metadata: Metadata = {
   title: 'Open Source MCP Server Directory - Discover, Rate & Review Model Context Protocol Servers',
-  description: 'Find the best MCP servers for Claude, Cursor, and AI workflows. Community-driven ratings and reviews from developers. Browse 100+ Model Context Protocol servers. Free, open-source, MIT licensed.',
+  description: 'Find the best MCP servers for Claude, Cursor, and AI workflows. Community-driven ratings and reviews from developers. Browse 100+ Model Context Protocol servers. Free to use, open-source, MIT licensed.',
   openGraph: {
     title: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
-    description: 'Find the best MCP servers for your AI workflows. Community-driven ratings and reviews from developers. Free, open-source, and transparent.',
+    description: 'Find the best MCP servers for your AI workflows. Community-driven ratings and reviews from developers. Free to use, open-source, and transparent.',
     url: baseUrl,
     type: 'website',
   },
   twitter: {
     title: 'MCP Review - Open Source MCP Server Directory',
-    description: 'Find the best MCP servers for Claude & AI workflows. Community-driven ratings & reviews. Free & open-source. ⭐ Star us on GitHub!',
+    description: 'Find the best MCP servers for Claude & AI workflows. Community-driven ratings & reviews. Free to use & open-source. ⭐ Star us on GitHub!',
   },
   alternates: {
     canonical: baseUrl,
@@ -403,20 +403,20 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       {/* Hero Section - Static shell renders immediately, data streams in */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">
         {/* Left: Title, subtitle, badge, buttons */}
-        <div className="flex flex-col justify-center">
-          <Badge variant="secondary" className="w-fit mb-6 px-4 py-1.5 text-sm font-medium rounded-full">
+        <div className="flex flex-col justify-center text-center lg:text-left">
+          <Badge variant="secondary" className="w-fit mx-auto lg:mx-0 mb-6 px-4 py-1.5 text-sm font-medium rounded-full">
             Open Source MCP Community Hub
           </Badge>
           <h1 className="mb-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Discover, Rate & Review{' '}
             <span className="text-violet-600 dark:text-violet-400">MCP Servers</span>
           </h1>
-          <p className="mb-8 max-w-lg text-lg text-muted-foreground leading-relaxed">
+          <p className="mb-8 max-w-lg mx-auto lg:mx-0 text-lg text-muted-foreground leading-relaxed">
             The <strong>open-source directory</strong> for <abbr title="Model Context Protocol">MCP</abbr> servers. 
             Find trusted tools for <strong>Claude, Cursor</strong>, and AI workflows. 
             Community-driven ratings by developers, for developers.
           </p>
-          <div className="flex flex-col sm:flex-row items-start gap-3">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 justify-center lg:justify-start">
             <Button 
               variant="outline" 
               size="lg" 
@@ -427,7 +427,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 Browse Collection
               </Link>
             </Button>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 items-center sm:items-start">
               <Suspense fallback={
                 <Link href={defaultSubmitHref}>
                   <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
@@ -448,7 +448,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
 
         {/* Right: Server columns - Stream in after initial paint */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Hot servers */}
           <div className="flex flex-col">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
