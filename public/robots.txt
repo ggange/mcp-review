@@ -1,7 +1,28 @@
+# MCP Review - Open Source MCP Server Directory
+# https://mcpreview.dev
+
 User-agent: *
 Allow: /
 Disallow: /dashboard
 Disallow: /auth/
 Disallow: /api/
 
+# Allow search engines to index category and filter pages
+Allow: /?category=
+Allow: /?source=
+Allow: /?q=
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
 Sitemap: https://mcpreview.dev/sitemap.xml
+
+# Social media bots
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /

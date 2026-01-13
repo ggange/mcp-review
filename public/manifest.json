@@ -1,26 +1,46 @@
 {
-  "name": "MCP Review - Open Source MCP Server Directory",
+  "name": "MCP Review - Open Source MCP Server Directory & Community Reviews",
   "short_name": "MCP Review",
-  "description": "Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven, free, and transparent.",
+  "description": "The #1 open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings and reviews for AI developers. Find trusted MCP servers for Claude, Cursor, and AI workflows.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#7c3aed",
-  "categories": ["developer tools", "utilities", "productivity"],
+  "categories": ["developer tools", "utilities", "productivity", "education"],
   "lang": "en",
   "dir": "ltr",
+  "scope": "/",
+  "id": "mcp-review",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Browse MCP Servers",
+      "short_name": "Browse",
+      "description": "Discover community-rated MCP servers",
+      "url": "/?source=all",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Official Servers",
+      "short_name": "Official",
+      "description": "View official MCP servers",
+      "url": "/?source=official",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
+  ]
 }
