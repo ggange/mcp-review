@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 
 interface GitHubProfileLinkProps {
@@ -11,36 +11,39 @@ interface GitHubProfileLinkProps {
 export function GitHubProfileLink({ hasGitHubAccount, accessToken }: GitHubProfileLinkProps) {
   const [githubProfileUrl, setGithubProfileUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const fetchedRef = useRef(false)
 
-  useEffect(() => {
-    // Fetch GitHub username on client side to avoid blocking page render
-    if (hasGitHubAccount && accessToken && !githubProfileUrl) {
-      setIsLoading(true)
-      fetch('https://api.github.com/user', {
+  const fetchGitHubProfile = useCallback(async () => {
+    if (!accessToken) return
+    
+    setIsLoading(true)
+    try {
+      const res = await fetch('https://api.github.com/user', {
         headers: {
           Authorization: `token ${accessToken}`,
           Accept: 'application/vnd.github.v3+json',
         },
       })
-        .then((res) => {
-          if (res.ok) {
-            return res.json()
-          }
-          return null
-        })
-        .then((data) => {
-          if (data?.login) {
-            setGithubProfileUrl(`https://github.com/${data.login}`)
-          }
-        })
-        .catch(() => {
-          // Silently fail
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+      if (res.ok) {
+        const data = await res.json()
+        if (data?.login) {
+          setGithubProfileUrl(`https://github.com/${data.login}`)
+        }
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setIsLoading(false)
     }
-  }, [hasGitHubAccount, accessToken, githubProfileUrl])
+  }, [accessToken])
+
+  useEffect(() => {
+    // Fetch GitHub username on client side to avoid blocking page render
+    if (hasGitHubAccount && accessToken && !fetchedRef.current) {
+      fetchedRef.current = true
+      fetchGitHubProfile()
+    }
+  }, [hasGitHubAccount, accessToken, fetchGitHubProfile])
 
   if (!hasGitHubAccount || (!githubProfileUrl && !isLoading)) {
     return null
