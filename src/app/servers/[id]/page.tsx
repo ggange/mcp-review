@@ -519,19 +519,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
           {((server.tools && Array.isArray(server.tools) && server.tools.length > 0) || server.hasManyTools) && (
             <Card className="border-border bg-card">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-card-foreground">Tools</CardTitle>
-                  {server.hasManyTools && server.completeToolsUrl && (
-                    <a
-                      href={server.completeToolsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 underline"
-                    >
-                      View complete list →
-                    </a>
-                  )}
-                </div>
+                <CardTitle className="text-card-foreground">Tools</CardTitle>
               </CardHeader>
               <CardContent>
                 {server.tools && Array.isArray(server.tools) && server.tools.length > 0 ? (

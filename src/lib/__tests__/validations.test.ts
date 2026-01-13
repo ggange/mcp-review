@@ -35,7 +35,6 @@ describe('serverUploadSchema', () => {
       ' server', // starts with space
       '-server', // starts with hyphen
       'server/name', // contains slash
-      'server name', // contains space
       'a'.repeat(101), // too long
     ]
 
@@ -57,6 +56,8 @@ describe('serverUploadSchema', () => {
       'my_server',
       'server123',
       'server.name',
+      'server name', // contains space (allowed)
+      'my server name', // multiple spaces (allowed)
       'a'.repeat(100), // max length
     ]
 

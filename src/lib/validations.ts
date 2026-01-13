@@ -2,25 +2,24 @@ import { z } from 'zod'
 
 /**
  * Regex pattern for safe server names
- * Allows: alphanumeric, hyphens, underscores, dots
- * Prevents: path traversal, XSS, shell injection
+ * Allows: alphanumeric, hyphens, underscores, dots, spaces
+ * Prevents: path traversal, XSS, shell injection (but allows spaces)
  */
-const SAFE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+const SAFE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
 
 /**
  * Regex pattern for organization names
  * Allows: alphanumeric, hyphens, underscores, dots, spaces
- * Spaces are allowed for organization names only
  * Prevents: path traversal, XSS, shell injection (but allows spaces)
  */
 const SAFE_ORGANIZATION_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
 
 /**
  * Regex pattern for safe server IDs (organization/name format)
- * Allows: alphanumeric, hyphens, underscores, dots, single forward slash
- * Note: Organization part may contain spaces, but server IDs are URL-encoded in routes
+ * Allows: alphanumeric, hyphens, underscores, dots, spaces, single forward slash
+ * Note: Both organization and name parts may contain spaces, but server IDs are URL-encoded in routes
  */
-const SAFE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+const SAFE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*\/[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
 
 /**
  * CUID validation pattern
@@ -85,7 +84,7 @@ export const serverUploadSchema = z.object({
   name: z.string()
     .min(1, 'Server name is required')
     .max(100, 'Server name is too long')
-    .regex(SAFE_NAME_PATTERN, 'Server name can only contain letters, numbers, hyphens, underscores, and dots. Must start with a letter or number.'),
+    .regex(SAFE_NAME_PATTERN, 'Server name can only contain letters, numbers, hyphens, underscores, dots, and spaces. Must start with a letter or number.'),
   organization: z.string()
     .max(100, 'Organization name is too long')
     .regex(SAFE_ORGANIZATION_PATTERN, 'Organization can only contain letters, numbers, hyphens, underscores, dots, and spaces. Must start with a letter or number.')
@@ -167,7 +166,7 @@ export const officialServerUploadSchema = z.object({
   name: z.string()
     .min(1, 'Server name is required')
     .max(100, 'Server name is too long')
-    .regex(SAFE_NAME_PATTERN, 'Server name can only contain letters, numbers, hyphens, underscores, and dots. Must start with a letter or number.'),
+    .regex(SAFE_NAME_PATTERN, 'Server name can only contain letters, numbers, hyphens, underscores, dots, and spaces. Must start with a letter or number.'),
   organization: z.string()
     .min(1, 'Organization is required for official servers')
     .max(100, 'Organization name is too long')
