@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useTransition, useEffect } from 'react'
+import React, { useState, useTransition, useEffect, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,14 +18,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { ServerUploadForm } from './server-upload-form'
 import type { ServerWithRatings } from '@/types'
+
+// Lazy load the heavy form component
+const ServerUploadForm = dynamic(() => import('./server-upload-form').then(mod => ({ default: mod.ServerUploadForm })), {
+  loading: () => <div className="p-4 text-center">Loading...</div>,
+})
 
 interface ServerCardWithActionsProps {
   server: ServerWithRatings
 }
 
-export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
+function ServerCardWithActionsComponent({ server }: ServerCardWithActionsProps) {
   const router = useRouter()
   const [isDeleting, startDeleteTransition] = useTransition()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -34,7 +39,8 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
   const avatarColor = getAvatarColor(server.name)
   const toolsCount = server.tools && Array.isArray(server.tools) ? server.tools.length : 0
 
-  const handleDelete = (e: React.MouseEvent) => {
+  // Memoize delete handler to prevent unnecessary re-renders
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -59,7 +65,19 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
         setDeleteError(err instanceof Error ? err.message : 'Failed to delete server')
       }
     })
-  }
+  }, [server.id, router])
+
+  // Memoize edit dialog toggle
+  const handleEditClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsEditDialogOpen(true)
+  }, [])
+
+  const handleEditSuccess = useCallback(() => {
+    setIsEditDialogOpen(false)
+    router.refresh()
+  }, [router])
 
   return (
     <div className="relative">
@@ -92,9 +110,17 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
                   {server.name}
                 </h3>
                 <p className="truncate text-sm text-muted-foreground">
-                  {server.authorUsername && (
+                  {server.authorUsername && server.userId ? (
+                    <Link
+                      href={`/users/${server.userId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-violet-600 dark:hover:text-violet-400 hover:underline transition-colors"
+                    >
+                      @{server.authorUsername}
+                    </Link>
+                  ) : server.authorUsername ? (
                     <span className="ml-1">@{server.authorUsername}</span>
-                  )}
+                  ) : null}
                 {server.organization 
                     ? ` (${server.organization})`
                     : ``
@@ -163,28 +189,23 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
             <Button
               variant="secondary"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setIsEditDialogOpen(true)
-              }}
+              onClick={handleEditClick}
               className="h-7 px-2 text-xs"
             >
               Edit
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Server</DialogTitle>
-            </DialogHeader>
-            <ServerEditForm 
-              serverId={server.id} 
-              onSuccess={() => {
-                setIsEditDialogOpen(false)
-                router.refresh()
-              }} 
-            />
-          </DialogContent>
+          {isEditDialogOpen && (
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Server</DialogTitle>
+              </DialogHeader>
+              <ServerEditForm 
+                serverId={server.id} 
+                onSuccess={handleEditSuccess} 
+              />
+            </DialogContent>
+          )}
         </Dialog>
 
         <Button
@@ -207,6 +228,9 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
   )
 }
 
+// Memoize the component to prevent unnecessary re-renders
+export const ServerCardWithActions = memo(ServerCardWithActionsComponent)
+
 interface ServerEditFormProps {
   serverId: string
   onSuccess?: () => void
@@ -226,17 +250,23 @@ interface ServerFormData {
   completeToolsUrl?: string
 }
 
-function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
+const ServerEditForm = memo(function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [serverData, setServerData] = useState<ServerFormData | null>(null)
   const [serverSource, setServerSource] = useState<'registry' | 'user' | 'official' | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Load server data
+  // Load server data - use AbortController for cleanup
   useEffect(() => {
-    fetch(`/api/servers/${encodeURIComponent(serverId)}`)
+    const abortController = new AbortController()
+    
+    fetch(`/api/servers/${encodeURIComponent(serverId)}`, {
+      signal: abortController.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (abortController.signal.aborted) return
+        
         if (data.data) {
           const server = data.data
           setServerSource(server.source || null)
@@ -256,10 +286,15 @@ function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
         }
         setLoading(false)
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name === 'AbortError') return
         setError('Failed to load server data')
         setLoading(false)
       })
+
+    return () => {
+      abortController.abort()
+    }
   }, [serverId])
 
   if (loading) {
@@ -279,4 +314,4 @@ function ServerEditForm({ serverId, onSuccess }: ServerEditFormProps) {
       serverSource={serverSource || undefined}
     />
   )
-}
+})

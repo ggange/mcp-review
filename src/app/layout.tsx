@@ -14,13 +14,18 @@ const montserrat = Montserrat({
   subsets: ['latin'],
   display: 'swap',
   preload: true,
+  // Optimize font loading for FCP
+  fallback: ['system-ui', 'arial'],
+  adjustFontFallback: true,
 })
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
   display: 'swap',
-  preload: true,
+  preload: false, // Monospace font is less critical, don't preload
+  fallback: ['monospace'],
+  adjustFontFallback: false,
 })
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
@@ -31,7 +36,7 @@ export const metadata: Metadata = {
     default: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
     template: '%s | MCP Review',
   },
-  description: 'The #1 open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings, reviews, and discovery platform for AI developers. Find trusted MCP servers for Claude, Cursor, and other AI tools. Free, transparent, MIT licensed.',
+  description: 'The #1 open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings, reviews, and discovery platform for AI developers. Find trusted MCP servers for Claude, Cursor, and other AI tools. Free to use, transparent, MIT licensed.',
   keywords: [
     'MCP',
     'Model Context Protocol',
@@ -78,7 +83,7 @@ export const metadata: Metadata = {
     url: baseUrl,
     siteName: 'MCP Review',
     title: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
-    description: 'The #1 open-source directory for Model Context Protocol servers. Community-driven ratings and reviews for AI developers. Free, transparent, and MIT licensed.',
+    description: 'The open-source directory for Model Context Protocol servers. Community-driven ratings and reviews for AI developers. Free to use, transparent, and MIT licensed.',
     images: [
       {
         url: '/og-image.png',
@@ -91,7 +96,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'MCP Review - Open Source MCP Server Directory',
-    description: 'The #1 open-source directory for MCP servers. Community-driven ratings & reviews for AI developers. Free & MIT licensed. ⭐ Star us on GitHub!',
+    description: 'The open-source directory for MCP servers. Community-driven ratings & reviews for AI developers. Free to use & MIT licensed. ⭐ Star us on GitHub!',
     creator: '@ggange',
     images: ['/og-image.png'],
   },
@@ -134,6 +139,10 @@ export default function RootLayout({
         {/* Preconnect to critical external domains for faster resource loading */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* DNS prefetch for external resources */}
+        <link rel="dns-prefetch" href="https://api.github.com" />
+        {/* Preload critical resources */}
+        <link rel="preload" href="/icon.svg" as="image" type="image/svg+xml" />
       </head>
       <body
         className={`${montserrat.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}

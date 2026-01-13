@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { auth, signOut } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
@@ -13,15 +14,22 @@ export async function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500">
-              <span className="text-lg font-bold text-white">M</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0">
+              <Image 
+                src="/icon.svg" 
+                alt="MCP Review" 
+                width={32} 
+                height={32} 
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
             <span className="text-xl font-semibold text-foreground">MCP Review</span>
           </Link>
           <ThemeSwitcher />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link
             href="https://github.com/ggange/mcp-review"
             target="_blank"
@@ -32,8 +40,8 @@ export async function Navbar() {
               variant="ghost"
               className="rounded-full bg-black text-white hover:bg-gray-800 hover:text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:hover:text-black border border-transparent"
             >
-              <Github className="mr-2 h-4 w-4" />
-              GitHub
+              <Github className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">GitHub</span>
             </Button>
           </Link>
           <Link href="/about">

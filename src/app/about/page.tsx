@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from 'next'
+import { JsonLdScript } from '@/components/json-ld-script'
 
 // Force static generation - this page has no dynamic content
 export const dynamic = 'force-static'
@@ -108,18 +109,9 @@ export default function AboutPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      <JsonLdScript data={organizationSchema} id="organization-schema" />
+      <JsonLdScript data={softwareSchema} id="software-schema" />
+      <JsonLdScript data={breadcrumbSchema} id="breadcrumb-schema" />
       <div className="container mx-auto px-4 py-8">
       {/* Hero Section */}
       <header className="mb-12 text-center">
