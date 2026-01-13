@@ -58,9 +58,17 @@ export function ServerCard({ server }: ServerCardProps) {
                 </p>
               ) : isUserUploaded ? (
                 <p className="truncate text-sm text-muted-foreground">
-                  {server.authorUsername && (
+                  {server.authorUsername && server.userId ? (
+                    <Link
+                      href={`/users/${server.userId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-violet-600 dark:hover:text-violet-400 hover:underline transition-colors"
+                    >
+                      @{server.authorUsername}
+                    </Link>
+                  ) : server.authorUsername ? (
                     <span>@{server.authorUsername}</span>
-                  )}
+                  ) : null}
                   {server.organization 
                     ? ` (${server.organization})`
                     : ``

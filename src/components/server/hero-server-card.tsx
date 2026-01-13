@@ -62,7 +62,17 @@ export function HeroServerCard({ server }: HeroServerCardProps) {
           {server.name}
         </h4>
         <p className="truncate text-xs text-muted-foreground">
-          {authorDisplay}
+          {server.source === 'user' && server.userId && server.authorUsername ? (
+            <Link
+              href={`/users/${server.userId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-violet-600 dark:hover:text-violet-400 hover:underline transition-colors"
+            >
+              @{server.authorUsername}
+            </Link>
+          ) : (
+            authorDisplay
+          )}
         </p>
       </div>
 

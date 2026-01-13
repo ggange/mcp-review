@@ -484,9 +484,16 @@ export default async function ServerPage({ params }: ServerPageProps) {
                         <p className="mt-1 text-muted-foreground">by {server.organization}</p>
                       ) : server.source === 'user' ? (
                         <p className="mt-1 text-muted-foreground">
-                          {server.authorUsername && (
+                          {server.authorUsername && server.userId ? (
+                            <Link
+                              href={`/users/${server.userId}`}
+                              className="ml-1 hover:text-violet-600 dark:hover:text-violet-400 hover:underline transition-colors"
+                            >
+                              @{server.authorUsername}
+                            </Link>
+                          ) : server.authorUsername ? (
                             <span className="ml-1">@{server.authorUsername}</span>
-                          )}
+                          ) : null}
                           {server.organization 
                             ? ` (${server.organization})`
                             : ' '
