@@ -15,6 +15,7 @@ import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
 import { ServerActions } from '@/components/server/server-actions'
+import { JsonLdScript } from '@/components/json-ld-script'
 
 interface ServerPageProps {
   params: Promise<{ id: string }>
@@ -426,14 +427,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      <JsonLdScript data={productSchema} id="product-schema" />
+      <JsonLdScript data={breadcrumbSchema} id="breadcrumb-schema" />
       <div className="container mx-auto px-4 py-8">
       {/* Back button */}
       <Link

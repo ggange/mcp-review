@@ -14,13 +14,18 @@ const montserrat = Montserrat({
   subsets: ['latin'],
   display: 'swap',
   preload: true,
+  // Optimize font loading for FCP
+  fallback: ['system-ui', 'arial'],
+  adjustFontFallback: true,
 })
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
   display: 'swap',
-  preload: true,
+  preload: false, // Monospace font is less critical, don't preload
+  fallback: ['monospace'],
+  adjustFontFallback: false,
 })
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
@@ -134,6 +139,10 @@ export default function RootLayout({
         {/* Preconnect to critical external domains for faster resource loading */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* DNS prefetch for external resources */}
+        <link rel="dns-prefetch" href="https://api.github.com" />
+        {/* Preload critical resources */}
+        <link rel="preload" href="/icon.svg" as="image" type="image/svg+xml" />
       </head>
       <body
         className={`${montserrat.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}

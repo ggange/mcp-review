@@ -38,6 +38,17 @@ if (process.env.NEXT_PUBLIC_APP_URL) {
 const nextConfig: NextConfig = {
   images: {
     remotePatterns,
+    // Optimize images for better FCP
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
+  },
+  // Enable compression for better performance
+  compress: true,
+  // Optimize production builds
+  swcMinify: true,
+  // Enable experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   async headers() {
     return [

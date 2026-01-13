@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { JsonLdScript } from '@/components/json-ld-script'
 import { 
   queryServers, 
   getCategoryCounts, 
@@ -395,18 +396,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
-      />
+      <JsonLdScript data={websiteSchema} id="website-schema" />
+      <JsonLdScript data={faqSchema} id="faq-schema" />
+      <JsonLdScript data={itemListSchema} id="itemlist-schema" />
       <div className="container mx-auto px-4 py-8">
       {/* Hero Section - Static shell renders immediately, data streams in */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">

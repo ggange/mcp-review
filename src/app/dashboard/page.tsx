@@ -1,14 +1,17 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
 import { ServerCardWithActions } from '@/components/server/server-card-with-actions'
 import { UploadOfficialServerDialog } from '@/components/server/upload-official-server-dialog'
+import { GitHubProfileLink } from '@/components/github-profile-link'
 
 export const metadata: Metadata = {
   title: 'Dashboard - MCP Review',
@@ -26,54 +29,55 @@ export default async function DashboardPage() {
     redirect('/auth/signin')
   }
 
-  // Fetch user data including createdAt and role
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      createdAt: true,
-      role: true,
-    },
-  })
+  // Parallelize all database queries for better performance
+  const [user, githubAccount, ratings, userServersRaw] = await Promise.all([
+    // Fetch user data including createdAt and role
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        createdAt: true,
+        role: true,
+      },
+    }),
+    // Fetch GitHub account to get access token and providerAccountId for profile link
+    prisma.account.findFirst({
+      where: {
+        userId: session.user.id,
+        provider: 'github',
+      },
+      select: {
+        providerAccountId: true,
+        access_token: true,
+      },
+    }),
+    // Fetch ratings
+    prisma.rating.findMany({
+      where: { userId: session.user.id },
+      include: {
+        server: {
+          select: {
+            id: true,
+            name: true,
+            organization: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    // Fetch user's own servers
+    prisma.server.findMany({
+      where: {
+        userId: session.user.id,
+        source: 'user',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ])
 
   // Check if user is admin
   const userIsAdmin = user?.role === 'admin'
 
-  // Fetch GitHub account to get access token and providerAccountId for profile link
-  const githubAccount = await prisma.account.findFirst({
-    where: {
-      userId: session.user.id,
-      provider: 'github',
-    },
-    select: {
-      providerAccountId: true,
-      access_token: true,
-    },
-  })
-
-  const ratings = await prisma.rating.findMany({
-    where: { userId: session.user.id },
-    include: {
-      server: {
-        select: {
-          id: true,
-          name: true,
-          organization: true,
-        },
-      },
-    },
-    orderBy: { updatedAt: 'desc' },
-  })
-
-  // Fetch user's own servers
-  const userServersRaw = await prisma.server.findMany({
-    where: {
-      userId: session.user.id,
-      source: 'user',
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
-  
   // Cast source field to the expected union type
   const userServers = userServersRaw.map(server => ({
     ...server,
@@ -99,42 +103,7 @@ export default async function DashboardPage() {
     tools: server.tools as Array<{ name: string; description: string }> | null,
   }))
 
-  // Construct GitHub profile URL
-  // Try to fetch username from GitHub API using access token
-  let githubProfileUrl: string | null = null
-  let githubUsername: string | null = null
-
-  if (githubAccount?.access_token) {
-    try {
-      const response = await fetch('https://api.github.com/user', {
-        headers: {
-          Authorization: `token ${githubAccount.access_token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-        next: { revalidate: 3600 }, // Cache for 1 hour
-      })
-
-      if (response.ok) {
-        const githubUser = await response.json()
-        githubUsername = githubUser.login
-        githubProfileUrl = `https://github.com/${githubUsername}`
-      }
-    } catch (error) {
-      // Silently fail - we'll just not show the profile link
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Failed to fetch GitHub username:', error instanceof Error ? error.message : 'Unknown error')
-      }
-    }
-  }
-
-  // Fallback: if we couldn't get username from API, try extracting from avatar URL
-  if (!githubProfileUrl && session.user.image) {
-    const avatarMatch = session.user.image.match(/avatars\.githubusercontent\.com\/u\/(\d+)/)
-    if (avatarMatch && githubAccount) {
-      // We have GitHub account but couldn't get username, show GitHub icon without specific link
-      githubProfileUrl = null // Will show icon but link to github.com
-    }
-  }
+  // GitHub profile URL will be fetched client-side to avoid blocking page render
 
   // Format member since date
   const memberSince = user?.createdAt
@@ -154,7 +123,7 @@ export default async function DashboardPage() {
               <Avatar className="h-16 w-16">
                 <AvatarImage src={session.user.image || undefined} alt={session.user.name || ''} />
                 <AvatarFallback className="bg-muted text-lg text-muted-foreground">
-                  {session.user.name?.charAt(0).toUpperCase() || githubUsername?.charAt(0).toUpperCase() || 'U'}
+                  {session.user.name?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
@@ -177,35 +146,10 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </div>
-            {githubAccount && githubProfileUrl && (
-              <div className="flex-shrink-0">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full md:w-auto"
-                >
-                  <a
-                    href={githubProfileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <svg
-                      className="mr-2 h-4 w-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    View Profile on GitHub
-                  </a>
-                </Button>
-              </div>
-            )}
+            <GitHubProfileLink
+              hasGitHubAccount={!!githubAccount}
+              accessToken={githubAccount?.access_token || null}
+            />
           </div>
         </CardContent>
       </Card>
