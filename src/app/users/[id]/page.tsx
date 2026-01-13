@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { getAvatarColor } from '@/lib/utils'
+import { ServerCard } from '@/components/server/server-card'
+import type { ServerWithRatings } from '@/types'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -124,23 +126,42 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     }
   }
 
-  // Fetch user's public ratings
-  const ratings = await prisma.rating.findMany({
-    where: {
-      userId: user.id,
-      status: 'approved',
-    },
-    include: {
-      server: {
-        select: {
-          id: true,
-          name: true,
-          organization: true,
+  // Parallelize database queries for better performance
+  const [ratings, uploadedServersRaw] = await Promise.all([
+    // Fetch user's public ratings
+    prisma.rating.findMany({
+      where: {
+        userId: user.id,
+        status: 'approved',
+      },
+      include: {
+        server: {
+          select: {
+            id: true,
+            name: true,
+            organization: true,
+          },
         },
       },
-    },
-    orderBy: { updatedAt: 'desc' },
-  })
+      orderBy: { updatedAt: 'desc' },
+    }),
+    // Fetch user's uploaded servers
+    prisma.server.findMany({
+      where: {
+        userId: user.id,
+        source: 'user',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    }),
+  ])
+
+  // Cast source field to the expected union type
+  const uploadedServers: ServerWithRatings[] = uploadedServersRaw.map(server => ({
+    ...server,
+    source: server.source as 'registry' | 'user' | 'official',
+    tools: server.tools as Array<{ name: string; description: string }> | null,
+  })) as unknown as ServerWithRatings[]
 
   // Format member since date
   const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -178,6 +199,10 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                     <span className="text-muted-foreground">Total ratings: </span>
                     <span className="font-medium text-card-foreground">{ratings.length}</span>
                   </div>
+                  <div>
+                    <span className="text-muted-foreground">Uploaded servers: </span>
+                    <span className="font-medium text-card-foreground">{uploadedServers.length}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,12 +239,32 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         </CardContent>
       </Card>
 
+      {/* Uploaded Servers Section */}
+      {uploadedServers.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold text-foreground">Uploaded Servers</h1>
+            <p className="mt-2 text-muted-foreground">
+              Servers uploaded by {user.name || 'this user'}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {uploadedServers.map((server) => (
+              <ServerCard key={server.id} server={server} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ratings Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Ratings by {user.name || 'this user'}</h1>
-        <p className="mt-2 text-muted-foreground">
-          All public ratings and reviews
-        </p>
-      </div>
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-foreground">Ratings by {user.name || 'this user'}</h1>
+          <p className="mt-2 text-muted-foreground">
+            All public ratings and reviews
+          </p>
+        </div>
 
       {ratings.length === 0 ? (
         <Card className="border-border bg-card">
@@ -287,6 +332,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }
