@@ -91,19 +91,25 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
     'vercel', 'netlify', 'docker', 'kubernetes', 'hashicorp', 'redhat', 'jenkins'
   ]
 
-  return Array.from({ length: count }, (_, i) => {
+  // Generate servers: user servers first, then official servers
+  // Both sorted by date (newest first within each category)
+  const baseDate = new Date()
+  const servers: ServerWithRatings[] = []
+  
+  // Generate user servers (first half, newest first)
+  const userCount = Math.ceil(count / 2)
+  for (let i = 0; i < userCount; i++) {
     const nameIndex = i % serverNames.length
     const orgIndex = i % organizations.length
-    const hasRatings = type === 'top' && i < 15 // Top rated should have ratings
+    const hasRatings = type === 'top' && i < 15
     const avgRating = hasRatings ? 3.5 + (Math.random() * 1.5) : 0
     const totalRatings = hasRatings ? Math.floor(Math.random() * 50) + 5 : 0
-    const source: 'user' | 'official' = i % 3 === 0 ? 'official' : 'user'
     
-    return {
-      id: `dummy-${type}-${i}`,
+    servers.push({
+      id: `dummy-${type}-user-${i}`,
       name: serverNames[nameIndex] + (i >= serverNames.length ? ` ${Math.floor(i / serverNames.length) + 1}` : ''),
       organization: organizations[orgIndex],
-      description: `Dummy server ${i + 1} for testing`,
+      description: `Dummy user server ${i + 1} for testing`,
       version: '1.0.0',
       repositoryUrl: `https://github.com/${organizations[orgIndex]}/${serverNames[nameIndex].toLowerCase()}`,
       packages: null,
@@ -112,17 +118,55 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
       avgUsefulness: hasRatings ? avgRating : 0,
       totalRatings,
       category: ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'][i % 8] as string,
-      syncedAt: new Date(),
-      source,
+      createdAt: new Date(baseDate.getTime() - i * 60000), // Newest first (decreasing time)
+      syncedAt: new Date(baseDate.getTime() - i * 60000),
+      source: 'user',
       iconUrl: null,
       tools: null,
       usageTips: null,
       userId: null,
-      authorUsername: source === 'user' ? organizations[orgIndex] : null,
+      authorUsername: organizations[orgIndex],
       hasManyTools: false,
       completeToolsUrl: null,
-    }
-  })
+    })
+  }
+  
+  // Generate official servers (second half, newest first)
+  const officialCount = count - userCount
+  for (let i = 0; i < officialCount; i++) {
+    const nameIndex = (userCount + i) % serverNames.length
+    const orgIndex = (userCount + i) % organizations.length
+    const hasRatings = type === 'top' && (userCount + i) < 15
+    const avgRating = hasRatings ? 3.5 + (Math.random() * 1.5) : 0
+    const totalRatings = hasRatings ? Math.floor(Math.random() * 50) + 5 : 0
+    
+    servers.push({
+      id: `dummy-${type}-official-${i}`,
+      name: serverNames[nameIndex] + ((userCount + i) >= serverNames.length ? ` ${Math.floor((userCount + i) / serverNames.length) + 1}` : ''),
+      organization: organizations[orgIndex],
+      description: `Dummy official server ${i + 1} for testing`,
+      version: '1.0.0',
+      repositoryUrl: `https://github.com/${organizations[orgIndex]}/${serverNames[nameIndex].toLowerCase()}`,
+      packages: null,
+      remotes: null,
+      avgTrustworthiness: hasRatings ? avgRating : 0,
+      avgUsefulness: hasRatings ? avgRating : 0,
+      totalRatings,
+      category: ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'][(userCount + i) % 8] as string,
+      createdAt: new Date(baseDate.getTime() - (userCount + i) * 60000), // Newest first (decreasing time)
+      syncedAt: new Date(baseDate.getTime() - (userCount + i) * 60000),
+      source: 'official',
+      iconUrl: null,
+      tools: null,
+      usageTips: null,
+      userId: null,
+      authorUsername: null,
+      hasManyTools: false,
+      completeToolsUrl: null,
+    })
+  }
+  
+  return servers
 }
 
 // Streamed component for hot servers (official + user, most recent first)

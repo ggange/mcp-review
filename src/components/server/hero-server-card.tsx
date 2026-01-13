@@ -80,6 +80,18 @@ export function HeroServerCard({ server }: HeroServerCardProps) {
             </TooltipContent>
           </Tooltip>
         )}
+        {server.source === 'user' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="border-green-500 dark:border-green-400 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 text-[10px] px-1.5 py-0">
+                User
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Server uploaded by users on MCP Review</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
         {hasRatings ? (
           <div className="flex items-center gap-1">
             <StarIcon className="h-3.5 w-3.5 text-amber-400" />

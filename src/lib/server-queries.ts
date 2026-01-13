@@ -307,18 +307,32 @@ export async function getLatestUserServers(limit: number = 4): Promise<ServerWit
 
 /**
  * Get the latest official and user servers (hot servers - most recent first)
+ * User servers are shown before official servers, sorted by date within each category
  */
 export async function getHotServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  // Fetch more servers than needed to ensure proper sorting
+  const fetchLimit = Math.max(limit * 2, 100)
   const servers = await prisma.server.findMany({
     where: { 
       source: { in: ['user', 'official'] }
     },
     orderBy: { createdAt: 'desc' },
-    take: limit,
+    take: fetchLimit,
     select: serverSelectFields,
   })
 
-  return servers.map(server => ({
+  // Sort: user servers first, then official servers, both sorted by date (newest first)
+  const sortedServers = servers.sort((a, b) => {
+    // First, prioritize user servers over official
+    if (a.source === 'user' && b.source === 'official') return -1
+    if (a.source === 'official' && b.source === 'user') return 1
+    
+    // Within the same source, sort by createdAt (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+
+  // Take only the requested limit
+  return sortedServers.slice(0, limit).map(server => ({
     ...server,
     source: server.source as 'registry' | 'user' | 'official',
     tools: server.tools as Array<{ name: string; description: string }> | null,
