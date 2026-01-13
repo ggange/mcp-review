@@ -26,17 +26,17 @@ export const revalidate = 60
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
 export const metadata: Metadata = {
-  title: 'Open Source MCP Server Directory - Discover, Rate, and Review',
-  description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven ratings and reviews. Free, transparent, and MIT licensed. Contribute on GitHub!',
+  title: 'Open Source MCP Server Directory - Discover, Rate & Review Model Context Protocol Servers',
+  description: 'Find the best MCP servers for Claude, Cursor, and AI workflows. Community-driven ratings and reviews from developers. Browse 100+ Model Context Protocol servers. Free, open-source, MIT licensed.',
   openGraph: {
-    title: 'MCP Review - Open Source MCP Server Directory',
-    description: 'Open-source platform to discover, rate, and review MCP servers. Community-driven, free, and transparent. Built by developers for developers.',
+    title: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
+    description: 'Find the best MCP servers for your AI workflows. Community-driven ratings and reviews from developers. Free, open-source, and transparent.',
     url: baseUrl,
     type: 'website',
   },
   twitter: {
     title: 'MCP Review - Open Source MCP Server Directory',
-    description: 'Open-source platform to discover, rate, and review MCP servers. Community-driven, free, and transparent. ⭐ Star us on GitHub!',
+    description: 'Find the best MCP servers for Claude & AI workflows. Community-driven ratings & reviews. Free & open-source. ⭐ Star us on GitHub!',
   },
   alternates: {
     canonical: baseUrl,
@@ -318,7 +318,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'MCP Review',
-    description: 'Open-source platform to discover, rate, and review Model Context Protocol servers. Community-driven, free, and transparent.',
+    alternateName: ['MCP Server Directory', 'Model Context Protocol Review'],
+    description: 'The open-source directory for Model Context Protocol (MCP) servers. Community-driven ratings and reviews for AI developers.',
     url: baseUrl,
     potentialAction: {
       '@type': 'SearchAction',
@@ -335,6 +336,61 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       name: 'ggange',
       url: 'https://github.com/ggange',
     },
+    sourceOrganization: {
+      '@type': 'Organization',
+      name: 'MCP Review Community',
+      url: 'https://github.com/ggange/mcp-review',
+    },
+  }
+
+  // FAQ Schema for common questions about MCP
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What is MCP (Model Context Protocol)?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Model Context Protocol (MCP) is an open standard developed by Anthropic that enables AI assistants like Claude to connect with external data sources and tools. MCP servers provide capabilities that extend what AI models can do.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is MCP Review?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'MCP Review is an open-source, community-driven platform where developers can discover, rate, and review Model Context Protocol servers. It helps developers find trusted MCP servers for their AI workflows.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is MCP Review free to use?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes! MCP Review is completely free and open-source under the MIT license. You can browse servers, leave reviews, and even contribute to the codebase on GitHub.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can I submit my MCP server?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Sign in with your GitHub account and click "Submit a Server". You can upload your MCP server in under 2 minutes. Add a description, tools, and usage tips to help other developers.',
+        },
+      },
+    ],
+  }
+
+  // ItemList Schema for server collection
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'MCP Server Directory',
+    description: 'Browse community-rated Model Context Protocol servers for AI development',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: '100+',
   }
 
   return (
@@ -343,21 +399,30 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
       <div className="container mx-auto px-4 py-8">
       {/* Hero Section - Static shell renders immediately, data streams in */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">
         {/* Left: Title, subtitle, badge, buttons */}
         <div className="flex flex-col justify-center">
           <Badge variant="secondary" className="w-fit mb-6 px-4 py-1.5 text-sm font-medium rounded-full">
-            The Community Hub for MCP
+            Open Source MCP Community Hub
           </Badge>
           <h1 className="mb-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Discover, Rate, and Review{' '}
+            Discover, Rate & Review{' '}
             <span className="text-violet-600 dark:text-violet-400">MCP Servers</span>
           </h1>
           <p className="mb-8 max-w-lg text-lg text-muted-foreground leading-relaxed">
-            Find the best Model Context Protocol servers for your AI workflows.
-            Join the community to share and review the best products.
+            The <strong>open-source directory</strong> for <abbr title="Model Context Protocol">MCP</abbr> servers. 
+            Find trusted tools for <strong>Claude, Cursor</strong>, and AI workflows. 
+            Community-driven ratings by developers, for developers.
           </p>
           <div className="flex flex-col sm:flex-row items-start gap-3">
             <Button 

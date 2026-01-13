@@ -92,13 +92,26 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
-  const description = server.description || `Rate and review ${server.name} MCP server by ${server.organization}. ${server.totalRatings > 0 ? `Rated ${((server.avgTrustworthiness + server.avgUsefulness) / 2).toFixed(1)}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'user' : 'users'}.` : 'No ratings yet.'}`
+  const avgRating = server.totalRatings > 0 ? ((server.avgTrustworthiness + server.avgUsefulness) / 2).toFixed(1) : null
+  const ratingText = avgRating ? `Rated ${avgRating}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'developer' : 'developers'}.` : 'Be the first to review!'
+  const description = server.description 
+    ? `${server.description.slice(0, 120)}${server.description.length > 120 ? '...' : ''} ${ratingText}`
+    : `${server.name} MCP server by ${server.organization}. Community ratings and reviews for this Model Context Protocol server. ${ratingText}`
 
   return {
-    title: `${server.name} - MCP Review`,
+    title: `${server.name} MCP Server - Reviews & Ratings`,
     description,
+    keywords: [
+      server.name,
+      'MCP server',
+      'Model Context Protocol',
+      server.organization || '',
+      'MCP reviews',
+      'AI tools',
+      'developer tools',
+    ].filter(Boolean),
     openGraph: {
-      title: `${server.name} - MCP Review`,
+      title: `${server.name} - MCP Server Reviews & Ratings`,
       description,
       url: serverUrl,
       type: 'website',
@@ -121,7 +134,7 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${server.name} - MCP Review`,
+      title: `${server.name} - MCP Server Reviews`,
       description,
       images: server.iconUrl ? [server.iconUrl] : ['/og-image.png'],
     },
@@ -355,11 +368,13 @@ export default async function ServerPage({ params }: ServerPageProps) {
     name: server.name,
     description: server.description || `MCP server by ${server.organization}`,
     applicationCategory: 'DeveloperApplication',
+    applicationSubCategory: 'Model Context Protocol Server',
     operatingSystem: 'Any',
     offers: {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
     },
     aggregateRating: server.totalRatings > 0 && avgRating ? {
       '@type': 'AggregateRating',
@@ -374,6 +389,28 @@ export default async function ServerPage({ params }: ServerPageProps) {
     },
     url: serverUrl,
     image: server.iconUrl || undefined,
+    softwareVersion: server.version || undefined,
+    isAccessibleForFree: true,
+  }
+
+  // BreadcrumbList for navigation
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'MCP Servers',
+        item: baseUrl,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: server.name,
+        item: serverUrl,
+      },
+    ],
   }
 
   // Remove undefined fields
@@ -383,12 +420,19 @@ export default async function ServerPage({ params }: ServerPageProps) {
   if (!productSchema.image) {
     delete productSchema.image
   }
+  if (!productSchema.softwareVersion) {
+    delete productSchema.softwareVersion
+  }
 
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <div className="container mx-auto px-4 py-8">
       {/* Back button */}
