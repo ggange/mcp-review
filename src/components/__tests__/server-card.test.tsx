@@ -15,6 +15,7 @@ const mockServer = {
   avgUsefulness: 4.2,
   totalRatings: 10,
   category: 'search',
+  createdAt: new Date(),
   syncedAt: new Date(),
   source: 'registry' as const,
   iconUrl: null,

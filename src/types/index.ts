@@ -54,6 +54,7 @@ export interface ServerWithRatings {
   avgUsefulness: number
   totalRatings: number
   category: string | null
+  createdAt: Date
   syncedAt: Date
   source: 'registry' | 'user' | 'official'
   iconUrl: string | null

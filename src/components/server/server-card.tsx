@@ -144,7 +144,7 @@ export function ServerCard({ server }: ServerCardProps) {
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="border-border text-muted-foreground">
+                    <Badge variant="outline" className="border-green-500 dark:border-green-400 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950">
                       User
                     </Badge>
                   </TooltipTrigger>
