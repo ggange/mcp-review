@@ -18,6 +18,7 @@ import {
 } from '@/lib/server-queries'
 import { HeroServerCard } from '@/components/server/hero-server-card'
 import { auth } from '@/lib/auth'
+import type { ServerWithRatings } from '@/types'
 
 // Enable ISR with 60 second revalidation for better TTFB
 export const revalidate = 60
@@ -74,9 +75,63 @@ function HeroCardsSkeleton() {
   )
 }
 
+// Generate dummy servers for development testing
+function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRatings[] {
+  const serverNames = [
+    'Datadog', 'Unity', 'Firecrawl', 'Serena', 'PostgreSQL', 'MongoDB', 
+    'Redis', 'Elasticsearch', 'GitHub', 'Slack', 'Discord', 'Twitter',
+    'OpenAI', 'Anthropic', 'Google', 'AWS', 'Azure', 'GCP', 'Vercel',
+    'Netlify', 'Docker', 'Kubernetes', 'Terraform', 'Ansible', 'Jenkins'
+  ]
+  
+  const organizations = [
+    'Datadog-MCP', 'CoplayDev', 'firecrawl', 'oraios', 'postgres', 'mongodb',
+    'redis-labs', 'elastic', 'github', 'slack', 'discord', 'twitter',
+    'openai', 'anthropic', 'google', 'aws', 'microsoft', 'google-cloud',
+    'vercel', 'netlify', 'docker', 'kubernetes', 'hashicorp', 'redhat', 'jenkins'
+  ]
+
+  return Array.from({ length: count }, (_, i) => {
+    const nameIndex = i % serverNames.length
+    const orgIndex = i % organizations.length
+    const hasRatings = type === 'top' && i < 15 // Top rated should have ratings
+    const avgRating = hasRatings ? 3.5 + (Math.random() * 1.5) : 0
+    const totalRatings = hasRatings ? Math.floor(Math.random() * 50) + 5 : 0
+    const source: 'user' | 'official' = i % 3 === 0 ? 'official' : 'user'
+    
+    return {
+      id: `dummy-${type}-${i}`,
+      name: serverNames[nameIndex] + (i >= serverNames.length ? ` ${Math.floor(i / serverNames.length) + 1}` : ''),
+      organization: organizations[orgIndex],
+      description: `Dummy server ${i + 1} for testing`,
+      version: '1.0.0',
+      repositoryUrl: `https://github.com/${organizations[orgIndex]}/${serverNames[nameIndex].toLowerCase()}`,
+      packages: null,
+      remotes: null,
+      avgTrustworthiness: hasRatings ? avgRating : 0,
+      avgUsefulness: hasRatings ? avgRating : 0,
+      totalRatings,
+      category: ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'][i % 8] as string,
+      syncedAt: new Date(),
+      source,
+      iconUrl: null,
+      tools: null,
+      usageTips: null,
+      userId: null,
+      authorUsername: source === 'user' ? organizations[orgIndex] : null,
+      hasManyTools: false,
+      completeToolsUrl: null,
+    }
+  })
+}
+
 // Streamed component for hot servers (official + user, most recent first)
 async function HotServers({ submitServerHref }: { submitServerHref: string }) {
-  const hotServers = await getHotServers(4)
+  // In development, use dummy data to test column filling
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const hotServers = isDevelopment 
+    ? generateDummyServers(8, 'hot')
+    : await getHotServers(8)
   
   if (hotServers.length === 0) {
     return (
@@ -102,7 +157,11 @@ async function HotServers({ submitServerHref }: { submitServerHref: string }) {
 
 // Streamed component for top rated servers
 async function TopRatedServers() {
-  const topRatedServers = await getTopRatedServers(4)
+  // In development, use dummy data to test column filling
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const topRatedServers = isDevelopment
+    ? generateDummyServers(8, 'top')
+    : await getTopRatedServers(8)
   
   if (topRatedServers.length === 0) {
     return (
