@@ -64,8 +64,8 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
   return (
     <div className="relative">
       <Link href={`/servers/${encodeURIComponent(server.id)}`}>
-        <Card className="group h-full cursor-pointer border-2 border-dashed border-violet-500/30 bg-card/50 transition-all hover:border-violet-500/50 hover:shadow-md">
-          <CardHeader className="pb-3 overflow-hidden">
+        <Card className="group h-full cursor-pointer border-2 border-dashed border-violet-500/30 bg-card/50 transition-all hover:border-violet-500/50 hover:shadow-md gap-2">
+          <CardHeader className="pb-0 overflow-hidden">
             <div className="flex items-start gap-4 w-full min-w-0">
               {/* Icon or Avatar */}
               {server.iconUrl ? (
@@ -104,9 +104,9 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
             </div>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="flex flex-col flex-1 pt-0">
             {server.description ? (
-              <div className="mb-4 flex items-start gap-2">
+              <div className="mb-2 flex items-start gap-2">
                 <p className="line-clamp-2 text-sm text-muted-foreground flex-1">
                   {server.description}
                 </p>
@@ -122,12 +122,12 @@ export function ServerCardWithActions({ server }: ServerCardWithActionsProps) {
                 )}
               </div>
             ) : (
-              <p className="mb-4 text-sm italic text-muted-foreground/70">
+              <p className="mb-2 text-sm italic text-muted-foreground/70">
                 No description available
               </p>
             )}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-auto">
               <RatingDisplay
                 trustworthiness={server.avgTrustworthiness}
                 usefulness={server.avgUsefulness}

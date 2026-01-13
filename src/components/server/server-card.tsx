@@ -25,8 +25,8 @@ export function ServerCard({ server }: ServerCardProps) {
 
   return (
     <Link href={`/servers/${encodeURIComponent(server.id)}`}>
-      <Card className={cardClassName}>
-        <CardHeader className="pb-3 overflow-hidden">
+      <Card className={`${cardClassName} gap-2`}>
+        <CardHeader className="pb-0 overflow-hidden">
           <div className="flex items-start gap-4 w-full min-w-0">
             {/* Icon or Avatar */}
             {server.iconUrl ? (
@@ -75,9 +75,9 @@ export function ServerCard({ server }: ServerCardProps) {
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="flex flex-col flex-1 pt-0">
           {server.description ? (
-            <div className="mb-4 flex items-start gap-2">
+            <div className="mb-2 flex items-start gap-2">
               <p className="line-clamp-2 text-sm text-muted-foreground flex-1">
                 {server.description}
               </p>
@@ -93,12 +93,12 @@ export function ServerCard({ server }: ServerCardProps) {
               )}
             </div>
           ) : (
-            <p className="mb-4 text-sm italic text-muted-foreground/70">
+            <p className="mb-2 text-sm italic text-muted-foreground/70">
               No description available
             </p>
           )}
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto">
             <RatingDisplay
               trustworthiness={server.avgTrustworthiness}
               usefulness={server.avgUsefulness}
