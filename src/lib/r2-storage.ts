@@ -60,16 +60,30 @@ export async function getFromR2(key: string): Promise<{ Body: ReadableStream<Uin
     throw new Error('R2 credentials are not configured')
   }
 
-  const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  })
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    })
 
-  const response = await r2Client.send(command)
-  
-  return {
-    Body: response.Body as ReadableStream<Uint8Array> | undefined,
-    ContentType: response.ContentType,
+    const response = await r2Client.send(command)
+    
+    return {
+      Body: response.Body as ReadableStream<Uint8Array> | undefined,
+      ContentType: response.ContentType,
+    }
+  } catch (error) {
+    // Handle AWS SDK errors
+    if (error && typeof error === 'object' && 'name' in error) {
+      if (error.name === 'NoSuchKey' || error.name === 'NotFound') {
+        throw new Error(`Icon not found: ${key}`)
+      }
+      if (error.name === 'AccessDenied' || error.name === 'Forbidden') {
+        throw new Error(`Access denied to R2 bucket`)
+      }
+    }
+    // Re-throw with more context
+    throw new Error(`Failed to fetch from R2: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
