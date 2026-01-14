@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 import { getFromR2 } from '@/lib/r2-storage'
 
 interface RouteParams {
   params: Promise<{ key: string }>
 }
 
-// Cache configuration: revalidate every 24 hours (icons rarely change)
-export const revalidate = 86400
+// Note: Cache-Control headers handle caching at the edge
+// No need for revalidate export in API routes
 
 /**
  * Helper function to convert ReadableStream to Buffer
@@ -35,24 +34,18 @@ async function streamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffe
 }
 
 /**
- * Cached function to fetch icon buffer from R2
- * This reduces R2 API calls by caching the response on the server
+ * Fetch icon buffer from R2
+ * Note: unstable_cache doesn't work reliably in API routes, so we fetch directly
+ * The CDN Cache-Control headers will handle caching at the edge
  */
-const getCachedIconBuffer = unstable_cache(
-  async (key: string) => {
-    const { Body, ContentType } = await getFromR2(key)
-    if (!Body) {
-      return { buffer: null, contentType: ContentType }
-    }
-    const buffer = await streamToBuffer(Body)
-    return { buffer, contentType: ContentType }
-  },
-  ['icon-buffer'],
-  {
-    revalidate: 86400, // 24 hours - icons rarely change
-    tags: ['icons'],
+async function getIconBuffer(key: string): Promise<{ buffer: Buffer | null; contentType: string | undefined }> {
+  const { Body, ContentType } = await getFromR2(key)
+  if (!Body) {
+    return { buffer: null, contentType: ContentType }
   }
-)
+  const buffer = await streamToBuffer(Body)
+  return { buffer, contentType: ContentType }
+}
 
 /**
  * Proxy endpoint to serve images from private R2 bucket
@@ -71,8 +64,27 @@ export async function GET(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Get cached icon buffer from R2 (reduces R2 API calls significantly)
-    const { buffer, contentType } = await getCachedIconBuffer(decodedKey)
+    // Get icon buffer from R2
+    // Note: We fetch directly since unstable_cache doesn't work reliably in API routes
+    // Edge caching via Cache-Control headers handles caching
+    let buffer: Buffer | null = null
+    let contentType: string | undefined = undefined
+    
+    try {
+      const result = await getIconBuffer(decodedKey)
+      buffer = result.buffer
+      contentType = result.contentType
+    } catch (error) {
+      // If R2 fetch fails, check if it's a credentials error
+      if (error instanceof Error && error.message.includes('R2 credentials')) {
+        return NextResponse.json(
+          { error: 'Storage not configured' },
+          { status: 500 }
+        )
+      }
+      // Re-throw to be caught by outer try-catch
+      throw error
+    }
 
     if (!buffer) {
       return NextResponse.json(
@@ -94,19 +106,35 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     return response
   } catch (error) {
+    // Log error details for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
     if (process.env.NODE_ENV !== 'production') {
-      console.error('Icon proxy error:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('Icon proxy error:', errorMessage)
+      if (errorStack) {
+        console.error('Stack trace:', errorStack)
+      }
     }
     
-    if (error instanceof Error && error.message.includes('R2 credentials')) {
-      return NextResponse.json(
-        { error: 'Storage not configured' },
-        { status: 500 }
-      )
+    // Check for specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('R2 credentials')) {
+        return NextResponse.json(
+          { error: 'Storage not configured' },
+          { status: 500 }
+        )
+      }
+      if (error.message.includes('NoSuchKey') || error.message.includes('not found')) {
+        return NextResponse.json(
+          { error: 'Icon not found' },
+          { status: 404 }
+        )
+      }
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch icon' },
+      { error: 'Failed to fetch icon', details: process.env.NODE_ENV !== 'production' ? errorMessage : undefined },
       { status: 500 }
     )
   }
