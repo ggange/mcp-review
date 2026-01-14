@@ -98,13 +98,17 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
   const servers: ServerWithRatings[] = []
   
   // Generate user servers (first half, newest first)
+  // Use deterministic values instead of Math.random() to prevent hydration mismatches
   const userCount = Math.ceil(count / 2)
   for (let i = 0; i < userCount; i++) {
     const nameIndex = i % serverNames.length
     const orgIndex = i % organizations.length
     const hasRatings = type === 'top' && i < 15
-    const avgRating = hasRatings ? 3.5 + (Math.random() * 1.5) : 0
-    const totalRatings = hasRatings ? Math.floor(Math.random() * 50) + 5 : 0
+    // Use deterministic pseudo-random values based on index to prevent hydration mismatch
+    const pseudoRandom1 = ((i * 17 + 23) % 100) / 100 // Deterministic "random" between 0-1
+    const pseudoRandom2 = ((i * 31 + 47) % 100) / 100
+    const avgRating = hasRatings ? 3.5 + (pseudoRandom1 * 1.5) : 0
+    const totalRatings = hasRatings ? Math.floor(pseudoRandom2 * 50) + 5 : 0
     
     servers.push({
       id: `dummy-${type}-user-${i}`,
@@ -138,8 +142,12 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
     const nameIndex = (userCount + i) % serverNames.length
     const orgIndex = (userCount + i) % organizations.length
     const hasRatings = type === 'top' && (userCount + i) < 15
-    const avgRating = hasRatings ? 3.5 + (Math.random() * 1.5) : 0
-    const totalRatings = hasRatings ? Math.floor(Math.random() * 50) + 5 : 0
+    // Use deterministic pseudo-random values based on index to prevent hydration mismatch
+    const index = userCount + i
+    const pseudoRandom1 = ((index * 17 + 23) % 100) / 100 // Deterministic "random" between 0-1
+    const pseudoRandom2 = ((index * 31 + 47) % 100) / 100
+    const avgRating = hasRatings ? 3.5 + (pseudoRandom1 * 1.5) : 0
+    const totalRatings = hasRatings ? Math.floor(pseudoRandom2 * 50) + 5 : 0
     
     servers.push({
       id: `dummy-${type}-official-${i}`,
