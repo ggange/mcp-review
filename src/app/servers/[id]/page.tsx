@@ -457,6 +457,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                       height={80}
                       className="h-full w-full object-cover"
                       priority
+                      unoptimized
                     />
                   </div>
                 ) : (

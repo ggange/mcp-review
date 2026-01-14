@@ -53,9 +53,9 @@ export async function uploadToR2(
 /**
  * Get an object from R2 storage
  * @param key - Object key (path) in the bucket
- * @returns Object with Body stream and ContentType
+ * @returns Object with Body stream (Node.js Readable) and ContentType
  */
-export async function getFromR2(key: string): Promise<{ Body: ReadableStream<Uint8Array> | undefined; ContentType?: string }> {
+export async function getFromR2(key: string): Promise<{ Body: NodeJS.ReadableStream | ReadableStream<Uint8Array> | undefined; ContentType?: string }> {
   if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
     throw new Error('R2 credentials are not configured')
   }
@@ -68,8 +68,9 @@ export async function getFromR2(key: string): Promise<{ Body: ReadableStream<Uin
 
     const response = await r2Client.send(command)
     
+    // AWS SDK v3 returns Body as a Node.js Readable stream
     return {
-      Body: response.Body as ReadableStream<Uint8Array> | undefined,
+      Body: response.Body as NodeJS.ReadableStream | ReadableStream<Uint8Array> | undefined,
       ContentType: response.ContentType,
     }
   } catch (error) {
