@@ -9,16 +9,38 @@ interface RouteParams {
 // No need for revalidate export in API routes
 
 /**
- * Helper function to convert ReadableStream to Buffer
+ * Helper function to convert Node.js Readable stream or Web ReadableStream to Buffer
  */
-async function streamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
-  const reader = stream.getReader()
+async function streamToBuffer(stream: NodeJS.ReadableStream | ReadableStream<Uint8Array> | undefined): Promise<Buffer> {
+  if (!stream) {
+    throw new Error('Stream is undefined')
+  }
+  
+  // Handle Node.js Readable stream (from AWS SDK v3)
+  // Check if it's a Node.js stream by checking for 'on' method
+  if ('on' in stream && typeof stream.on === 'function') {
+    return new Promise((resolve, reject) => {
+      const nodeStream = stream as NodeJS.ReadableStream
+      const chunks: Buffer[] = []
+      nodeStream.on('data', (chunk: Buffer) => chunks.push(chunk))
+      nodeStream.on('end', () => resolve(Buffer.concat(chunks)))
+      nodeStream.on('error', reject)
+    })
+  }
+  
+  // Handle Web ReadableStream
+  const webStream = stream as ReadableStream<Uint8Array>
+  const reader = webStream.getReader()
   const chunks: Uint8Array[] = []
   
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) chunks.push(value)
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value) chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
   }
   
   // Combine all chunks into a single buffer
@@ -54,10 +76,21 @@ async function getIconBuffer(key: string): Promise<{ buffer: Buffer | null; cont
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { key } = await params
-    const decodedKey = decodeURIComponent(key)
+    
+    // Next.js may already decode the parameter, but we need to handle both cases
+    // Try decoding, but if it fails or produces invalid characters, use as-is
+    let decodedKey: string
+    try {
+      // If key contains encoded characters, decode them
+      decodedKey = decodeURIComponent(key)
+    } catch {
+      // If decoding fails, use the key as-is (might already be decoded)
+      decodedKey = key
+    }
 
     // Security: Only allow keys that start with 'icons/' and prevent path traversal
     if (!decodedKey.startsWith('icons/') || decodedKey.includes('..')) {
+      console.error(`Invalid icon key: ${decodedKey} (original: ${key})`)
       return NextResponse.json(
         { error: 'Invalid icon key' },
         { status: 400 }
@@ -75,6 +108,10 @@ export async function GET(request: Request, { params }: RouteParams) {
       buffer = result.buffer
       contentType = result.contentType
     } catch (error) {
+      // Log the error for debugging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`Failed to fetch icon from R2 (key: ${decodedKey}):`, errorMessage)
+      
       // If R2 fetch fails, check if it's a credentials error
       if (error instanceof Error && error.message.includes('R2 credentials')) {
         return NextResponse.json(
