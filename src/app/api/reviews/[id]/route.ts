@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { reviewUpdateSchema, reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { deleteCache, getCacheKey } from '@/lib/cache'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -28,7 +29,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     // Rate limiting (reuse ratings limit for review mutations)
     const rateLimitKey = getRateLimitKey(session.user.id, 'ratings')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.ratings.limit,
       RATE_LIMITS.ratings.windowMs
@@ -127,6 +128,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       },
     })
 
+    // Invalidate user caches
+    await Promise.all([
+      deleteCache(getCacheKey('dashboard', rating.userId)),
+      deleteCache(getCacheKey('user', rating.userId)),
+      deleteCache(getCacheKey('user', rating.userId, 'ratings')),
+    ])
+
     return NextResponse.json({ data: { success: true } })
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
@@ -158,7 +166,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     // Rate limiting (reuse ratings limit for review mutations)
     const rateLimitKey = getRateLimitKey(session.user.id, 'ratings')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.ratings.limit,
       RATE_LIMITS.ratings.windowMs
@@ -299,6 +307,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         recentRatingsCount: number
       },
     })
+
+    // Invalidate user caches
+    await Promise.all([
+      deleteCache(getCacheKey('dashboard', rating.userId)),
+      deleteCache(getCacheKey('user', rating.userId)),
+      deleteCache(getCacheKey('user', rating.userId, 'ratings')),
+    ])
 
     return NextResponse.json({ data: updatedRating })
   } catch (error) {

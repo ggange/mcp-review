@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Rate limiting
     const rateLimitKey = getRateLimitKey(session.user.id, 'votes')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.votes.limit,
       RATE_LIMITS.votes.windowMs

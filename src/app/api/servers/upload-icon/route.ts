@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
     // Rate limiting
     const rateLimitKey = getRateLimitKey(session.user.id, 'iconUpload')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.iconUpload.limit,
       RATE_LIMITS.iconUpload.windowMs

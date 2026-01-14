@@ -7,13 +7,15 @@ import { Prisma } from '@prisma/client'
 import { checkRateLimit, getRateLimitKey, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { queryServers, type SortOption } from '@/lib/server-queries'
+import { setPublicCacheHeaders } from '@/lib/cdn-cache'
+import { deleteCache, getCacheKey } from '@/lib/cache'
 
 export async function GET(request: Request) {
   try {
     // Rate limiting for read endpoints to prevent DoS
     const clientIp = getClientIp(request)
     const rateLimitKey = getIpRateLimitKey(clientIp, 'serverList')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.serverList.limit,
       RATE_LIMITS.serverList.windowMs
@@ -50,12 +52,15 @@ export async function GET(request: Request) {
       limit: 20,
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: result.servers,
       total: result.total,
       page: result.page,
       totalPages: result.totalPages,
     })
+    
+    // Add CDN caching headers for public API responses
+    return setPublicCacheHeaders(response, 60)
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('API error:', error instanceof Error ? error.message : 'Unknown error')
@@ -86,7 +91,7 @@ export async function POST(request: Request) {
 
     // Rate limiting
     const rateLimitKey = getRateLimitKey(session.user.id, 'serverUpload')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.serverUpload.limit,
       RATE_LIMITS.serverUpload.windowMs
@@ -145,6 +150,7 @@ export async function POST(request: Request) {
             Authorization: `token ${githubAccount.access_token}`,
             Accept: 'application/vnd.github.v3+json',
           },
+          next: { revalidate: 300 }, // Cache GitHub API responses for 5 minutes
         })
 
         if (response.ok) {
@@ -199,6 +205,13 @@ export async function POST(request: Request) {
         completeToolsUrl: completeToolsUrl || null,
       },
     })
+
+    // Invalidate user dashboard and profile cache
+    await Promise.all([
+      deleteCache(getCacheKey('dashboard', session.user.id)),
+      deleteCache(getCacheKey('user', session.user.id)),
+      deleteCache(getCacheKey('user', session.user.id, 'servers')),
+    ])
 
     return NextResponse.json({ data: server }, { status: 201 })
   } catch (error) {

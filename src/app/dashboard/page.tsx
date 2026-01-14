@@ -9,6 +9,8 @@ import { UploadServerDialog } from '@/components/server/upload-server-dialog'
 import { ServerCardWithActions } from '@/components/server/server-card-with-actions'
 import { UploadOfficialServerDialog } from '@/components/server/upload-official-server-dialog'
 import { GitHubProfileLink } from '@/components/github-profile-link'
+import { getCache, setCache, getCacheKey } from '@/lib/cache'
+import type { ServerWithRatings } from '@/types'
 
 export const metadata: Metadata = {
   title: 'Dashboard - MCP Review',
@@ -26,79 +28,195 @@ export default async function DashboardPage() {
     redirect('/auth/signin')
   }
 
-  // Parallelize all database queries for better performance
-  const [user, githubAccount, ratings, userServersRaw] = await Promise.all([
-    // Fetch user data including createdAt and role
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        createdAt: true,
-        role: true,
-      },
-    }),
-    // Fetch GitHub account to get access token and providerAccountId for profile link
-    prisma.account.findFirst({
-      where: {
-        userId: session.user.id,
-        provider: 'github',
-      },
-      select: {
-        providerAccountId: true,
-        access_token: true,
-      },
-    }),
-    // Fetch ratings
-    prisma.rating.findMany({
-      where: { userId: session.user.id },
-      include: {
-        server: {
-          select: {
-            id: true,
-            name: true,
-            organization: true,
+  // Try to get cached dashboard data
+  const dashboardCacheKey = getCacheKey('dashboard', session.user.id)
+  const cachedData = await getCache<{
+    user: { createdAt: Date; role: string } | null
+    githubAccount: { providerAccountId: string; access_token: string | null } | null
+    ratings: Array<{
+      id: string
+      trustworthiness: number
+      usefulness: number
+      text: string | null
+      updatedAt: Date
+      server: { id: string; name: string; organization: string | null }
+    }>
+    userServersRaw: Array<{
+      id: string
+      name: string
+      organization: string | null
+      source: string
+      tools: unknown
+      [key: string]: unknown
+    }>
+  }>(dashboardCacheKey)
+
+  let user: { createdAt: Date; role: string } | null
+  let githubAccount: { providerAccountId: string; access_token: string | null } | null
+  let ratings: Array<{
+    id: string
+    trustworthiness: number
+    usefulness: number
+    text: string | null
+    updatedAt: Date
+    server: { id: string; name: string; organization: string | null }
+  }>
+  let userServersRaw: Array<{
+    id: string
+    name: string
+    organization: string | null
+    source: string
+    tools: unknown
+    [key: string]: unknown
+  }>
+
+  if (!cachedData) {
+    // Parallelize all database queries for better performance
+    const [fetchedUser, fetchedGithubAccount, fetchedRatings, fetchedUserServersRaw] = await Promise.all([
+      // Fetch user data including createdAt and role
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          createdAt: true,
+          role: true,
+        },
+      }),
+      // Fetch GitHub account to get access token and providerAccountId for profile link
+      prisma.account.findFirst({
+        where: {
+          userId: session.user.id,
+          provider: 'github',
+        },
+        select: {
+          providerAccountId: true,
+          access_token: true,
+        },
+      }),
+      // Fetch ratings
+      prisma.rating.findMany({
+        where: { userId: session.user.id },
+        include: {
+          server: {
+            select: {
+              id: true,
+              name: true,
+              organization: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    }),
-    // Fetch user's own servers
-    prisma.server.findMany({
-      where: {
-        userId: session.user.id,
-        source: 'user',
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    }),
-  ])
+        orderBy: { updatedAt: 'desc' },
+      }),
+      // Fetch user's own servers
+      prisma.server.findMany({
+        where: {
+          userId: session.user.id,
+          source: 'user',
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+    ])
+
+    user = fetchedUser
+    githubAccount = fetchedGithubAccount
+    ratings = fetchedRatings
+    userServersRaw = fetchedUserServersRaw as typeof userServersRaw
+
+    // Cache dashboard data for 2 minutes (user-specific, changes frequently)
+    await setCache(dashboardCacheKey, {
+      user,
+      githubAccount,
+      ratings,
+      userServersRaw,
+    }, 120)
+  } else {
+    user = cachedData.user
+    githubAccount = cachedData.githubAccount
+    ratings = cachedData.ratings
+    userServersRaw = cachedData.userServersRaw
+  }
 
   // Check if user is admin
   const userIsAdmin = user?.role === 'admin'
 
   // Cast source field to the expected union type
-  const userServers = userServersRaw.map(server => ({
-    ...server,
-    source: server.source as 'registry' | 'user' | 'official',
-    tools: server.tools as Array<{ name: string; description: string }> | null,
-  }))
+  const userServers: ServerWithRatings[] = userServersRaw.map((server) => {
+    const mapped: ServerWithRatings = {
+      id: String(server.id),
+      name: String(server.name),
+      organization: server.organization as string | null,
+      description: server.description as string | null,
+      version: server.version as string | null,
+      repositoryUrl: server.repositoryUrl as string | null,
+      packages: server.packages,
+      remotes: server.remotes,
+      avgTrustworthiness: Number(server.avgTrustworthiness),
+      avgUsefulness: Number(server.avgUsefulness),
+      totalRatings: Number(server.totalRatings),
+      category: server.category as string | null,
+      createdAt: server.createdAt instanceof Date ? server.createdAt : new Date(server.createdAt as string),
+      syncedAt: server.syncedAt instanceof Date ? server.syncedAt : new Date(server.syncedAt as string),
+      source: server.source as 'registry' | 'user' | 'official',
+      iconUrl: server.iconUrl as string | null,
+      tools: server.tools as Array<{ name: string; description: string }> | null,
+      usageTips: server.usageTips as string | null,
+      userId: server.userId as string | null,
+      authorUsername: server.authorUsername as string | null,
+      hasManyTools: Boolean(server.hasManyTools),
+      completeToolsUrl: server.completeToolsUrl as string | null,
+    }
+    return mapped
+  })
 
-  // Fetch official servers (admin only)
-  const officialServersRaw = userIsAdmin
-    ? await prisma.server.findMany({
+  // Fetch official servers (admin only) - cache separately
+  let officialServersRaw: typeof userServersRaw = []
+  if (userIsAdmin) {
+    const officialServersCacheKey = getCacheKey('dashboard', 'official')
+    const cachedOfficialServers = await getCache<typeof userServersRaw>(officialServersCacheKey)
+    
+    if (cachedOfficialServers) {
+      officialServersRaw = cachedOfficialServers
+    } else {
+      officialServersRaw = await prisma.server.findMany({
         where: {
           source: 'official',
         },
         orderBy: { createdAt: 'desc' },
         take: 20,
       })
-    : []
+      // Cache official servers for 5 minutes
+      await setCache(officialServersCacheKey, officialServersRaw, 300)
+    }
+  }
   
   // Cast source field to the expected union type
-  const officialServers = officialServersRaw.map(server => ({
-    ...server,
-    source: server.source as 'registry' | 'user' | 'official',
-    tools: server.tools as Array<{ name: string; description: string }> | null,
-  }))
+  const officialServers: ServerWithRatings[] = officialServersRaw.map((server) => {
+    const mapped: ServerWithRatings = {
+      id: String(server.id),
+      name: String(server.name),
+      organization: server.organization as string | null,
+      description: server.description as string | null,
+      version: server.version as string | null,
+      repositoryUrl: server.repositoryUrl as string | null,
+      packages: server.packages,
+      remotes: server.remotes,
+      avgTrustworthiness: Number(server.avgTrustworthiness),
+      avgUsefulness: Number(server.avgUsefulness),
+      totalRatings: Number(server.totalRatings),
+      category: server.category as string | null,
+      createdAt: server.createdAt instanceof Date ? server.createdAt : new Date(server.createdAt as string),
+      syncedAt: server.syncedAt instanceof Date ? server.syncedAt : new Date(server.syncedAt as string),
+      source: server.source as 'registry' | 'user' | 'official',
+      iconUrl: server.iconUrl as string | null,
+      tools: server.tools as Array<{ name: string; description: string }> | null,
+      usageTips: server.usageTips as string | null,
+      userId: server.userId as string | null,
+      authorUsername: server.authorUsername as string | null,
+      hasManyTools: Boolean(server.hasManyTools),
+      completeToolsUrl: server.completeToolsUrl as string | null,
+    }
+    return mapped
+  })
 
   // GitHub profile URL will be fetched client-side to avoid blocking page render
 
