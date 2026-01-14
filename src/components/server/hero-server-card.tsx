@@ -1,10 +1,9 @@
 "use client"
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { getAvatarColor } from '@/lib/utils'
+import { ServerIcon } from '@/components/server/server-icon'
 import type { ServerWithRatings } from '@/types'
 
 interface HeroServerCardProps {
@@ -24,8 +23,6 @@ function StarIcon({ className }: { className?: string }) {
 }
 
 export function HeroServerCard({ server }: HeroServerCardProps) {
-  const initial = server.name.charAt(0).toUpperCase()
-  const avatarColor = getAvatarColor(server.name)
   const hasRatings = server.totalRatings > 0
   const avgRating = hasRatings ? (server.avgTrustworthiness + server.avgUsefulness) / 2 : 0
 
@@ -39,22 +36,7 @@ export function HeroServerCard({ server }: HeroServerCardProps) {
       className="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-muted/50"
     >
       {/* Icon */}
-      {server.iconUrl ? (
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border/50">
-          <Image
-            src={server.iconUrl}
-            alt={server.name}
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-            unoptimized
-          />
-        </div>
-      ) : (
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor}`}>
-          <span className="text-sm font-bold text-white">{initial}</span>
-        </div>
-      )}
+      <ServerIcon iconUrl={server.iconUrl} name={server.name} size={36} className="border-border/50" />
 
       {/* Content */}
       <div className="min-w-0 flex-1">
