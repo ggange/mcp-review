@@ -8,6 +8,8 @@ import { deleteFromR2 } from '@/lib/r2-storage'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { isAdmin } from '@/lib/admin'
 import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
+import { setPublicCacheHeaders, setPrivateCacheHeaders } from '@/lib/cdn-cache'
+import { deleteCache, getCacheKey } from '@/lib/cache'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -18,7 +20,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Rate limiting for read endpoints to prevent DoS
     const clientIp = getClientIp(request)
     const rateLimitKey = getIpRateLimitKey(clientIp, 'serverDetail')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.read.limit,
       RATE_LIMITS.read.windowMs
@@ -107,12 +109,19 @@ export async function GET(request: Request, { params }: RouteParams) {
       }
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: {
         ...server,
         ratings: ratingsWithVotes,
       },
     })
+    
+    // Conditional caching: public if no session, private if authenticated (user-specific vote data)
+    if (session?.user?.id) {
+      return setPrivateCacheHeaders(response)
+    } else {
+      return setPublicCacheHeaders(response, 60)
+    }
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('API error:', error instanceof Error ? error.message : 'Unknown error')
@@ -219,6 +228,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
 
+    // Get server before update to check userId
+    const existingServer = await prisma.server.findUnique({
+      where: { id: decodedId },
+      select: { userId: true },
+    })
+
     // Update server
     const updatedServer = await prisma.server.update({
       where: { id: decodedId },
@@ -238,6 +253,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         completeToolsUrl: completeToolsUrl ?? null,
       } as Prisma.ServerUpdateInput,
     })
+
+    // Invalidate caches
+    const invalidationPromises = [
+      deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
+    ]
+    if (existingServer?.userId) {
+      invalidationPromises.push(
+        deleteCache(getCacheKey('dashboard', existingServer.userId)),
+        deleteCache(getCacheKey('user', existingServer.userId)),
+        deleteCache(getCacheKey('user', existingServer.userId, 'servers'))
+      )
+    }
+    await Promise.all(invalidationPromises)
 
     return NextResponse.json({ data: updatedServer }, { status: 200 })
   } catch (error) {
@@ -329,10 +357,29 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       }
     }
 
+    // Get server before deletion to check userId for cache invalidation
+    const serverToDelete = await prisma.server.findUnique({
+      where: { id: decodedId },
+      select: { userId: true },
+    })
+
     // Delete server (cascade will delete ratings)
     await prisma.server.delete({
       where: { id: decodedId },
     })
+
+    // Invalidate caches
+    const invalidationPromises = [
+      deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
+    ]
+    if (serverToDelete?.userId) {
+      invalidationPromises.push(
+        deleteCache(getCacheKey('dashboard', serverToDelete.userId)),
+        deleteCache(getCacheKey('user', serverToDelete.userId)),
+        deleteCache(getCacheKey('user', serverToDelete.userId, 'servers'))
+      )
+    }
+    await Promise.all(invalidationPromises)
 
     return NextResponse.json({ message: 'Server deleted successfully' }, { status: 200 })
   } catch (error) {

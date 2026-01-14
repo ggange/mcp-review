@@ -37,6 +37,10 @@ if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
   process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`
 }
 
+// Note: Currently using PrismaAdapter for all data (users, accounts, sessions)
+// To migrate sessions to Redis while keeping users/accounts in PostgreSQL,
+// a custom hybrid adapter would be needed for NextAuth v5.
+// This is a future optimization - PrismaAdapter works fine for now.
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: providers.length > 0 ? PrismaAdapter(prisma) : undefined,
   providers,

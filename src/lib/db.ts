@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// In Prisma 7, PrismaClient requires an adapter for direct connections
+// Prisma 6: PrismaClient reads connection string from DATABASE_URL env var (defined in schema.prisma)
 function createPrismaClient() {
   const url = process.env.DATABASE_URL
   if (!url) {
@@ -16,10 +14,7 @@ function createPrismaClient() {
     )
   }
 
-  const pool = new Pool({ connectionString: url })
-  const adapter = new PrismaPg(pool)
-
-  return new PrismaClient({ adapter })
+  return new PrismaClient()
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()

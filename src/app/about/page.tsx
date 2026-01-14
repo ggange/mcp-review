@@ -41,7 +41,7 @@ export default function AboutPage() {
     '@type': 'Organization',
     name: 'MCP Review',
     alternateName: 'MCP Review Community',
-    description: 'An open-source, community-driven platform where developers can discover, rate, and review Model Context Protocol (MCP) servers. Free, transparent, and MIT licensed.',
+    description: 'An open-source, community-driven platform where developers can discover, rate, and review Model Context Protocol (MCP) servers. Free to use, transparent, and MIT licensed.',
     url: baseUrl,
     logo: `${baseUrl}/icon.svg`,
     founder: {

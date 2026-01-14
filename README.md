@@ -79,6 +79,11 @@
    R2_ACCESS_KEY_ID="your-r2-access-key-id"
    R2_SECRET_ACCESS_KEY="your-r2-secret-access-key"
    R2_BUCKET_NAME="mcp-server-icons"
+   
+   # Redis (Optional - for production rate limiting and caching)
+   # For local development: REDIS_URL="redis://localhost:6379"
+   # For Vercel: Install Redis from Vercel Marketplace (REDIS_URL auto-added)
+   REDIS_URL="redis://localhost:6379"
    ```
 
 4. **Set up the database**
@@ -108,6 +113,26 @@ The app will automatically sync servers from the MCP Registry on first load if t
 - **Recommended**: Sign up at [Neon](https://neon.tech) (free tier available)
 - Create a new project and copy the connection string
 - Paste it into your `.env` file as `DATABASE_URL`
+
+#### Redis Setup (Optional but Recommended for Production)
+
+Redis is used for:
+- **Distributed Rate Limiting**: Works across multiple server instances
+- **Session Storage**: Faster session lookups (optional - can use PostgreSQL)
+- **Server-Side Caching**: User-specific data caching
+
+**For Vercel Deployment:**
+1. Go to Vercel Dashboard → Your Project → Integrations
+2. Browse Marketplace and install Redis (e.g., Upstash Redis)
+3. The `REDIS_URL` environment variable will be automatically added
+4. Redeploy your application
+
+**For Local Development:**
+- Install Redis locally: `brew install redis` (macOS) or use Docker
+- Start Redis: `redis-server` (or `brew services start redis`)
+- Set `REDIS_URL="redis://localhost:6379"` in your `.env` file
+
+**Note**: The app will work without Redis, but rate limiting will use in-memory storage (not suitable for production with multiple instances).
 
 #### OAuth Setup (Optional)
 You can run the app without OAuth to browse servers. Authentication is only needed to rate servers.
@@ -363,6 +388,10 @@ Vercel will automatically detect Next.js and configure the build settings.
 - [ ] Configure database connection pooling
 - [ ] Set up cron job for automatic syncing (or use Vercel Cron)
 - [ ] Configure R2 storage for custom icons (optional)
+- [ ] **Set up Redis** (recommended for production):
+  - **Vercel**: Install Redis from [Vercel Marketplace](https://vercel.com/integrations) (e.g., Upstash Redis)
+  - The `REDIS_URL` environment variable will be automatically added
+  - Redis is used for distributed rate limiting and session storage
 
 ## 📚 Learn More
 
@@ -375,7 +404,7 @@ Vercel will automatically detect Next.js and configure the build settings.
 ## 🙏 Acknowledgments
 
 - Built with the [Next.js](https://nextjs.org) framework
-- Server data provided by the [MCP Registry](https://registry.modelcontextprotocol.io)
+- Server data provided by the [MCP Registry](https://registry.modelcontextprotocol.io) and users
 - UI components from [Radix UI](https://www.radix-ui.com/)
 - Icons from [Lucide](https://lucide.dev/)
 

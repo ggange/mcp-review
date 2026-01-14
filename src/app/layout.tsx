@@ -116,9 +116,6 @@ export const metadata: Metadata = {
     // google: 'your-google-verification-code',
     // yandex: 'your-yandex-verification-code',
   },
-  alternates: {
-    canonical: baseUrl,
-  },
   category: 'technology',
   other: {
     'theme-color': '#7c3aed', // violet-600

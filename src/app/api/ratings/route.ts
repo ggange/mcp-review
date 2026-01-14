@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { ratingSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { deleteCache, getCacheKey } from '@/lib/cache'
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
 
     // Rate limiting
     const rateLimitKey = getRateLimitKey(session.user.id, 'ratings')
-    const { allowed, resetIn } = checkRateLimit(
+    const { allowed, resetIn } = await checkRateLimit(
       rateLimitKey,
       RATE_LIMITS.ratings.limit,
       RATE_LIMITS.ratings.windowMs
@@ -154,6 +155,14 @@ export async function POST(request: Request) {
         recentRatingsCount: number
       },
     })
+
+    // Invalidate caches: user dashboard, user profile, and server detail (if cached)
+    await Promise.all([
+      deleteCache(getCacheKey('dashboard', session.user.id)),
+      deleteCache(getCacheKey('user', session.user.id)),
+      deleteCache(getCacheKey('user', session.user.id, 'ratings')),
+      // Note: Server detail cache is handled by CDN TTL, but we could invalidate Redis cache if we add it
+    ])
 
     return NextResponse.json({ data: rating })
   } catch (error) {

@@ -1,19 +1,21 @@
 /**
- * Simple in-memory rate limiter for API endpoints
+ * Redis-based rate limiter for API endpoints
  * 
- * Note: In production with multiple server instances, consider using
- * Redis or a similar distributed store for rate limiting.
+ * Uses Redis for distributed rate limiting across multiple server instances.
+ * Falls back to in-memory store if Redis is unavailable (development only).
  */
+
+import { getRedisClient, isRedisAvailable } from './redis'
 
 interface RateLimitRecord {
   count: number
   timestamp: number
 }
 
-// In-memory store for rate limit tracking
+// In-memory fallback store for rate limit tracking (development only)
 const rateLimitStore = new Map<string, RateLimitRecord>()
 
-// Clean up old entries periodically to prevent memory leaks
+// Clean up old entries periodically to prevent memory leaks (fallback only)
 const CLEANUP_INTERVAL = 60 * 1000 // 1 minute
 let lastCleanup = Date.now()
 
@@ -30,14 +32,78 @@ function cleanupExpiredEntries(windowMs: number): void {
 }
 
 /**
- * Check if a request is within rate limits
+ * Check rate limit using Redis (with in-memory fallback)
  * 
  * @param key - Unique identifier for the rate limit (e.g., `${userId}:${endpoint}`)
  * @param limit - Maximum number of requests allowed in the window
  * @param windowMs - Time window in milliseconds
  * @returns Object with allowed status and remaining requests
  */
-export function checkRateLimit(
+export async function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  // Try Redis first
+  try {
+    const redisAvailable = await isRedisAvailable()
+    if (redisAvailable) {
+      return await checkRateLimitRedis(key, limit, windowMs)
+    }
+  } catch (error) {
+    // Fall through to in-memory fallback
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Redis unavailable, using in-memory rate limiting fallback:', error instanceof Error ? error.message : 'Unknown error')
+    }
+  }
+
+  // Fallback to in-memory rate limiting
+  return checkRateLimitInMemory(key, limit, windowMs)
+}
+
+/**
+ * Check rate limit using Redis
+ */
+async function checkRateLimitRedis(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  const redis = getRedisClient()
+  const redisKey = `ratelimit:${key}`
+  const windowSeconds = Math.ceil(windowMs / 1000)
+
+  // Use Redis INCR to atomically increment the counter
+  const count = await redis.incr(redisKey)
+  
+  // Set expiration on first request (only if key was just created)
+  if (count === 1) {
+    await redis.expire(redisKey, windowSeconds)
+  }
+
+  // Get TTL to calculate reset time
+  const ttl = await redis.ttl(redisKey)
+  const resetIn = ttl > 0 ? ttl * 1000 : windowMs
+
+  if (count > limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetIn,
+    }
+  }
+
+  return {
+    allowed: true,
+    remaining: limit - count,
+    resetIn,
+  }
+}
+
+/**
+ * Check rate limit using in-memory store (fallback)
+ */
+function checkRateLimitInMemory(
   key: string,
   limit: number,
   windowMs: number

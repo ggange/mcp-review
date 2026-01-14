@@ -32,7 +32,7 @@ async function fetchRegistryPage(cursor?: string): Promise<MCPRegistryResponse> 
     headers: {
       'Accept': 'application/json',
     },
-    next: { revalidate: 0 }, // Don't cache during sync
+    next: { revalidate: 3600 }, // Cache registry responses for 1 hour at the edge
   })
 
   if (!response.ok) {

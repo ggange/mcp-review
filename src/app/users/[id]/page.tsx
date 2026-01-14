@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getAvatarColor } from '@/lib/utils'
 import { ServerCard } from '@/components/server/server-card'
 import type { ServerWithRatings } from '@/types'
+import { getCache, setCache, getCacheKey } from '@/lib/cache'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -72,32 +73,59 @@ export async function generateMetadata({ params }: UserProfilePageProps): Promis
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
   const { id } = await params
 
-  // Fetch user data
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      createdAt: true,
-    },
-  })
+  // Try to get cached user data
+  const cacheKey = getCacheKey('user', id)
+  let user = await getCache<{
+    id: string
+    name: string | null
+    image: string | null
+    createdAt: Date
+  }>(cacheKey)
 
   if (!user) {
-    notFound()
+    // Fetch user data from database
+    const dbUser = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        createdAt: true,
+      },
+    })
+
+    if (!dbUser) {
+      notFound()
+    }
+
+    user = dbUser
+    // Cache user data for 1 hour
+    await setCache(cacheKey, user, 3600)
   }
 
   // Fetch GitHub account to get providerAccountId for profile link
-  const githubAccount = await prisma.account.findFirst({
-    where: {
-      userId: user.id,
-      provider: 'github',
-    },
-    select: {
-      providerAccountId: true,
-      access_token: true,
-    },
-  })
+  const githubAccountCacheKey = getCacheKey('user', id, 'github')
+  let githubAccount = await getCache<{
+    providerAccountId: string
+    access_token: string | null
+  }>(githubAccountCacheKey)
+
+  if (!githubAccount) {
+    githubAccount = await prisma.account.findFirst({
+      where: {
+        userId: user.id,
+        provider: 'github',
+      },
+      select: {
+        providerAccountId: true,
+        access_token: true,
+      },
+    })
+    if (githubAccount) {
+      // Cache GitHub account for 1 hour
+      await setCache(githubAccountCacheKey, githubAccount, 3600)
+    }
+  }
 
   // Try to get GitHub username
   let githubProfileUrl: string | null = null
@@ -126,42 +154,97 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     }
   }
 
-  // Parallelize database queries for better performance
-  const [ratings, uploadedServersRaw] = await Promise.all([
-    // Fetch user's public ratings
-    prisma.rating.findMany({
-      where: {
-        userId: user.id,
-        status: 'approved',
-      },
-      include: {
-        server: {
-          select: {
-            id: true,
-            name: true,
-            organization: true,
+  // Try to get cached data, otherwise fetch from database
+  const ratingsCacheKey = getCacheKey('user', id, 'ratings')
+  const serversCacheKey = getCacheKey('user', id, 'servers')
+  
+  type RatingType = Awaited<ReturnType<typeof prisma.rating.findMany<{
+    where: { userId: string; status: 'approved' }
+    include: { server: { select: { id: true; name: true; organization: true } } }
+    orderBy: { updatedAt: 'desc' }
+  }>>>
+  
+  type ServerType = Awaited<ReturnType<typeof prisma.server.findMany<{
+    where: { userId: string; source: 'user' }
+    orderBy: { createdAt: 'desc' }
+    take: number
+  }>>>
+
+  const cachedRatings = await getCache<RatingType>(ratingsCacheKey)
+  const cachedServers = await getCache<ServerType>(serversCacheKey)
+  
+  let ratings: RatingType | null = cachedRatings
+  let uploadedServersRaw: ServerType | null = cachedServers
+
+  if (!ratings || !uploadedServersRaw) {
+    // Parallelize database queries for better performance
+    const [fetchedRatings, fetchedServers] = await Promise.all([
+      // Fetch user's public ratings
+      prisma.rating.findMany({
+        where: {
+          userId: user.id,
+          status: 'approved',
+        },
+        include: {
+          server: {
+            select: {
+              id: true,
+              name: true,
+              organization: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    }),
-    // Fetch user's uploaded servers
-    prisma.server.findMany({
-      where: {
-        userId: user.id,
-        source: 'user',
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    }),
-  ])
+        orderBy: { updatedAt: 'desc' },
+      }),
+      // Fetch user's uploaded servers
+      prisma.server.findMany({
+        where: {
+          userId: user.id,
+          source: 'user',
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+    ])
+
+    ratings = fetchedRatings
+    uploadedServersRaw = fetchedServers
+
+    // Cache for 5 minutes (user data changes more frequently than public data)
+    await Promise.all([
+      setCache(ratingsCacheKey, ratings, 300),
+      setCache(serversCacheKey, uploadedServersRaw, 300),
+    ])
+  }
 
   // Cast source field to the expected union type
-  const uploadedServers: ServerWithRatings[] = uploadedServersRaw.map(server => ({
-    ...server,
-    source: server.source as 'registry' | 'user' | 'official',
-    tools: server.tools as Array<{ name: string; description: string }> | null,
-  })) as unknown as ServerWithRatings[]
+  const uploadedServers: ServerWithRatings[] = (uploadedServersRaw ?? []).map((server) => {
+    const mapped: ServerWithRatings = {
+      id: server.id,
+      name: server.name,
+      organization: server.organization,
+      description: server.description,
+      version: server.version,
+      repositoryUrl: server.repositoryUrl,
+      packages: server.packages,
+      remotes: server.remotes,
+      avgTrustworthiness: server.avgTrustworthiness,
+      avgUsefulness: server.avgUsefulness,
+      totalRatings: server.totalRatings,
+      category: server.category,
+      createdAt: server.createdAt,
+      syncedAt: server.syncedAt,
+      source: server.source as 'registry' | 'user' | 'official',
+      iconUrl: server.iconUrl,
+      tools: server.tools as Array<{ name: string; description: string }> | null,
+      usageTips: server.usageTips,
+      userId: server.userId,
+      authorUsername: server.authorUsername,
+      hasManyTools: server.hasManyTools,
+      completeToolsUrl: server.completeToolsUrl,
+    }
+    return mapped
+  })
 
   // Format member since date
   const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {

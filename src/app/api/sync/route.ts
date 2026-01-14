@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   // Rate limiting to prevent abuse
   const clientIp = getClientIp(request)
   const rateLimitKey = getIpRateLimitKey(clientIp, 'sync')
-  const { allowed, resetIn } = checkRateLimit(
+  const { allowed, resetIn } = await checkRateLimit(
     rateLimitKey,
     RATE_LIMITS.sync.limit,
     RATE_LIMITS.sync.windowMs
