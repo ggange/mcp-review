@@ -1,13 +1,12 @@
 "use client"
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Github } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { RatingDisplay } from '@/components/rating/rating-display'
-import { getAvatarColor } from '@/lib/utils'
+import { ServerIcon } from '@/components/server/server-icon'
 import type { ServerWithRatings } from '@/types'
 
 interface ServerCardProps {
@@ -15,8 +14,6 @@ interface ServerCardProps {
 }
 
 export function ServerCard({ server }: ServerCardProps) {
-  const initial = server.name.charAt(0).toUpperCase()
-  const avatarColor = getAvatarColor(server.name)
   const isUserUploaded = server.source === 'user'
   const isOfficial = server.source === 'official'
   const toolsCount = server.tools && Array.isArray(server.tools) ? server.tools.length : 0
@@ -29,24 +26,7 @@ export function ServerCard({ server }: ServerCardProps) {
         <CardHeader className="pb-0 overflow-hidden">
           <div className="flex items-start gap-4 w-full min-w-0">
             {/* Icon or Avatar */}
-            {server.iconUrl ? (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border">
-                <Image
-                  src={server.iconUrl}
-                  alt={server.name}
-                  width={48}
-                  height={48}
-                  className="h-full w-full object-cover"
-                  unoptimized
-                />
-              </div>
-            ) : (
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor}`}
-              >
-                <span className="text-xl font-bold text-white">{initial}</span>
-              </div>
-            )}
+            <ServerIcon iconUrl={server.iconUrl} name={server.name} size={48} />
             
             <div className="min-w-0 flex-1 overflow-hidden">
               <h3 className="truncate text-lg font-semibold text-card-foreground group-hover:text-foreground">

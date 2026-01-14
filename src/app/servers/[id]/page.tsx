@@ -2,10 +2,8 @@ import { Suspense, cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
-import { getAvatarColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +13,7 @@ import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
 import { ServerActions } from '@/components/server/server-actions'
+import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
 
 interface ServerPageProps {
@@ -354,7 +353,6 @@ export default async function ServerPage({ params }: ServerPageProps) {
     notFound()
   }
 
-  const avatarColor = getAvatarColor(server.name)
   const avgRating = server.avgTrustworthiness && server.avgUsefulness
     ? (server.avgTrustworthiness + server.avgUsefulness) / 2
     : null
@@ -448,27 +446,13 @@ export default async function ServerPage({ params }: ServerPageProps) {
           <Card className="border-border bg-card">
             <CardContent className="pt-6">
               <div className="flex items-start gap-6">
-                {server.iconUrl ? (
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border">
-                    <Image
-                      src={server.iconUrl}
-                      alt={server.name}
-                      width={80}
-                      height={80}
-                      className="h-full w-full object-cover"
-                      priority
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${avatarColor}`}
-                  >
-                    <span className="text-3xl font-bold text-white">
-                      {server.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                <ServerIcon 
+                  iconUrl={server.iconUrl} 
+                  name={server.name} 
+                  size={80} 
+                  className="rounded-xl"
+                  priority
+                />
                 
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
