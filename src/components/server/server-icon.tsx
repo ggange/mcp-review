@@ -15,6 +15,7 @@ interface ServerIconProps {
 /**
  * Server icon component that handles image loading errors gracefully
  * Falls back to avatar when image fails to load to prevent hydration mismatches
+ * The onError callback only fires on the client side, so no hydration mismatch occurs
  */
 export function ServerIcon({ 
   iconUrl, 
@@ -27,8 +28,8 @@ export function ServerIcon({
   const initial = name.charAt(0).toUpperCase()
   const avatarColor = getAvatarColor(name)
 
-  // If no iconUrl or image error occurred, show avatar
-  if (!iconUrl || imageError) {
+  // If no iconUrl, always show avatar (consistent between server and client)
+  if (!iconUrl) {
     return (
       <div
         className={`flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor} ${className}`}
@@ -44,6 +45,25 @@ export function ServerIcon({
     )
   }
 
+  // If image error occurred, show avatar
+  if (imageError) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${avatarColor} ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <span 
+          className="font-bold text-white"
+          style={{ fontSize: size * 0.5 }}
+        >
+          {initial}
+        </span>
+      </div>
+    )
+  }
+
+  // Render image - this will be consistent on server and initial client render
+  // The onError callback only fires on the client after hydration, so no mismatch
   return (
     <div 
       className={`flex shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border ${className}`}
