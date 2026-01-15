@@ -71,12 +71,11 @@ model Server {
   remotes            Json?
 
   // Aggregated ratings
-  avgTrustworthiness Float    @default(0)
-  avgUsefulness      Float    @default(0)
+  avgRating          Float    @default(0)
   totalRatings       Int      @default(0)
   
   // Computed fields for efficient sorting
-  combinedScore      Float    @default(0) // (avgTrustworthiness + avgUsefulness) / 2
+  combinedScore      Float    @default(0) // Same as avgRating (kept for backward compatibility during migration)
   recentRatingsCount Int      @default(0) // Ratings in last 30 days (updated periodically)
 
   category           String?  // "database", "search", "code", "web", "ai", "data", "tools", "other"
@@ -98,15 +97,15 @@ model Server {
   @@index([organization])
   @@index([source])
   @@index([createdAt])
-  @@index([combinedScore]) // For top-rated sort
+  @@index([avgRating]) // For top-rated sort
+  @@index([combinedScore]) // For top-rated sort (kept for backward compatibility)
   @@index([recentRatingsCount]) // For trending sort
   @@index([source, category]) // For filtered queries
 }
 
 model Rating {
   id              String       @id @default(cuid())
-  trustworthiness Int          // 1-5
-  usefulness      Int          // 1-5
+  rating          Int          // 1-5
   text            String?      @db.Text // Optional review text
   status          String       @default("approved") // "approved", "flagged", "removed"
   helpfulCount    Int          @default(0)

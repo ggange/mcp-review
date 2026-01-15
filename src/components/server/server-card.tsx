@@ -88,8 +88,7 @@ export function ServerCard({ server }: ServerCardProps) {
 
           <div className="flex items-center justify-between mt-auto">
             <RatingDisplay
-              trustworthiness={server.avgTrustworthiness}
-              usefulness={server.avgUsefulness}
+              rating={server.avgRating}
               totalRatings={server.totalRatings}
               compact
             />

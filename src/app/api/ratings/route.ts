@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { serverId, trustworthiness, usefulness, text } = validationResult.data
+    const { serverId, rating: ratingValue, text } = validationResult.data
 
     // Check if server exists
     const server = await prisma.server.findUnique({
@@ -101,17 +101,15 @@ export async function POST(request: Request) {
       create: {
         serverId,
         userId: session.user.id,
-        trustworthiness,
-        usefulness,
+        rating: ratingValue,
         text: text || null,
         status: 'approved', // Auto-approve reviews
-      },
+      } as any, // Type assertion needed until Prisma client is regenerated
       update: {
-        trustworthiness,
-        usefulness,
+        rating: ratingValue,
         text: text || null,
         status: 'approved', // Re-approve on update
-      },
+      } as any, // Type assertion needed until Prisma client is regenerated
     })
 
     // Update server aggregates including combined score for efficient sorting
@@ -122,9 +120,8 @@ export async function POST(request: Request) {
       prisma.rating.aggregate({
         where: { serverId },
         _avg: {
-          trustworthiness: true,
-          usefulness: true,
-        },
+          rating: true,
+        } as any, // Type assertion needed until Prisma client is regenerated
         _count: true,
       }),
       prisma.rating.count({
@@ -135,21 +132,18 @@ export async function POST(request: Request) {
       }),
     ])
 
-    const avgTrust = aggregates._avg.trustworthiness || 0
-    const avgUse = aggregates._avg.usefulness || 0
-    const combinedScore = (avgTrust + avgUse) / 2
+    const avgRating = (aggregates._avg as any)?.rating || 0
+    const combinedScore = avgRating // Same as avgRating
 
     await prisma.server.update({
       where: { id: serverId },
       data: {
-        avgTrustworthiness: avgTrust,
-        avgUsefulness: avgUse,
+        avgRating,
         totalRatings: aggregates._count,
         combinedScore,
         recentRatingsCount: recentCount,
       } as {
-        avgTrustworthiness: number
-        avgUsefulness: number
+        avgRating: number
         totalRatings: number
         combinedScore: number
         recentRatingsCount: number

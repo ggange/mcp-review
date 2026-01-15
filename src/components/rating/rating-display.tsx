@@ -1,8 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface RatingDisplayProps {
-  trustworthiness: number
-  usefulness: number
+  rating: number
   totalRatings: number
   compact?: boolean
 }
@@ -38,7 +37,7 @@ function RatingStars({ rating }: { rating: number }) {
   )
 }
 
-export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compact }: RatingDisplayProps) {
+export function RatingDisplay({ rating, totalRatings, compact }: RatingDisplayProps) {
   if (totalRatings === 0) {
     return (
       <div className="text-sm text-muted-foreground/70">
@@ -48,28 +47,11 @@ export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compa
   }
 
   if (compact) {
-    const avgRating = (trustworthiness + usefulness) / 2
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2">
-            <RatingStars rating={avgRating} />
-            <span className="text-sm text-muted-foreground">({totalRatings})</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="bg-popover border-border">
-          <div className="space-y-1 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-popover-foreground">Trustworthiness:</span>
-              <span className="font-medium text-popover-foreground">{trustworthiness.toFixed(1)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-popover-foreground">Usefulness:</span>
-              <span className="font-medium text-popover-foreground">{usefulness.toFixed(1)}</span>
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
+      <div className="flex items-center gap-2">
+        <RatingStars rating={rating} />
+        <span className="text-sm text-muted-foreground">({totalRatings})</span>
+      </div>
     )
   }
 
@@ -79,37 +61,18 @@ export function RatingDisplay({ trustworthiness, usefulness, totalRatings, compa
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="text-sm text-muted-foreground cursor-help border-b border-dashed border-border">
-              Trustworthiness
+              Rating
             </span>
           </TooltipTrigger>
           <TooltipContent className="max-w-xs bg-popover border-border">
             <p className="text-sm text-popover-foreground">
-              Do you trust this server? Consider: Is it from a known org? Is the code open source? Does it request minimal permissions?
+              Overall rating based on community feedback
             </p>
           </TooltipContent>
         </Tooltip>
         <div className="flex items-center gap-2">
-          <RatingStars rating={trustworthiness} />
-          <span className="text-sm font-medium text-foreground">{trustworthiness.toFixed(1)}</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="text-sm text-muted-foreground cursor-help border-b border-dashed border-border">
-              Usefulness
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs bg-popover border-border">
-            <p className="text-sm text-popover-foreground">
-              How useful is this server? Consider: Does it solve your problem? Is it well documented? Does it work reliably?
-            </p>
-          </TooltipContent>
-        </Tooltip>
-        <div className="flex items-center gap-2">
-          <RatingStars rating={usefulness} />
-          <span className="text-sm font-medium text-foreground">{usefulness.toFixed(1)}</span>
+          <RatingStars rating={rating} />
+          <span className="text-sm font-medium text-foreground">{rating.toFixed(1)}</span>
         </div>
       </div>
       

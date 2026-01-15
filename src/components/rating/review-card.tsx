@@ -170,8 +170,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
           serverId={serverId}
           existingRating={{
             id: review.id,
-            trustworthiness: review.trustworthiness,
-            usefulness: review.usefulness,
+            rating: review.rating,
             text: review.text,
           }}
           onSuccess={handleEditSuccess}
@@ -235,17 +234,10 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Trustworthiness:</span>
-              <RatingStars rating={review.trustworthiness} />
-              <span className="font-medium text-card-foreground">{review.trustworthiness}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Usefulness:</span>
-              <RatingStars rating={review.usefulness} />
-              <span className="font-medium text-card-foreground">{review.usefulness}</span>
-            </div>
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Rating:</span>
+            <RatingStars rating={review.rating} />
+            <span className="font-medium text-card-foreground">{review.rating}</span>
           </div>
 
           {review.text && (

@@ -55,8 +55,7 @@ export default async function DashboardPage() {
   let githubAccount: { providerAccountId: string; access_token: string | null } | null
   let ratings: Array<{
     id: string
-    trustworthiness: number
-    usefulness: number
+    rating: number
     text: string | null
     updatedAt: Date
     server: { id: string; name: string; organization: string | null }
@@ -93,9 +92,13 @@ export default async function DashboardPage() {
         },
       }),
       // Fetch ratings
-      prisma.rating.findMany({
+      (prisma.rating.findMany({
         where: { userId: session.user.id },
-        include: {
+        select: {
+          id: true,
+          rating: true,
+          text: true,
+          updatedAt: true,
           server: {
             select: {
               id: true,
@@ -103,9 +106,19 @@ export default async function DashboardPage() {
               organization: true,
             },
           },
-        },
+        } as any, // Type assertion needed until Prisma client is regenerated
         orderBy: { updatedAt: 'desc' },
-      }),
+      }) as unknown) as Promise<Array<{
+        id: string
+        rating: number
+        text: string | null
+        updatedAt: Date
+        server: {
+          id: string
+          name: string
+          organization: string | null
+        }
+      }>>,
       // Fetch user's own servers
       prisma.server.findMany({
         where: {
@@ -119,7 +132,17 @@ export default async function DashboardPage() {
 
     user = fetchedUser
     githubAccount = fetchedGithubAccount
-    ratings = fetchedRatings
+    ratings = fetchedRatings as Array<{
+      id: string
+      rating: number
+      text: string | null
+      updatedAt: Date
+      server: {
+        id: string
+        name: string
+        organization: string | null
+      }
+    }>
     userServersRaw = fetchedUserServersRaw as typeof userServersRaw
 
     // Cache dashboard data for 2 minutes (user-specific, changes frequently)
@@ -132,7 +155,13 @@ export default async function DashboardPage() {
   } else {
     user = cachedData.user
     githubAccount = cachedData.githubAccount
-    ratings = cachedData.ratings
+    ratings = (cachedData.ratings as unknown) as Array<{
+      id: string
+      rating: number
+      text: string | null
+      updatedAt: Date
+      server: { id: string; name: string; organization: string | null }
+    }>
     userServersRaw = cachedData.userServersRaw
   }
 
@@ -150,8 +179,7 @@ export default async function DashboardPage() {
       repositoryUrl: server.repositoryUrl as string | null,
       packages: server.packages,
       remotes: server.remotes,
-      avgTrustworthiness: Number(server.avgTrustworthiness),
-      avgUsefulness: Number(server.avgUsefulness),
+      avgRating: Number(server.avgRating),
       totalRatings: Number(server.totalRatings),
       category: server.category as string | null,
       createdAt: server.createdAt instanceof Date ? server.createdAt : new Date(server.createdAt as string),
@@ -200,8 +228,7 @@ export default async function DashboardPage() {
       repositoryUrl: server.repositoryUrl as string | null,
       packages: server.packages,
       remotes: server.remotes,
-      avgTrustworthiness: Number(server.avgTrustworthiness),
-      avgUsefulness: Number(server.avgUsefulness),
+      avgRating: Number(server.avgRating),
       totalRatings: Number(server.totalRatings),
       category: server.category as string | null,
       createdAt: server.createdAt instanceof Date ? server.createdAt : new Date(server.createdAt as string),
@@ -409,15 +436,9 @@ export default async function DashboardPage() {
                   <CardContent>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Trustworthiness</span>
+                        <span className="text-muted-foreground">Rating</span>
                         <span className="font-medium text-card-foreground">
-                          {rating.trustworthiness}/5
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Usefulness</span>
-                        <span className="font-medium text-card-foreground">
-                          {rating.usefulness}/5
+                          {rating.rating}/5
                         </span>
                       </div>
                     </div>

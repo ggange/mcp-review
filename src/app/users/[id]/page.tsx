@@ -158,11 +158,17 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
   const ratingsCacheKey = getCacheKey('user', id, 'ratings')
   const serversCacheKey = getCacheKey('user', id, 'servers')
   
-  type RatingType = Awaited<ReturnType<typeof prisma.rating.findMany<{
-    where: { userId: string; status: 'approved' }
-    include: { server: { select: { id: true; name: true; organization: true } } }
-    orderBy: { updatedAt: 'desc' }
-  }>>>
+  type RatingType = Array<{
+    id: string
+    rating: number
+    text: string | null
+    updatedAt: Date
+    server: {
+      id: string
+      name: string
+      organization: string | null
+    }
+  }>
   
   type ServerType = Awaited<ReturnType<typeof prisma.server.findMany<{
     where: { userId: string; source: 'user' }
@@ -173,19 +179,23 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
   const cachedRatings = await getCache<RatingType>(ratingsCacheKey)
   const cachedServers = await getCache<ServerType>(serversCacheKey)
   
-  let ratings: RatingType | null = cachedRatings
+  let ratings: RatingType | null = cachedRatings ? (cachedRatings as unknown as RatingType) : null
   let uploadedServersRaw: ServerType | null = cachedServers
 
   if (!ratings || !uploadedServersRaw) {
     // Parallelize database queries for better performance
     const [fetchedRatings, fetchedServers] = await Promise.all([
       // Fetch user's public ratings
-      prisma.rating.findMany({
+      (prisma.rating.findMany({
         where: {
           userId: user.id,
           status: 'approved',
         },
-        include: {
+        select: {
+          id: true,
+          rating: true,
+          text: true,
+          updatedAt: true,
           server: {
             select: {
               id: true,
@@ -193,9 +203,19 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               organization: true,
             },
           },
-        },
+        } as any, // Type assertion needed until Prisma client is regenerated
         orderBy: { updatedAt: 'desc' },
-      }),
+      }) as unknown) as Promise<Array<{
+        id: string
+        rating: number
+        text: string | null
+        updatedAt: Date
+        server: {
+          id: string
+          name: string
+          organization: string | null
+        }
+      }>>,
       // Fetch user's uploaded servers
       prisma.server.findMany({
         where: {
@@ -207,7 +227,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       }),
     ])
 
-    ratings = fetchedRatings
+    ratings = fetchedRatings as RatingType
     uploadedServersRaw = fetchedServers
 
     // Cache for 5 minutes (user data changes more frequently than public data)
@@ -219,6 +239,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
   // Cast source field to the expected union type
   const uploadedServers: ServerWithRatings[] = (uploadedServersRaw ?? []).map((server) => {
+    const serverWithRating = server as typeof server & { avgRating: number; totalRatings: number }
     const mapped: ServerWithRatings = {
       id: server.id,
       name: server.name,
@@ -228,9 +249,8 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       repositoryUrl: server.repositoryUrl,
       packages: server.packages,
       remotes: server.remotes,
-      avgTrustworthiness: server.avgTrustworthiness,
-      avgUsefulness: server.avgUsefulness,
-      totalRatings: server.totalRatings,
+      avgRating: serverWithRating.avgRating,
+      totalRatings: serverWithRating.totalRatings,
       category: server.category,
       createdAt: server.createdAt,
       syncedAt: server.syncedAt,
@@ -280,7 +300,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                   </div>
                   <div>
                     <span className="text-muted-foreground">Total ratings: </span>
-                    <span className="font-medium text-card-foreground">{ratings.length}</span>
+                    <span className="font-medium text-card-foreground">{ratings?.length ?? 0}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Uploaded servers: </span>
@@ -349,7 +369,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
           </p>
         </div>
 
-      {ratings.length === 0 ? (
+      {!ratings || ratings.length === 0 ? (
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
             <div className="mb-4 inline-block rounded-full bg-muted p-4">
@@ -389,15 +409,9 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Trustworthiness</span>
+                      <span className="text-muted-foreground">Rating</span>
                       <span className="font-medium text-card-foreground">
-                        {rating.trustworthiness}/5
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Usefulness</span>
-                      <span className="font-medium text-card-foreground">
-                        {rating.usefulness}/5
+                        {rating.rating}/5
                       </span>
                     </div>
                   </div>
