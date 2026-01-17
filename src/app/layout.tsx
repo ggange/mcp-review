@@ -176,11 +176,11 @@ export default function RootLayout({
         )}
         <Script
           src="https://embeds.iubenda.com/widgets/cc413cc4-4888-4f97-ab49-7fedca8829ba.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           src="https://cdn.iubenda.com/iubenda.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <SpeedInsights />
       </body>

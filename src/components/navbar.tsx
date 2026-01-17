@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { auth, signOut } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { AvatarMenu } from '@/components/avatar-menu'
+import { Logo } from '@/components/logo'
 import { Github } from 'lucide-react'
 
 export async function Navbar() {
@@ -14,16 +14,7 @@ export async function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden shrink-0">
-              <Image 
-                src="/icon.svg" 
-                alt="MCP Review" 
-                width={32} 
-                height={32} 
-                className="h-full w-full object-contain"
-                priority
-              />
-            </div>
+            <Logo />
             <span className="text-xl font-semibold text-foreground">MCP Review</span>
           </Link>
           <ThemeSwitcher />

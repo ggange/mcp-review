@@ -11,6 +11,7 @@ import { UploadOfficialServerDialog } from '@/components/server/upload-official-
 import { GitHubProfileLink } from '@/components/github-profile-link'
 import { getCache, setCache, getCacheKey } from '@/lib/cache'
 import type { ServerWithRatings } from '@/types'
+import type { Prisma } from '@prisma/client'
 
 export const metadata: Metadata = {
   title: 'Dashboard - MCP Review',
@@ -106,7 +107,7 @@ export default async function DashboardPage() {
               organization: true,
             },
           },
-        } as any, // Type assertion needed until Prisma client is regenerated
+        } satisfies Prisma.RatingFindManyArgs['select'],
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string

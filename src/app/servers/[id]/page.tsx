@@ -13,6 +13,7 @@ import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
 import { ServerActions } from '@/components/server/server-actions'
+import type { Prisma } from '@prisma/client'
 import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
 
@@ -175,7 +176,7 @@ async function ServerReviews({
             take: 1,
           }
         : undefined,
-    } as any, // Type assertion needed until Prisma client is regenerated
+    } satisfies Prisma.RatingFindManyArgs['select'],
     orderBy: { createdAt: 'desc' },
     take: 12,
   })) as unknown) as Array<{

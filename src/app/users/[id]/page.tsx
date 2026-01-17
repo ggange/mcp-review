@@ -9,6 +9,7 @@ import { getAvatarColor } from '@/lib/utils'
 import { ServerCard } from '@/components/server/server-card'
 import type { ServerWithRatings } from '@/types'
 import { getCache, setCache, getCacheKey } from '@/lib/cache'
+import type { Prisma } from '@prisma/client'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -203,7 +204,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               organization: true,
             },
           },
-        } as any, // Type assertion needed until Prisma client is regenerated
+        } satisfies Prisma.RatingFindManyArgs['select'],
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string

@@ -93,25 +93,25 @@ export default function TermsPage() {
                 <h2 className="mb-4 text-2xl font-semibold">1. Definitions</h2>
                 <ul className="list-disc pl-6 space-y-2 text-base leading-7 text-muted-foreground">
                   <li>
-                    <strong>"Service"</strong> means the MCP Review website,
+                    <strong>&quot;Service&quot;</strong> means the MCP Review website,
                     applications, and related services.
                   </li>
                   <li>
-                    <strong>"Operator"</strong> means the MCP Review Community,
+                    <strong>&quot;Operator&quot;</strong> means the MCP Review Community,
                     including maintainers and contributors operating the Service.
                   </li>
                   <li>
-                    <strong>"User"</strong>, <strong>"you"</strong>, or{" "}
-                    <strong>"your"</strong> means any individual or entity
+                    <strong>&quot;User&quot;</strong>, <strong>&quot;you&quot;</strong>, or{" "}
+                    <strong>&quot;your&quot;</strong> means any individual or entity
                     accessing or using the Service.
                   </li>
                   <li>
-                    <strong>"User Content"</strong> means any content submitted,
+                    <strong>&quot;User Content&quot;</strong> means any content submitted,
                     posted, or displayed by Users, including reviews, ratings,
                     server listings, comments, and related metadata.
                   </li>
                   <li>
-                    <strong>"MCP Server"</strong> means a Model Context Protocol
+                    <strong>&quot;MCP Server&quot;</strong> means a Model Context Protocol
                     server listed on the Service.
                   </li>
                 </ul>
@@ -295,14 +295,14 @@ export default function TermsPage() {
 
                 <h3 className="mb-3 text-xl font-semibold">10.1 Service Availability</h3>
                 <p className="text-base leading-7 text-muted-foreground">
-                  The Service is provided "as is" and "as available." We do not
+                  The Service is provided &quot;as is&quot; and &quot;as available.&quot; We do not
                   warrant uninterrupted, secure, or error-free operation.
                 </p>
 
                 <h3 className="mb-3 text-xl font-semibold">10.2 Content Accuracy</h3>
                 <p className="text-base leading-7 text-muted-foreground">
                   We do not warrant the accuracy, completeness, or usefulness of
-                  information on the Service. User Content reflects Users'
+                  information on the Service. User Content reflects Users&apos;
                   opinions and does not represent our views.
                 </p>
 
@@ -414,7 +414,7 @@ export default function TermsPage() {
                 <h2 className="mb-4 text-2xl font-semibold">16. Changes to These Terms</h2>
                 <p className="text-base leading-7 text-muted-foreground">
                   We may update these Terms from time to time. If changes are
-                  material, we will try to provide at least 30 days' notice
+                  material, we will try to provide at least 30 days&apos; notice
                   before they take effect. Continued use of the Service after
                   updates become effective constitutes acceptance of the updated
                   Terms.

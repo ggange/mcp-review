@@ -5,6 +5,7 @@ import { ratingSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { deleteCache, getCacheKey } from '@/lib/cache'
+import type { Prisma } from '@prisma/client'
 
 export async function POST(request: Request) {
   try {
@@ -99,17 +100,21 @@ export async function POST(request: Request) {
         },
       },
       create: {
-        serverId,
-        userId: session.user.id,
+        server: {
+          connect: { id: serverId },
+        },
+        user: {
+          connect: { id: session.user.id },
+        },
         rating: ratingValue,
         text: text || null,
         status: 'approved', // Auto-approve reviews
-      } as any, // Type assertion needed until Prisma client is regenerated
+      } satisfies Prisma.RatingCreateInput,
       update: {
         rating: ratingValue,
         text: text || null,
         status: 'approved', // Re-approve on update
-      } as any, // Type assertion needed until Prisma client is regenerated
+      } satisfies Prisma.RatingUpdateInput,
     })
 
     // Update server aggregates including combined score for efficient sorting
@@ -121,7 +126,7 @@ export async function POST(request: Request) {
         where: { serverId },
         _avg: {
           rating: true,
-        } as any, // Type assertion needed until Prisma client is regenerated
+        },
         _count: true,
       }),
       prisma.rating.count({
@@ -132,7 +137,7 @@ export async function POST(request: Request) {
       }),
     ])
 
-    const avgRating = (aggregates._avg as any)?.rating || 0
+    const avgRating = aggregates._avg.rating ?? 0
     const combinedScore = avgRating // Same as avgRating
 
     await prisma.server.update({
