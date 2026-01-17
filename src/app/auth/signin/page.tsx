@@ -55,7 +55,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               )}
               
               <p className="text-center text-sm text-muted-foreground/70 mt-6">
-                By signing in, you agree to our terms of service
+                By signing in, you agree to our terms of service and privacy policy.
               </p>
             </>
           )}
