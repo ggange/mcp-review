@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
@@ -106,7 +107,7 @@ export default async function DashboardPage() {
               organization: true,
             },
           },
-        } as any, // Type assertion needed until Prisma client is regenerated
+        } as Prisma.RatingSelect,
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string

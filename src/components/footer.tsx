@@ -73,7 +73,8 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-6 border-t border-border/50 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} MCP Review Community. Built with ❤️ for the MCP ecosystem.
+            © {new Date().getFullYear()} MCP Review Community. 
+            <br/>Built with ❤️ for the MCP ecosystem.
           </p>
           <div className="flex items-center gap-4">
             <a 

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -203,7 +204,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               organization: true,
             },
           },
-        } as any, // Type assertion needed until Prisma client is regenerated
+        } as Prisma.RatingSelect,
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string

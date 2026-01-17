@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import type { Prisma } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -175,7 +176,7 @@ async function ServerReviews({
             take: 1,
           }
         : undefined,
-    } as any, // Type assertion needed until Prisma client is regenerated
+    } as Prisma.RatingSelect,
     orderBy: { createdAt: 'desc' },
     take: 12,
   })) as unknown) as Array<{
