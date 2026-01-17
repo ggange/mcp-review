@@ -91,7 +91,7 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
-  const avgRating = server.totalRatings > 0 ? server.avgRating.toFixed(1) : null
+  const avgRating = server.totalRatings > 0 && server.avgRating != null ? Number(server.avgRating).toFixed(1) : null
   const ratingText = avgRating ? `Rated ${avgRating}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'developer' : 'developers'}.` : 'Be the first to review!'
   const description = server.description 
     ? `${server.description.slice(0, 120)}${server.description.length > 120 ? '...' : ''} ${ratingText}`
@@ -223,8 +223,8 @@ async function ServerReviews({
                   status: rating.status,
                   helpfulCount: rating.helpfulCount,
                   notHelpfulCount: rating.notHelpfulCount,
-                  createdAt: rating.createdAt,
-                  updatedAt: rating.updatedAt,
+                  createdAt: rating.createdAt instanceof Date ? rating.createdAt.toISOString() : rating.createdAt,
+                  updatedAt: rating.updatedAt instanceof Date ? rating.updatedAt.toISOString() : rating.updatedAt,
                   userId: rating.userId,
                   user: {
                     name: rating.user.name,
@@ -375,7 +375,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
     notFound()
   }
 
-  const avgRating = server.totalRatings > 0 ? server.avgRating : null
+  const avgRating = server.totalRatings > 0 && server.avgRating != null ? server.avgRating : null
 
   const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
 
@@ -395,9 +395,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
     },
-    aggregateRating: server.totalRatings > 0 && avgRating ? {
+    aggregateRating: server.totalRatings > 0 && avgRating != null ? {
       '@type': 'AggregateRating',
-      ratingValue: avgRating.toFixed(1),
+      ratingValue: Number(avgRating).toFixed(1),
       ratingCount: server.totalRatings,
       bestRating: '5',
       worstRating: '1',
@@ -665,8 +665,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardHeader>
             <CardContent>
               <RatingDisplay
-                rating={server.avgRating}
-                totalRatings={server.totalRatings}
+                rating={server.avgRating ?? 0}
+                totalRatings={server.totalRatings ?? 0}
               />
             </CardContent>
           </Card>
