@@ -119,8 +119,7 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
       repositoryUrl: `https://github.com/${organizations[orgIndex]}/${serverNames[nameIndex].toLowerCase()}`,
       packages: null,
       remotes: null,
-      avgTrustworthiness: hasRatings ? avgRating : 0,
-      avgUsefulness: hasRatings ? avgRating : 0,
+      avgRating: hasRatings ? avgRating : 0,
       totalRatings,
       category: ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'][i % 8] as string,
       createdAt: new Date(baseDate.getTime() - i * 60000), // Newest first (decreasing time)
@@ -158,8 +157,7 @@ function generateDummyServers(count: number, type: 'hot' | 'top'): ServerWithRat
       repositoryUrl: `https://github.com/${organizations[orgIndex]}/${serverNames[nameIndex].toLowerCase()}`,
       packages: null,
       remotes: null,
-      avgTrustworthiness: hasRatings ? avgRating : 0,
-      avgUsefulness: hasRatings ? avgRating : 0,
+      avgRating: hasRatings ? avgRating : 0,
       totalRatings,
       category: ['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'][(userCount + i) % 8] as string,
       createdAt: new Date(baseDate.getTime() - (userCount + i) * 60000), // Newest first (decreasing time)

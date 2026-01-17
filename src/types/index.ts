@@ -50,8 +50,7 @@ export interface ServerWithRatings {
   repositoryUrl: string | null
   packages: unknown
   remotes: unknown
-  avgTrustworthiness: number
-  avgUsefulness: number
+  avgRating: number
   totalRatings: number
   category: string | null
   createdAt: Date
@@ -68,8 +67,7 @@ export interface ServerWithRatings {
 
 export interface RatingInput {
   serverId: string
-  trustworthiness: number
-  usefulness: number
+  rating: number
   text?: string
 }
 
@@ -79,8 +77,7 @@ export interface ReviewVoteInput {
 
 export interface ReviewWithVotes {
   id: string
-  trustworthiness: number
-  usefulness: number
+  rating: number
   text: string | null
   status: string
   helpfulCount: number

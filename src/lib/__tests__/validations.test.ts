@@ -285,8 +285,7 @@ describe('ratingSchema', () => {
   it('validates correct rating data', () => {
     const validData = {
       serverId: 'org/server',
-      trustworthiness: 5,
-      usefulness: 4,
+      rating: 5,
       text: 'Great server!',
     }
 
@@ -301,8 +300,7 @@ describe('ratingSchema', () => {
     invalidRatings.forEach(rating => {
       const result = ratingSchema.safeParse({
         serverId: 'org/server',
-        trustworthiness: rating,
-        usefulness: 5,
+        rating,
       })
       
       expect(result.success).toBe(false)
@@ -315,8 +313,7 @@ describe('ratingSchema', () => {
     validRatings.forEach(rating => {
       const result = ratingSchema.safeParse({
         serverId: 'org/server',
-        trustworthiness: rating,
-        usefulness: rating,
+        rating,
       })
       
       expect(result.success).toBe(true)
@@ -335,8 +332,7 @@ describe('ratingSchema', () => {
     invalidIds.forEach(serverId => {
       const result = ratingSchema.safeParse({
         serverId,
-        trustworthiness: 5,
-        usefulness: 5,
+        rating: 5,
       })
       
       expect(result.success).toBe(false)
@@ -353,8 +349,7 @@ describe('ratingSchema', () => {
     validIds.forEach(serverId => {
       const result = ratingSchema.safeParse({
         serverId,
-        trustworthiness: 5,
-        usefulness: 5,
+        rating: 5,
       })
       
       expect(result.success).toBe(true)
@@ -364,8 +359,7 @@ describe('ratingSchema', () => {
   it('sanitizes review text', () => {
     const result = ratingSchema.safeParse({
       serverId: 'org/server',
-      trustworthiness: 5,
-      usefulness: 5,
+      rating: 5,
       text: '  Review with\0null bytes  ',
     })
     
@@ -379,8 +373,7 @@ describe('ratingSchema', () => {
     const longText = 'a'.repeat(2001)
     const result = ratingSchema.safeParse({
       serverId: 'org/server',
-      trustworthiness: 5,
-      usefulness: 5,
+      rating: 5,
       text: longText,
     })
     
@@ -421,8 +414,7 @@ describe('reviewUpdateSchema', () => {
 
   it('validates update with ratings only', () => {
     const result = reviewUpdateSchema.safeParse({
-      trustworthiness: 4,
-      usefulness: 5,
+      rating: 4,
     })
     
     expect(result.success).toBe(true)
@@ -431,8 +423,7 @@ describe('reviewUpdateSchema', () => {
   it('validates update with all fields', () => {
     const result = reviewUpdateSchema.safeParse({
       text: 'Updated text',
-      trustworthiness: 4,
-      usefulness: 5,
+      rating: 4,
     })
     
     expect(result.success).toBe(true)
@@ -440,8 +431,7 @@ describe('reviewUpdateSchema', () => {
 
   it('validates rating bounds', () => {
     const result = reviewUpdateSchema.safeParse({
-      trustworthiness: 6, // invalid
-      usefulness: 5,
+      rating: 6, // invalid
     })
     
     expect(result.success).toBe(false)

@@ -140,6 +140,22 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://api.github.com" />
         {/* Preload critical resources */}
         <link rel="preload" href="/icon.svg" as="image" type="image/svg+xml" />
+        {/* iubenda Cookie Consent Configuration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              var _iub = _iub || [];
+              _iub.csConfiguration = {
+                banner: {
+                  acceptButtonDisplay: true,
+                  customizeButtonDisplay: true,
+                  rejectButtonDisplay: true,
+                  closeButtonDisplay: false,
+                },
+              };
+            `,
+          }}
+        />
       </head>
       <body
         className={`${montserrat.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
@@ -158,6 +174,14 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         )}
+        <Script
+          src="https://embeds.iubenda.com/widgets/cc413cc4-4888-4f97-ab49-7fedca8829ba.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="https://cdn.iubenda.com/iubenda.js"
+          strategy="lazyOnload"
+        />
         <SpeedInsights />
       </body>
     </html>

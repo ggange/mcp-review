@@ -105,11 +105,11 @@ export function buildWhereClause(options: ServerQueryOptions): ServerWhereInput 
   const minRating = options.minRating ?? 0
   if (minRating > 0 || options.maxRating !== undefined) {
     if (minRating > 0 && options.maxRating !== undefined) {
-      where.avgTrustworthiness = { gte: minRating, lte: options.maxRating }
+      where.avgRating = { gte: minRating, lte: options.maxRating }
     } else if (minRating > 0) {
-      where.avgTrustworthiness = { gte: minRating }
+      where.avgRating = { gte: minRating }
     } else if (options.maxRating !== undefined) {
-      where.avgTrustworthiness = { lte: options.maxRating }
+      where.avgRating = { lte: options.maxRating }
     }
   }
 
@@ -148,8 +148,7 @@ export const serverSelectFields = {
   repositoryUrl: true,
   packages: true,
   remotes: true,
-  avgTrustworthiness: true,
-  avgUsefulness: true,
+  avgRating: true,
   totalRatings: true,
   combinedScore: true,
   recentRatingsCount: true,

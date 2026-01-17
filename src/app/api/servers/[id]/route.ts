@@ -53,8 +53,7 @@ export async function GET(request: Request, { params }: RouteParams) {
           },
           select: {
             id: true,
-            trustworthiness: true,
-            usefulness: true,
+            rating: true,
             text: true,
             status: true,
             helpfulCount: true,

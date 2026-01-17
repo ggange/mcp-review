@@ -13,6 +13,7 @@ import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
 import { ServerActions } from '@/components/server/server-actions'
+import type { Prisma } from '@prisma/client'
 import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
 
@@ -44,8 +45,7 @@ const getServer = cache(async (decodedId: string) => {
       packages: true,
       remotes: true,
       usageTips: true,
-      avgTrustworthiness: true,
-      avgUsefulness: true,
+      avgRating: true,
       totalRatings: true,
       hasManyTools: true,
       completeToolsUrl: true,
@@ -66,8 +66,7 @@ const getServer = cache(async (decodedId: string) => {
     packages: Array<{ registryType?: string; identifier?: string }> | null
     remotes: Array<{ type?: string; url?: string }> | null
     usageTips: string | null
-    avgTrustworthiness: number
-    avgUsefulness: number
+    avgRating: number
     totalRatings: number
     hasManyTools: boolean
     completeToolsUrl: string | null
@@ -92,7 +91,7 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
-  const avgRating = server.totalRatings > 0 ? ((server.avgTrustworthiness + server.avgUsefulness) / 2).toFixed(1) : null
+  const avgRating = server.totalRatings > 0 ? server.avgRating.toFixed(1) : null
   const ratingText = avgRating ? `Rated ${avgRating}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'developer' : 'developers'}.` : 'Be the first to review!'
   const description = server.description 
     ? `${server.description.slice(0, 120)}${server.description.length > 120 ? '...' : ''} ${ratingText}`
@@ -152,12 +151,21 @@ async function ServerReviews({
   serverId: string
   currentUserId?: string
 }) {
-  const ratings = await prisma.rating.findMany({
+  const ratings = ((await prisma.rating.findMany({
     where: {
       serverId,
       status: 'approved',
     },
-    include: {
+    select: {
+      id: true,
+      rating: true,
+      text: true,
+      status: true,
+      helpfulCount: true,
+      notHelpfulCount: true,
+      createdAt: true,
+      updatedAt: true,
+      userId: true,
       user: {
         select: { name: true, image: true },
       },
@@ -167,11 +175,26 @@ async function ServerReviews({
             select: { helpful: true },
             take: 1,
           }
-        : false,
-    },
+        : undefined,
+    } satisfies Prisma.RatingFindManyArgs['select'],
     orderBy: { createdAt: 'desc' },
     take: 12,
-  })
+  })) as unknown) as Array<{
+    id: string
+    rating: number
+    text: string | null
+    status: string
+    helpfulCount: number
+    notHelpfulCount: number
+    createdAt: Date
+    updatedAt: Date
+    userId: string
+    user: {
+      name: string | null
+      image: string | null
+    }
+    reviewVotes?: Array<{ helpful: boolean }>
+  }>
 
   if (ratings.length === 0) {
     return null
@@ -195,8 +218,7 @@ async function ServerReviews({
                 key={rating.id}
                 review={{
                   id: rating.id,
-                  trustworthiness: rating.trustworthiness,
-                  usefulness: rating.usefulness,
+                  rating: rating.rating,
                   text: rating.text,
                   status: rating.status,
                   helpfulCount: rating.helpfulCount,
@@ -353,9 +375,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
     notFound()
   }
 
-  const avgRating = server.avgTrustworthiness && server.avgUsefulness
-    ? (server.avgTrustworthiness + server.avgUsefulness) / 2
-    : null
+  const avgRating = server.totalRatings > 0 ? server.avgRating : null
 
   const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
 
@@ -645,8 +665,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardHeader>
             <CardContent>
               <RatingDisplay
-                trustworthiness={server.avgTrustworthiness}
-                usefulness={server.avgUsefulness}
+                rating={server.avgRating}
                 totalRatings={server.totalRatings}
               />
             </CardContent>

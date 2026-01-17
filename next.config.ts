@@ -61,11 +61,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloud.umami.is",
-              "style-src 'self' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloud.umami.is https://embeds.iubenda.com https://cdn.iubenda.com https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline' https://www.iubenda.com",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev",
+              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev https://www.iubenda.com https://embeds.iubenda.com https://cdn.iubenda.com https://cpl.iubenda.com https://idb.iubenda.com https://va.vercel-scripts.com",
+              "frame-src 'self' https://www.iubenda.com",
               "frame-ancestors 'none'",
               // Additional security directives
               "object-src 'none'", // Prevent plugins (Flash, Java, etc.)

@@ -24,7 +24,7 @@ function StarIcon({ className }: { className?: string }) {
 
 export function HeroServerCard({ server }: HeroServerCardProps) {
   const hasRatings = server.totalRatings > 0
-  const avgRating = hasRatings ? (server.avgTrustworthiness + server.avgUsefulness) / 2 : 0
+  const avgRating = hasRatings ? server.avgRating : 0
 
   const authorDisplay = server.source === 'user' 
     ? (server.authorUsername ? `@${server.authorUsername}` : (server.organization || 'Unknown'))

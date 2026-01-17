@@ -11,8 +11,7 @@ interface RatingFormProps {
   serverId: string
   existingRating?: {
     id?: string
-    trustworthiness: number
-    usefulness: number
+    rating: number
     text?: string | null
   } | null
   onSuccess?: () => void
@@ -84,8 +83,7 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [trustworthiness, setTrustworthiness] = useState(existingRating?.trustworthiness || 0)
-  const [usefulness, setUsefulness] = useState(existingRating?.usefulness || 0)
+  const [rating, setRating] = useState(existingRating?.rating || 0)
   const [text, setText] = useState(existingRating?.text || '')
   const isEditMode = !!existingRating?.id
   const maxTextLength = 2000
@@ -94,8 +92,8 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
     e.preventDefault()
     setError(null)
 
-    if (trustworthiness === 0 || usefulness === 0) {
-      setError('Please rate both categories')
+    if (rating === 0 || rating < 1 || rating > 5) {
+      setError('Please provide a rating between 1 and 5 stars')
       return
     }
 
@@ -112,8 +110,7 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              trustworthiness,
-              usefulness,
+              rating,
               text: text.trim() || undefined,
             }),
           })
@@ -129,8 +126,7 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               serverId,
-              trustworthiness,
-              usefulness,
+              rating,
               text: text.trim() || undefined,
             }),
           })
@@ -155,17 +151,10 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <StarRating
-        value={trustworthiness}
-        onChange={setTrustworthiness}
-        label="Trustworthiness"
-        tooltip="Do you trust this server? Consider: Is it from a known org? Is the code open source? Does it request minimal permissions?"
-      />
-      
-      <StarRating
-        value={usefulness}
-        onChange={setUsefulness}
-        label="Usefulness"
-        tooltip="How useful is this server? Consider: Does it solve your problem? Is it well documented? Does it work reliably?"
+        value={rating}
+        onChange={setRating}
+        label="Rating"
+        tooltip="Rate this server from 1 to 5 stars based on your overall experience"
       />
 
       <div className="space-y-2">

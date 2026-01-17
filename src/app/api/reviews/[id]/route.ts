@@ -94,8 +94,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       prisma.rating.aggregate({
         where: { serverId: rating.serverId },
         _avg: {
-          trustworthiness: true,
-          usefulness: true,
+          rating: true,
         },
         _count: true,
       }),
@@ -107,21 +106,18 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       }),
     ])
 
-    const avgTrust = aggregates._avg.trustworthiness || 0
-    const avgUse = aggregates._avg.usefulness || 0
-    const combinedScore = (avgTrust + avgUse) / 2
+    const avgRating = aggregates._avg.rating || 0
+    const combinedScore = avgRating // Same as avgRating
 
     await prisma.server.update({
       where: { id: rating.serverId },
       data: {
-        avgTrustworthiness: avgTrust,
-        avgUsefulness: avgUse,
+        avgRating,
         totalRatings: aggregates._count,
         combinedScore,
         recentRatingsCount: recentCount,
       } as {
-        avgTrustworthiness: number
-        avgUsefulness: number
+        avgRating: number
         totalRatings: number
         combinedScore: number
         recentRatingsCount: number
@@ -238,18 +234,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Build update data
     const updateData: {
       text?: string | null
-      trustworthiness?: number
-      usefulness?: number
+      rating?: number
     } = {}
 
     if (validationResult.data.text !== undefined) {
       updateData.text = validationResult.data.text || null
     }
-    if (validationResult.data.trustworthiness !== undefined) {
-      updateData.trustworthiness = validationResult.data.trustworthiness
-    }
-    if (validationResult.data.usefulness !== undefined) {
-      updateData.usefulness = validationResult.data.usefulness
+    if (validationResult.data.rating !== undefined) {
+      updateData.rating = validationResult.data.rating
     }
 
     // Update the rating
@@ -274,8 +266,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       prisma.rating.aggregate({
         where: { serverId: rating.serverId },
         _avg: {
-          trustworthiness: true,
-          usefulness: true,
+          rating: true,
         },
         _count: true,
       }),
@@ -287,21 +278,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }),
     ])
 
-    const avgTrust = aggregates._avg.trustworthiness || 0
-    const avgUse = aggregates._avg.usefulness || 0
-    const combinedScore = (avgTrust + avgUse) / 2
+    const avgRating = aggregates._avg.rating || 0
+    const combinedScore = avgRating // Same as avgRating
 
     await prisma.server.update({
       where: { id: rating.serverId },
       data: {
-        avgTrustworthiness: avgTrust,
-        avgUsefulness: avgUse,
+        avgRating,
         totalRatings: aggregates._count,
         combinedScore,
         recentRatingsCount: recentCount,
       } as {
-        avgTrustworthiness: number
-        avgUsefulness: number
+        avgRating: number
         totalRatings: number
         combinedScore: number
         recentRatingsCount: number

@@ -52,8 +52,7 @@ export const ratingSchema = z.object({
     .min(1, 'Server ID is required')
     .max(201, 'Server ID is too long')
     .regex(SAFE_SERVER_ID_PATTERN, 'Invalid server ID format. Use: organization/name'),
-  trustworthiness: z.number().int().min(1).max(5),
-  usefulness: z.number().int().min(1).max(5),
+  rating: z.number().int().min(1).max(5),
   text: sanitizedText.pipe(z.string().max(2000)).optional(),
 })
 
@@ -67,8 +66,7 @@ export const reviewFlagSchema = z.object({
 
 export const reviewUpdateSchema = z.object({
   text: sanitizedText.pipe(z.string().max(2000)).optional(),
-  trustworthiness: z.number().int().min(1).max(5).optional(),
-  usefulness: z.number().int().min(1).max(5).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
 })
 
 const toolSchema = z.object({

@@ -842,6 +842,10 @@ You can also list tools in a simpler format:
           </p>
         )}
 
+        <p className="text-center text-sm text-muted-foreground/70 mt-4">
+          By uploading a server, you agree to our terms of service and privacy policy.
+        </p>
+
         <Button
           type="submit"
           disabled={isPending || isUploadingIcon}
