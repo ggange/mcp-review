@@ -82,8 +82,8 @@ export interface ReviewWithVotes {
   status: string
   helpfulCount: number
   notHelpfulCount: number
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string | Date // ISO string when passed from Server Components, Date when used client-side
+  updatedAt: string | Date // ISO string when passed from Server Components, Date when used client-side
   userId: string
   user: {
     name: string | null
