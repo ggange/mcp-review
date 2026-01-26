@@ -1,10 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/db'
 
 export const runtime = 'edge'
-
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
 export async function GET(request: NextRequest) {
   try {
@@ -82,19 +79,35 @@ export async function GET(request: NextRequest) {
 
     // Server-specific OG image
     if (type === 'server' && serverId) {
+      // Fetch server data from internal API to avoid bundling Prisma in Edge runtime
       const decodedId = decodeURIComponent(serverId)
-      const server = await prisma.server.findUnique({
-        where: { id: decodedId },
-        select: {
-          name: true,
-          description: true,
-          organization: true,
-          iconUrl: true,
-          avgRating: true,
-          totalRatings: true,
-          category: true,
-        },
-      })
+      // Use request URL to determine the base URL for internal API calls
+      const requestUrl = new URL(request.url)
+      const apiBase = requestUrl.origin
+      const apiUrl = `${apiBase}/api/og-server-data?serverId=${encodeURIComponent(decodedId)}`
+      
+      let server: {
+        name: string
+        description: string | null
+        organization: string | null
+        iconUrl: string | null
+        avgRating: number | null
+        totalRatings: number
+        category: string | null
+      } | null = null
+
+      try {
+        const response = await fetch(apiUrl, {
+          // Use cache for better performance, but allow fresh data
+          cache: 'no-store', // Always fetch fresh data for OG images
+        })
+        
+        if (response.ok) {
+          server = await response.json()
+        }
+      } catch (error) {
+        console.error('Error fetching server data for OG image:', error)
+      }
 
       if (!server) {
         // Fallback to default if server not found
