@@ -49,6 +49,8 @@ const getServer = cache(async (decodedId: string) => {
       totalRatings: true,
       hasManyTools: true,
       completeToolsUrl: true,
+      createdAt: true,
+      syncedAt: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any,
   }) as Promise<{
@@ -70,6 +72,8 @@ const getServer = cache(async (decodedId: string) => {
     totalRatings: number
     hasManyTools: boolean
     completeToolsUrl: string | null
+    createdAt: Date
+    syncedAt: Date | null
   } | null>
 })
 
@@ -97,6 +101,11 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
     ? `${server.description.slice(0, 120)}${server.description.length > 120 ? '...' : ''} ${ratingText}`
     : `${server.name} MCP server by ${server.organization}. Community ratings and reviews for this Model Context Protocol server. ${ratingText}`
 
+  // Dynamic OG image URL
+  const ogImageUrl = `${baseUrl}/og?type=server&serverId=${encodeURIComponent(decodedId)}`
+  const publishedTime = server.createdAt ? new Date(server.createdAt).toISOString() : undefined
+  const modifiedTime = server.syncedAt ? new Date(server.syncedAt).toISOString() : publishedTime
+
   return {
     title: `${server.name} MCP Server - Reviews & Ratings`,
     description,
@@ -115,19 +124,12 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
       url: serverUrl,
       type: 'website',
       siteName: 'MCP Review',
-      images: server.iconUrl ? [
+      images: [
         {
-          url: server.iconUrl,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${server.name} MCP server icon`,
-        },
-      ] : [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: `${server.name} - MCP Review`,
+          alt: `${server.name} - MCP Server Reviews & Ratings`,
         },
       ],
     },
@@ -135,10 +137,16 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
       card: 'summary_large_image',
       title: `${server.name} - MCP Server Reviews`,
       description,
-      images: server.iconUrl ? [server.iconUrl] : ['/og-image.png'],
+      creator: '@ggange',
+      site: '@ggange',
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: serverUrl,
+    },
+    other: {
+      ...(publishedTime && { 'article:published_time': publishedTime }),
+      ...(modifiedTime && { 'article:modified_time': modifiedTime }),
     },
   }
 }
@@ -379,6 +387,27 @@ export default async function ServerPage({ params }: ServerPageProps) {
 
   const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
 
+  // Fetch reviews for Review schema (limit to 5 most recent)
+  const reviews = await prisma.rating.findMany({
+    where: {
+      serverId: decodedId,
+      status: 'approved',
+    },
+    select: {
+      id: true,
+      rating: true,
+      text: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  })
+
   // Build JSON-LD structured data
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
   const productSchema = {
@@ -432,7 +461,33 @@ export default async function ServerPage({ params }: ServerPageProps) {
     ],
   }
 
-  // Remove undefined fields
+  // Review schema for individual reviews
+  const reviewSchemas = reviews.map((review) => ({
+    '@type': 'Review',
+    '@id': `${serverUrl}#review-${review.id}`,
+    author: {
+      '@type': 'Person',
+      name: review.user.name || 'Anonymous',
+    },
+    datePublished: review.createdAt instanceof Date ? review.createdAt.toISOString() : review.createdAt,
+    reviewBody: review.text || undefined,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: review.rating,
+      bestRating: '5',
+      worstRating: '1',
+    },
+    itemReviewed: {
+      '@type': 'SoftwareApplication',
+      name: server.name,
+      url: serverUrl,
+    },
+  })).filter((review) => {
+    // Remove reviews without text or with invalid data
+    return review.reviewBody || review.reviewRating
+  })
+
+  // Remove undefined fields from productSchema
   if (!productSchema.aggregateRating) {
     delete productSchema.aggregateRating
   }
@@ -447,6 +502,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
     <>
       <JsonLdScript data={productSchema} id="product-schema" />
       <JsonLdScript data={breadcrumbSchema} id="breadcrumb-schema" />
+      {reviewSchemas.length > 0 && reviewSchemas.map((reviewSchema, index) => (
+        <JsonLdScript key={index} data={reviewSchema} id={`review-schema-${index}`} />
+      ))}
       <div className="container mx-auto px-4 py-8">
       {/* Back button */}
       <Link

@@ -80,6 +80,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
+    alternateLocale: ['en_US'],
     url: baseUrl,
     siteName: 'MCP Review',
     title: 'MCP Review - Open Source MCP Server Directory & Community Reviews',
@@ -98,6 +99,7 @@ export const metadata: Metadata = {
     title: 'MCP Review - Open Source MCP Server Directory',
     description: 'The open-source directory for MCP servers. Community-driven ratings & reviews for AI developers. Free to use & MIT licensed. ⭐ Star us on GitHub!',
     creator: '@ggange',
+    site: '@ggange',
     images: ['/og-image.png'],
   },
   robots: {
@@ -112,15 +114,27 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    // Add verification codes here when available
-    // google: 'your-google-verification-code',
-    // yandex: 'your-yandex-verification-code',
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    }),
+    ...(process.env.NEXT_PUBLIC_YANDEX_VERIFICATION && {
+      yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    }),
   },
   category: 'technology',
+  referrer: 'strict-origin-when-cross-origin',
   other: {
     'theme-color': '#7c3aed', // violet-600
     'github:repo': 'https://github.com/ggange/mcp-review',
     'fediverse:creator': '@ggange',
+    // LinkedIn-specific tags
+    'linkedin:owner': 'ggange',
+    // Facebook-specific tags
+    'fb:app_id': process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || '',
+    // Bing verification (added to other since Next.js Metadata doesn't support it directly)
+    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
+      'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+    }),
   },
   applicationName: 'MCP Review',
 }

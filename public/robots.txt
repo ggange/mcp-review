@@ -1,6 +1,7 @@
 # MCP Review - Open Source MCP Server Directory
 # https://mcpreview.dev
 
+# Default rules for all bots
 User-agent: *
 Allow: /
 Disallow: /dashboard
@@ -15,14 +16,61 @@ Allow: /?q=
 # Crawl-delay for polite crawling
 Crawl-delay: 1
 
+# Sitemap location
 Sitemap: https://mcpreview.dev/sitemap.xml
 
-# Social media bots
+# Google Search Bot
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+Crawl-delay: 1
+
+# Google Image Bot
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+
+# Bing Search Bot
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+Crawl-delay: 1
+
+# Social media bots - allow full access for proper preview generation
 User-agent: Twitterbot
 Allow: /
+Crawl-delay: 0
 
 User-agent: facebookexternalhit
 Allow: /
+Crawl-delay: 0
 
 User-agent: LinkedInBot
 Allow: /
+Crawl-delay: 0
+
+# Other common search engines
+User-agent: Slurp
+Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /dashboard
+Disallow: /auth/
+Disallow: /api/
+
+# Block aggressive scrapers
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
