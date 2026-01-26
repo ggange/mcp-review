@@ -22,13 +22,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 1,
+      priority: 1.0,
     },
     {
       url: `${baseUrl}/about`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly',
+      priority: 0.5,
     },
   ]
 
@@ -64,6 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         syncedAt: true,
         createdAt: true,
         source: true,
+        totalRatings: true,
       },
       take: 2000, // Increased limit for better coverage
       orderBy: {
@@ -71,13 +78,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     })
 
-    const serverRoutes: MetadataRoute.Sitemap = servers.map((server) => ({
-      url: `${baseUrl}/servers/${encodeURIComponent(server.id)}`,
-      lastModified: server.syncedAt || server.createdAt,
-      changeFrequency: 'weekly' as const,
-      // Official servers get slightly higher priority
-      priority: server.source === 'official' ? 0.8 : 0.7,
-    }))
+    const serverRoutes: MetadataRoute.Sitemap = servers.map((server) => {
+      // Use syncedAt if available, otherwise createdAt, fallback to current date
+      const lastModified = server.syncedAt || server.createdAt || new Date()
+      
+      // Higher priority for official servers and highly-rated servers
+      let priority = 0.7
+      if (server.source === 'official') {
+        priority = 0.8
+      } else if (server.source === 'user') {
+        priority = 0.75
+      }
+      // Boost priority for servers with many ratings
+      if (server.totalRatings && server.totalRatings > 10) {
+        priority = Math.min(priority + 0.05, 0.85)
+      }
+
+      // Change frequency based on source and activity
+      let changeFreq: 'weekly' | 'monthly' = 'weekly'
+      if (server.source === 'official' && !server.syncedAt) {
+        changeFreq = 'monthly'
+      }
+
+      return {
+        url: `${baseUrl}/servers/${encodeURIComponent(server.id)}`,
+        lastModified,
+        changeFrequency: changeFreq,
+        priority,
+      }
+    })
 
     return [...staticRoutes, ...categoryRoutes, ...sourceRoutes, ...serverRoutes]
   } catch (error) {
