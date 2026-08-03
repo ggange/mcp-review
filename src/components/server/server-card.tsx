@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { Github } from 'lucide-react'
+import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -153,7 +153,7 @@ export function ServerCard({ server }: ServerCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="border-border text-muted-foreground">
-                      <Github />
+                      <SiGithub />
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>

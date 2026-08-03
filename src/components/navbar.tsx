@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { AvatarMenu } from '@/components/avatar-menu'
 import { Logo } from '@/components/logo'
-import { Github } from 'lucide-react'
+import { SiGithub } from '@icons-pack/react-simple-icons'
 
 export async function Navbar() {
   const session = await auth()
@@ -31,7 +31,7 @@ export async function Navbar() {
               variant="ghost"
               className="rounded-full bg-black text-white hover:bg-gray-800 hover:text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 dark:hover:text-black border border-transparent"
             >
-              <Github className="h-4 w-4 sm:mr-2" />
+              <SiGithub className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">GitHub</span>
             </Button>
           </Link>
