@@ -271,11 +271,18 @@ export const serverIdParamSchema = z.object({
     .max(201, 'Server ID is too long')
     .refine(
       (id) => {
-        // Decode URL-encoded ID for validation (spaces may be encoded as %20)
-        const decodedId = decodeURIComponent(id)
-        // Allow CUID format or organization/name format
-        // Organization part may contain spaces
-        return CUID_PATTERN.test(decodedId) || SAFE_SERVER_ID_PATTERN.test(decodedId)
+        // Decode URL-encoded ID for validation (spaces may be encoded as %20).
+        // A malformed escape makes decodeURIComponent throw, which would
+        // escape the refine and surface as a 500 rather than a 400.
+        let decodedId: string
+        try {
+          decodedId = decodeURIComponent(id)
+        } catch {
+          return false
+        }
+        // Accept every format Server.id can hold, including the bare name
+        // given to servers uploaded without an organization.
+        return serverIdValue.safeParse(decodedId).success
       },
       { message: 'Invalid server ID format' }
     ),

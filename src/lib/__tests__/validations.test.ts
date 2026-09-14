@@ -534,11 +534,34 @@ describe('serverIdParamSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('validates a bare name, as used by servers with no organization', () => {
+    expect(serverIdParamSchema.safeParse({ id: 'agentdeals' }).success).toBe(true)
+    expect(serverIdParamSchema.safeParse({ id: 'Playwright - Next Gen' }).success).toBe(true)
+  })
+
+  it('accepts URL-encoded IDs', () => {
+    expect(serverIdParamSchema.safeParse({ id: 'Playwright%20-%20Next%20Gen' }).success).toBe(true)
+    expect(serverIdParamSchema.safeParse({ id: 'my%20org/my%20server' }).success).toBe(true)
+  })
+
+  it('rejects a malformed percent-escape instead of throwing', () => {
+    // decodeURIComponent throws URIError on these; unguarded that escapes the
+    // refine and surfaces as a 500 rather than a validation failure.
+    const malformed = ['%', '%zz', 'org/%E0%A4%A']
+
+    malformed.forEach(id => {
+      expect(() => serverIdParamSchema.safeParse({ id })).not.toThrow()
+      expect(serverIdParamSchema.safeParse({ id }).success).toBe(false)
+    })
+  })
+
   it('rejects invalid formats', () => {
     const invalidIds = [
-      'invalid',
-      'server', // missing org
       'org/', // missing name
+      '/server', // leading slash
+      'org/name/extra', // more than one slash
+      '../etc/passwd', // path traversal
+      '<script>', // unsafe characters
       'a'.repeat(202), // too long
     ]
 
