@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://www.iubenda.com",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://api-gateway.umami.dev https://www.iubenda.com https://embeds.iubenda.com https://cdn.iubenda.com https://cpl.iubenda.com https://idb.iubenda.com https://va.vercel-scripts.com",
+              "connect-src 'self' https://api.github.com https://registry.modelcontextprotocol.io https://cloud.umami.is https://gateway.umami.is https://api-gateway.umami.dev https://www.iubenda.com https://embeds.iubenda.com https://cdn.iubenda.com https://cpl.iubenda.com https://idb.iubenda.com https://va.vercel-scripts.com",
               "frame-src 'self' https://www.iubenda.com",
               "frame-ancestors 'none'",
               // Additional security directives
