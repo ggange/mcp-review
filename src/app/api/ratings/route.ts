@@ -5,6 +5,7 @@ import { ratingSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { deleteCache, getCacheKey } from '@/lib/cache'
+import { recalculateServerAggregates } from '@/lib/server-aggregates'
 import type { Prisma } from '@prisma/client'
 
 export async function POST(request: Request) {
@@ -117,43 +118,7 @@ export async function POST(request: Request) {
       } satisfies Prisma.RatingUpdateInput,
     })
 
-    // Update server aggregates including combined score for efficient sorting
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const [aggregates, recentCount] = await Promise.all([
-      prisma.rating.aggregate({
-        where: { serverId },
-        _avg: {
-          rating: true,
-        },
-        _count: true,
-      }),
-      prisma.rating.count({
-        where: {
-          serverId,
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      }),
-    ])
-
-    const avgRating = aggregates._avg.rating ?? 0
-    const combinedScore = avgRating // Same as avgRating
-
-    await prisma.server.update({
-      where: { id: serverId },
-      data: {
-        avgRating,
-        totalRatings: aggregates._count,
-        combinedScore,
-        recentRatingsCount: recentCount,
-      } as {
-        avgRating: number
-        totalRatings: number
-        combinedScore: number
-        recentRatingsCount: number
-      },
-    })
+    await recalculateServerAggregates(serverId)
 
     // Invalidate caches: user dashboard, user profile, and server detail (if cached)
     await Promise.all([

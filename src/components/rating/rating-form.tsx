@@ -111,7 +111,9 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               rating,
-              text: text.trim() || undefined,
+              // Always send text, even when empty: omitting the key makes PATCH
+              // skip the field, so a cleared review would keep its old text.
+              text: text.trim(),
             }),
           })
 
@@ -127,7 +129,7 @@ export function RatingForm({ serverId, existingRating, onSuccess }: RatingFormPr
             body: JSON.stringify({
               serverId,
               rating,
-              text: text.trim() || undefined,
+              text: text.trim(),
             }),
           })
 
