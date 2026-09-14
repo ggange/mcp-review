@@ -24,7 +24,7 @@
 - 🛡️ **Security First** - Built with rate limiting, CSRF protection, and input validation
 - 📱 **Responsive Design** - Works seamlessly on desktop and mobile devices
 - 🌙 **Dark Mode** - Beautiful dark theme support
-- 📛 **GitHub Badges** - Embed dynamic rating badges in your repository README
+- 📛 **GitHub Badges** *(planned)* - Embed dynamic rating badges in your repository README
 
 ## 🚀 Quick Start
 
@@ -309,7 +309,13 @@ Description of what the tool does.
 
 The parser automatically detects both formats and extracts tool information.
 
-## 📛 Badge Integration [WIP!]
+## 📛 Badge Integration (not yet available)
+
+> [!WARNING]
+> **This feature is paused and not deployed.** The `/api/badge/` endpoint currently
+> returns 404 in production, so the snippets below will render as broken images if
+> you add them to your README. They are kept here as the design for the feature, and
+> the details are subject to change before it ships. Please don't use them yet.
 
 Add a dynamic rating badge to your GitHub repository README to showcase your MCP server's ratings and reviews!
 

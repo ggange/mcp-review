@@ -281,6 +281,29 @@ describe('serverUploadSchema', () => {
   })
 })
 
+describe('reviewUpdateSchema text clearing', () => {
+  // The rating form used to send `text: text.trim() || undefined`, which drops
+  // the key from the JSON body entirely. PATCH only writes `text` when it is
+  // not undefined, so a cleared review kept its old text forever.
+  it('keeps an empty string distinguishable from an omitted field', () => {
+    const cleared = reviewUpdateSchema.safeParse({ rating: 4, text: '' })
+    expect(cleared.success).toBe(true)
+    expect(cleared.success && cleared.data.text).toBe('')
+    expect(cleared.success && 'text' in cleared.data).toBe(true)
+
+    const untouched = reviewUpdateSchema.safeParse({ rating: 4 })
+    expect(untouched.success).toBe(true)
+    expect(untouched.success && untouched.data.text).toBeUndefined()
+  })
+
+  it('survives a JSON round-trip the way the form sends it', () => {
+    const body = JSON.parse(JSON.stringify({ rating: 4, text: '   '.trim() }))
+    const result = reviewUpdateSchema.safeParse(body)
+
+    expect(result.success && result.data.text).toBe('')
+  })
+})
+
 describe('ratingSchema', () => {
   it('validates correct rating data', () => {
     const validData = {
@@ -320,12 +343,13 @@ describe('ratingSchema', () => {
     })
   })
 
-  it('validates server ID format', () => {
+  it('rejects malformed server IDs', () => {
     const invalidIds = [
-      'server', // missing org
       'org/', // missing name
-      '/server', // missing org
-      'org server', // space instead of slash
+      '/server', // leading slash
+      'org/name/extra', // more than one slash
+      '../etc/passwd', // path traversal
+      '<script>', // unsafe characters
       'a'.repeat(202), // too long
     ]
 
@@ -334,8 +358,32 @@ describe('ratingSchema', () => {
         serverId,
         rating: 5,
       })
-      
+
       expect(result.success).toBe(false)
+    })
+  })
+
+  // Server.id has no default: it is "organization/name", a bare name when the
+  // server has no organization, or a CUID. All three must be reviewable --
+  // requiring a slash silently blocked reviews on every server uploaded
+  // without an organization.
+  it('accepts every server ID format the app actually mints', () => {
+    const validIds = [
+      'org/server', // organization/name
+      'io.github.owner/repo', // dotted organization
+      'agentdeals', // bare name, no organization
+      'bilibili-mcp', // bare name with a hyphen
+      'Playwright - Next Gen', // bare name with spaces
+      'clh3k2j1x0000qwer1234asdf', // CUID
+    ]
+
+    validIds.forEach(serverId => {
+      const result = ratingSchema.safeParse({
+        serverId,
+        rating: 5,
+      })
+
+      expect(result.success, `expected ${serverId} to be accepted`).toBe(true)
     })
   })
 
@@ -486,11 +534,34 @@ describe('serverIdParamSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('validates a bare name, as used by servers with no organization', () => {
+    expect(serverIdParamSchema.safeParse({ id: 'agentdeals' }).success).toBe(true)
+    expect(serverIdParamSchema.safeParse({ id: 'Playwright - Next Gen' }).success).toBe(true)
+  })
+
+  it('accepts URL-encoded IDs', () => {
+    expect(serverIdParamSchema.safeParse({ id: 'Playwright%20-%20Next%20Gen' }).success).toBe(true)
+    expect(serverIdParamSchema.safeParse({ id: 'my%20org/my%20server' }).success).toBe(true)
+  })
+
+  it('rejects a malformed percent-escape instead of throwing', () => {
+    // decodeURIComponent throws URIError on these; unguarded that escapes the
+    // refine and surfaces as a 500 rather than a validation failure.
+    const malformed = ['%', '%zz', 'org/%E0%A4%A']
+
+    malformed.forEach(id => {
+      expect(() => serverIdParamSchema.safeParse({ id })).not.toThrow()
+      expect(serverIdParamSchema.safeParse({ id }).success).toBe(false)
+    })
+  })
+
   it('rejects invalid formats', () => {
     const invalidIds = [
-      'invalid',
-      'server', // missing org
       'org/', // missing name
+      '/server', // leading slash
+      'org/name/extra', // more than one slash
+      '../etc/passwd', // path traversal
+      '<script>', // unsafe characters
       'a'.repeat(202), // too long
     ]
 
