@@ -22,12 +22,36 @@ const SAFE_ORGANIZATION_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
 const SAFE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*\/[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
 
 /**
+ * Regex pattern for server IDs without an organization
+ * Servers uploaded with no organization get a bare name as their ID
+ * (see the ID generation in the server upload route), so any validator that
+ * only accepts "organization/name" would reject them.
+ */
+const SAFE_BARE_SERVER_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._\s-]*$/
+
+/**
  * CUID validation pattern
  * CUIDs start with 'c' followed by alphanumeric characters
  * Length can vary (typically 20-30 characters) depending on implementation
  * This pattern is flexible enough to handle different CUID versions
  */
 const CUID_PATTERN = /^c[a-z0-9]{20,30}$/
+
+/**
+ * A server ID as actually stored in the database.
+ * Server.id has no default: it is either "organization/name", a bare name when
+ * the server has no organization, or a CUID. Accept all three.
+ */
+const serverIdValue = z.string()
+  .min(1, 'Server ID is required')
+  .max(201, 'Server ID is too long')
+  .refine(
+    (id) =>
+      SAFE_SERVER_ID_PATTERN.test(id) ||
+      SAFE_BARE_SERVER_ID_PATTERN.test(id) ||
+      CUID_PATTERN.test(id),
+    { message: 'Invalid server ID format' }
+  )
 
 /**
  * Sanitize text input to remove potentially dangerous HTML/script content
@@ -48,10 +72,7 @@ function sanitizeText(text: string): string {
 const sanitizedText = z.string().transform(sanitizeText)
 
 export const ratingSchema = z.object({
-  serverId: z.string()
-    .min(1, 'Server ID is required')
-    .max(201, 'Server ID is too long')
-    .regex(SAFE_SERVER_ID_PATTERN, 'Invalid server ID format. Use: organization/name'),
+  serverId: serverIdValue,
   rating: z.number().int().min(1).max(5),
   text: sanitizedText.pipe(z.string().max(2000)).optional(),
 })
