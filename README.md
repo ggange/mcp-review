@@ -317,7 +317,7 @@ Add a dynamic rating badge to your repository README to showcase your MCP server
 
 ### Getting the snippet
 
-Open your server's page on MCP Review: the **README Badge** card in the sidebar shows a live preview and ready-to-copy Markdown and HTML snippets.
+Open your server's page on MCP Review: the **README Badge** card in the sidebar shows a live preview and ready-to-copy Markdown and HTML snippets. You can also set the message shown until your first review there, for example "Review us on mcpreview.dev".
 
 You can also write it by hand:
 
@@ -335,7 +335,8 @@ The badge shows the server's average rating (as stars and a number) and how many
 |-------|-------|
 | Server has reviews | ![rated 4.6 out of 5 from 128 reviews](docs/badges/rated.svg) |
 | `?totals=false` | ![rated 4.6 out of 5](docs/badges/rated-compact.svg) |
-| No reviews yet (or your custom `?text=`) | ![no reviews yet](docs/badges/no-reviews.svg) |
+| No reviews yet | ![no reviews yet](docs/badges/no-reviews.svg) |
+| No reviews yet, with `?text=Review%20us%20on%20mcpreview.dev` | ![Review us on mcpreview.dev](docs/badges/no-reviews-invite.svg) |
 
 Stars are filled to the exact average (4.6 fills four stars and 60% of the fifth), review counts above 999 are shortened (`1.2k reviews`), and an unknown server ID shows `server not found`. The examples above are generated from the real renderer with `npm run badges:examples`.
 
@@ -347,7 +348,7 @@ Stars are filled to the exact average (4.6 fills four stars and 60% of the fifth
 | `text=...` | Custom message while the server has no ratings (URL-encoded, max 50 characters; ignored once ratings exist) |
 
 ```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/my-server?text=Rate%20us%20on%20MCP%20Review)](https://mcpreview.dev/servers/my-server)
+[![MCP Review](https://mcpreview.dev/api/badge/my-server?text=Review%20us%20on%20mcpreview.dev)](https://mcpreview.dev/servers/my-server)
 ```
 
 ### API Reference

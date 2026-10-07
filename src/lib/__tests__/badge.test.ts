@@ -7,6 +7,7 @@ import {
   formatCount,
   generateRatingBadge,
   getBadgeEmbed,
+  getReviewInvitation,
   DEFAULT_NO_RATINGS_TEXT,
   MAX_CUSTOM_TEXT_LENGTH,
 } from '../badge'
@@ -113,5 +114,23 @@ describe('getBadgeEmbed', () => {
     expect(embed.pageUrl).toBe('https://mcpreview.dev/servers/my%20org%2Fmy-server')
     expect(embed.markdown).toBe(`[![MCP Review](${embed.imageUrl})](${embed.pageUrl})`)
     expect(embed.html).toContain(`<img src="${embed.imageUrl}"`)
+  })
+
+  it('adds the sanitized no-reviews message as a text parameter', () => {
+    const embed = getBadgeEmbed('https://mcpreview.dev', 'my-server', { text: '  Review us & rate  ' })
+    expect(embed.imageUrl).toBe('https://mcpreview.dev/api/badge/my-server?text=Review%20us%20%26%20rate')
+    expect(embed.html).toContain('?text=Review%20us%20%26%20rate')
+  })
+
+  it('omits the parameter for blank text', () => {
+    expect(getBadgeEmbed('https://mcpreview.dev', 'my-server', { text: '   ' }).imageUrl)
+      .toBe('https://mcpreview.dev/api/badge/my-server')
+  })
+})
+
+describe('getReviewInvitation', () => {
+  it('names the site the badge is served from', () => {
+    expect(getReviewInvitation('https://mcpreview.dev/')).toBe('Review us on mcpreview.dev')
+    expect(getReviewInvitation('http://localhost:3000')).toBe('Review us on localhost:3000')
   })
 })

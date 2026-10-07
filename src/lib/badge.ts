@@ -227,15 +227,23 @@ export function generateErrorBadge(): string {
   return renderBadge({ label: BADGE_LABEL, message: 'unavailable', color: COLORS.error })
 }
 
+/** Suggested no-reviews message inviting visitors to review on this site */
+export function getReviewInvitation(baseUrl: string): string {
+  return `Review us on ${new URL(baseUrl).host}`
+}
+
 /**
  * Build the badge image URL, the server page URL, and ready-to-paste embed
  * snippets for a server. Server IDs may contain a slash (organization/name),
  * which maps onto the badge route's catch-all segments.
+ * `text` sets the message shown until the server's first review.
  */
-export function getBadgeEmbed(baseUrl: string, serverId: string) {
+export function getBadgeEmbed(baseUrl: string, serverId: string, options: { text?: string | null } = {}) {
   const origin = baseUrl.replace(/\/$/, '')
   const badgePath = serverId.split('/').map(encodeURIComponent).join('/')
-  const imageUrl = `${origin}/api/badge/${badgePath}`
+  const text = sanitizeCustomText(options.text)
+  const query = text ? `?text=${encodeURIComponent(text)}` : ''
+  const imageUrl = `${origin}/api/badge/${badgePath}${query}`
   const pageUrl = `${origin}/servers/${encodeURIComponent(serverId)}`
 
   return {
