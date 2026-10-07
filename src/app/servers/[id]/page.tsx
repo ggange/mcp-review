@@ -747,8 +747,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
             />
           </Suspense>
 
-          {/* README badge embed */}
-          <Card className="border-border bg-card">
+          {/* README badge embed (linked from /badges) */}
+          <Card id="readme-badge" className="border-border bg-card scroll-mt-24">
             <CardHeader>
               <CardTitle className="text-card-foreground">README Badge</CardTitle>
             </CardHeader>

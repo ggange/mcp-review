@@ -26,6 +26,9 @@ export function Footer() {
               <Link href="/?source=official" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Official Servers
               </Link>
+              <Link href="/badges" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                README Badges
+              </Link>
               <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 About Us
               </Link>
