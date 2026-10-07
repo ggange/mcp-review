@@ -313,6 +313,8 @@ The parser automatically detects both formats and extracts tool information.
 
 Add a dynamic rating badge to your repository README to showcase your MCP server's rating and invite users to review it.
 
+![MCP Review badge: rated 4.6 out of 5 from 128 reviews](docs/badges/rated.svg)
+
 ### Getting the snippet
 
 Open your server's page on MCP Review: the **README Badge** card in the sidebar shows a live preview and ready-to-copy Markdown and HTML snippets.
@@ -327,18 +329,21 @@ Replace `your-org/your-server` with your server ID (e.g. `ai.exa/exa`, or just `
 
 ### What it shows
 
-| State | Badge message |
-|-------|---------------|
-| Server has ratings | `★ 4.5 (12)`: average rating and number of ratings |
-| `?totals=false` | `★ 4.5`: average rating only |
-| No ratings yet | `be the first to review`, or your custom `?text=` |
-| Unknown server ID | `server not found` |
+The badge shows the server's average rating (as stars and a number) and how many reviews it has, so visitors can judge it at a glance and click through to add their own.
+
+| State | Badge |
+|-------|-------|
+| Server has reviews | ![rated 4.6 out of 5 from 128 reviews](docs/badges/rated.svg) |
+| `?totals=false` | ![rated 4.6 out of 5](docs/badges/rated-compact.svg) |
+| No reviews yet (or your custom `?text=`) | ![no reviews yet](docs/badges/no-reviews.svg) |
+
+Stars are filled to the exact average (4.6 fills four stars and 60% of the fifth), review counts above 999 are shortened (`1.2k reviews`), and an unknown server ID shows `server not found`. The examples above are generated from the real renderer with `npm run badges:examples`.
 
 ### Options
 
 | Query parameter | Effect |
 |-----------------|--------|
-| `totals=false` | Hide the number of ratings |
+| `totals=false` | Hide the number of reviews |
 | `text=...` | Custom message while the server has no ratings (URL-encoded, max 50 characters; ignored once ratings exist) |
 
 ```markdown

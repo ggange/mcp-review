@@ -36,7 +36,8 @@ describe('GET /api/badge/[...id]', () => {
 
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8')
-    expect(svg).toContain('★ 4.6 (12)')
+    expect(svg).toContain('4.6 · 12 reviews')
+    expect(svg).toContain('aria-label="MCP Review: rated 4.6 out of 5 from 12 reviews"')
     expect(svg).toContain('MCP Review')
     expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'my-org/my-server' } }))
   })
@@ -46,8 +47,8 @@ describe('GET /api/badge/[...id]', () => {
 
     const svg = await (await callBadge(['my-server'], '?totals=false')).text()
 
-    expect(svg).toContain('★ 4.5<')
-    expect(svg).not.toContain('(12)')
+    expect(svg).toContain('>4.5<')
+    expect(svg).not.toContain('· 12 reviews')
   })
 
   it('shows the default call to action when there are no ratings', async () => {
@@ -72,7 +73,7 @@ describe('GET /api/badge/[...id]', () => {
 
     const svg = await (await callBadge(['my-server'], '?text=Rate%20us')).text()
 
-    expect(svg).toContain('★ 4.0 (3)')
+    expect(svg).toContain('4.0 · 3 reviews')
     expect(svg).not.toContain('Rate us')
   })
 

@@ -39,7 +39,7 @@ const CHAR_WIDTHS: Record<string, number> = {
   a: 6.61, b: 6.85, c: 5.73, d: 6.85, e: 6.55, f: 3.87, g: 6.85, h: 6.96, i: 3.02,
   j: 3.79, k: 6.51, l: 3.02, m: 10.7, n: 6.96, o: 6.68, p: 6.85, q: 6.85, r: 4.69,
   s: 5.73, t: 4.33, u: 6.96, v: 6.51, w: 8.98, x: 6.51, y: 6.51, z: 5.78,
-  '{': 6.98, '|': 4.99, '}': 6.98, '~': 9.01, '★': 9.5, '·': 4,
+  '{': 6.98, '|': 4.99, '}': 6.98, '~': 9.01, '·': 6.3,
 }
 const DIGIT_WIDTH = 7
 const FALLBACK_WIDTH = 7.5
@@ -76,29 +76,77 @@ export function sanitizeCustomText(text: string | null | undefined): string | nu
   return Array.from(cleaned).slice(0, MAX_CUSTOM_TEXT_LENGTH).join('').trim()
 }
 
+const STAR_SIZE = 10
+const STAR_GAP = 1.5
+const STAR_COUNT = 5
+const STARS_WIDTH = STAR_COUNT * STAR_SIZE + (STAR_COUNT - 1) * STAR_GAP
+const STARS_TEXT_GAP = 5
+const STAR_FILL = '#fde047'
+
+/** Points for a five-pointed star inscribed in a STAR_SIZE box at (x, y). */
+function starPoints(x: number, y: number): string {
+  const center = STAR_SIZE / 2
+  const outer = STAR_SIZE / 2
+  const inner = outer * 0.45
+  const points: string[] = []
+  for (let i = 0; i < 10; i++) {
+    const radius = i % 2 === 0 ? outer : inner
+    const angle = -Math.PI / 2 + (i * Math.PI) / 5
+    points.push(`${round(x + center + radius * Math.cos(angle))},${round(y + center + radius * Math.sin(angle))}`)
+  }
+  return points.join(' ')
+}
+
+function round(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/** Width of the filled part of the star row for a 0-5 rating, skipping the gaps. */
+function starFillWidth(rating: number): number {
+  const clamped = Math.min(Math.max(rating, 0), STAR_COUNT)
+  const full = Math.floor(clamped)
+  const partial = clamped - full
+  return round(full * (STAR_SIZE + STAR_GAP) + partial * STAR_SIZE)
+}
+
+function renderStars(x: number, rating: number): string {
+  const y = (HEIGHT - STAR_SIZE) / 2
+  const stars = Array.from({ length: STAR_COUNT }, (_, i) =>
+    `<polygon points="${starPoints(x + i * (STAR_SIZE + STAR_GAP), y)}"/>`
+  ).join('')
+  return `<clipPath id="fill"><rect x="${x}" y="0" width="${starFillWidth(rating)}" height="${HEIGHT}"/></clipPath>` +
+    `<g fill="#fff" fill-opacity=".35">${stars}</g>` +
+    `<g fill="${STAR_FILL}" clip-path="url(#fill)">${stars}</g>`
+}
+
 interface RenderOptions {
   label: string
   message: string
   color: string
+  /** 0-5 rating drawn as a row of stars before the message */
+  stars?: number
+  /** Accessible description; defaults to "label: message" */
+  description?: string
 }
 
 /**
- * Render a flat two-part badge: [logo + label | message]
+ * Render a flat two-part badge: [logo + label | (stars) message]
  */
-export function renderBadge({ label, message, color }: RenderOptions): string {
+export function renderBadge({ label, message, color, stars, description }: RenderOptions): string {
   const labelTextWidth = measureText(label)
   const messageTextWidth = measureText(message)
+  const starsWidth = stars === undefined ? 0 : STARS_WIDTH + STARS_TEXT_GAP
 
   const labelWidth = Math.round(LOGO_PADDING + LOGO_SIZE + 4 + labelTextWidth + TEXT_PADDING)
-  const messageWidth = Math.round(TEXT_PADDING + messageTextWidth + TEXT_PADDING)
+  const messageWidth = Math.round(TEXT_PADDING + starsWidth + messageTextWidth + TEXT_PADDING)
   const totalWidth = labelWidth + messageWidth
 
   const labelX = LOGO_PADDING + LOGO_SIZE + 4 + labelTextWidth / 2
-  const messageX = labelWidth + messageWidth / 2
+  const messageX = labelWidth + TEXT_PADDING + starsWidth + messageTextWidth / 2
 
   const safeLabel = escapeXml(label)
   const safeMessage = escapeXml(message)
-  const title = `${safeLabel}: ${safeMessage}`
+  const title = escapeXml(description ?? `${label}: ${message}`)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${HEIGHT}" role="img" aria-label="${title}">` +
     `<title>${title}</title>` +
@@ -111,38 +159,63 @@ export function renderBadge({ label, message, color }: RenderOptions): string {
     `<rect width="${totalWidth}" height="${HEIGHT}" fill="url(#s)"/>` +
     `</g>` +
     `<rect x="${LOGO_PADDING}" y="${(HEIGHT - LOGO_SIZE) / 2}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" rx="3" fill="url(#logo)"/>` +
-    `<text x="${LOGO_PADDING + LOGO_SIZE / 2}" y="13.5" fill="#fff" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" font-weight="bold">M</text>` +
-    `<g fill="#fff" text-anchor="middle" font-family="${FONT_FAMILY}" text-rendering="geometricPrecision" font-size="11">` +
-    `<text x="${labelX}" y="15" fill="#010101" fill-opacity=".3" textLength="${labelTextWidth}" aria-hidden="true">${safeLabel}</text>` +
+    `<text x="${LOGO_PADDING + LOGO_SIZE / 2}" y="13.5" fill="#fff" text-anchor="middle" font-family="${FONT_FAMILY}" font-size="10" font-weight="bold" aria-hidden="true">M</text>` +
+    (stars === undefined ? '' : renderStars(labelWidth + TEXT_PADDING, stars)) +
+    `<g fill="#fff" text-anchor="middle" font-family="${FONT_FAMILY}" text-rendering="geometricPrecision" font-size="11" aria-hidden="true">` +
+    `<text x="${labelX}" y="15" fill="#010101" fill-opacity=".3" textLength="${labelTextWidth}">${safeLabel}</text>` +
     `<text x="${labelX}" y="14" textLength="${labelTextWidth}">${safeLabel}</text>` +
-    `<text x="${messageX}" y="15" fill="#010101" fill-opacity=".3" textLength="${messageTextWidth}" aria-hidden="true">${safeMessage}</text>` +
-    `<text x="${messageX}" y="14" textLength="${messageTextWidth}">${safeMessage}</text>` +
+    `<text x="${round(messageX)}" y="15" fill="#010101" fill-opacity=".3" textLength="${messageTextWidth}">${safeMessage}</text>` +
+    `<text x="${round(messageX)}" y="14" textLength="${messageTextWidth}">${safeMessage}</text>` +
     `</g></svg>`
 }
 
 export interface RatingBadgeData {
   avgRating: number | null
   totalRatings: number
-  /** Include the number of ratings, e.g. "★ 4.5 (12)". Defaults to true. */
+  /** Include the number of reviews, e.g. "4.5 · 12 reviews". Defaults to true. */
   showTotals?: boolean
   /** Message shown while the server has no ratings. */
   noRatingsText?: string | null
 }
 
-export function getRatingMessage({ avgRating, totalRatings, showTotals = true, noRatingsText }: RatingBadgeData): string {
+/** 950 -> "950", 1234 -> "1.2k", 25000 -> "25k" */
+export function formatCount(count: number): string {
+  if (count < 1000) return String(count)
+  const thousands = count / 1000
+  return `${thousands < 10 ? Math.floor(thousands * 10) / 10 : Math.floor(thousands)}k`
+}
+
+export interface RatingSummary {
+  /** Text shown in the message half of the badge */
+  message: string
+  /** Rating for the star row, or null when there are no ratings yet */
+  stars: number | null
+  /** Accessible description of the badge */
+  description: string
+}
+
+export function getRatingSummary({ avgRating, totalRatings, showTotals = true, noRatingsText }: RatingBadgeData): RatingSummary {
   if (!totalRatings || totalRatings <= 0 || !avgRating || avgRating <= 0) {
-    return noRatingsText || DEFAULT_NO_RATINGS_TEXT
+    const message = noRatingsText || DEFAULT_NO_RATINGS_TEXT
+    return { message, stars: null, description: `${BADGE_LABEL}: no reviews yet` }
   }
-  const rating = `★ ${avgRating.toFixed(1)}`
-  return showTotals ? `${rating} (${totalRatings})` : rating
+  const rating = avgRating.toFixed(1)
+  const reviews = `${formatCount(totalRatings)} ${totalRatings === 1 ? 'review' : 'reviews'}`
+  return {
+    message: showTotals ? `${rating} · ${reviews}` : rating,
+    stars: avgRating,
+    description: `${BADGE_LABEL}: rated ${rating} out of 5 from ${totalRatings} ${totalRatings === 1 ? 'review' : 'reviews'}`,
+  }
 }
 
 export function generateRatingBadge(data: RatingBadgeData): string {
-  const hasRatings = data.totalRatings > 0 && !!data.avgRating && data.avgRating > 0
+  const { message, stars, description } = getRatingSummary(data)
   return renderBadge({
     label: BADGE_LABEL,
-    message: getRatingMessage(data),
-    color: hasRatings ? COLORS.rated : COLORS.unrated,
+    message,
+    stars: stars ?? undefined,
+    description,
+    color: stars === null ? COLORS.unrated : COLORS.rated,
   })
 }
 

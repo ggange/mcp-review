@@ -31,7 +31,8 @@
     "db:generate": "prisma generate",
     "db:database": "prisma db push && prisma generate",
     "db:studio": "prisma studio",
-    "create-example-server": "tsx scripts/create-example-server.ts"
+    "create-example-server": "tsx scripts/create-example-server.ts",
+    "badges:examples": "tsx scripts/generate-badge-examples.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

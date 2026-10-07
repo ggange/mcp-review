@@ -3,7 +3,8 @@ import {
   escapeXml,
   sanitizeCustomText,
   measureText,
-  getRatingMessage,
+  getRatingSummary,
+  formatCount,
   generateRatingBadge,
   getBadgeEmbed,
   DEFAULT_NO_RATINGS_TEXT,
@@ -43,18 +44,36 @@ describe('measureText', () => {
   })
 })
 
-describe('getRatingMessage', () => {
-  it('formats rating with one decimal and the total', () => {
-    expect(getRatingMessage({ avgRating: 4.25, totalRatings: 8 })).toBe('★ 4.3 (8)')
+describe('formatCount', () => {
+  it('shortens large counts', () => {
+    expect(formatCount(7)).toBe('7')
+    expect(formatCount(999)).toBe('999')
+    expect(formatCount(1234)).toBe('1.2k')
+    expect(formatCount(9999)).toBe('9.9k')
+    expect(formatCount(12345)).toBe('12k')
+  })
+})
+
+describe('getRatingSummary', () => {
+  it('formats rating with one decimal and the review count', () => {
+    expect(getRatingSummary({ avgRating: 4.25, totalRatings: 8 })).toEqual({
+      message: '4.3 · 8 reviews',
+      stars: 4.25,
+      description: 'MCP Review: rated 4.3 out of 5 from 8 reviews',
+    })
   })
 
-  it('omits the total when requested', () => {
-    expect(getRatingMessage({ avgRating: 3, totalRatings: 8, showTotals: false })).toBe('★ 3.0')
+  it('uses the singular for one review', () => {
+    expect(getRatingSummary({ avgRating: 5, totalRatings: 1 }).message).toBe('5.0 · 1 review')
+  })
+
+  it('omits the count when requested', () => {
+    expect(getRatingSummary({ avgRating: 3, totalRatings: 8, showTotals: false }).message).toBe('3.0')
   })
 
   it('falls back to custom or default text without ratings', () => {
-    expect(getRatingMessage({ avgRating: 0, totalRatings: 0 })).toBe(DEFAULT_NO_RATINGS_TEXT)
-    expect(getRatingMessage({ avgRating: null, totalRatings: 0, noRatingsText: 'Rate us' })).toBe('Rate us')
+    expect(getRatingSummary({ avgRating: 0, totalRatings: 0 })).toMatchObject({ message: DEFAULT_NO_RATINGS_TEXT, stars: null })
+    expect(getRatingSummary({ avgRating: null, totalRatings: 0, noRatingsText: 'Rate us' }).message).toBe('Rate us')
   })
 })
 
@@ -63,10 +82,21 @@ describe('generateRatingBadge', () => {
     const svg = generateRatingBadge({ avgRating: 4.5, totalRatings: 10 })
     expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"')).toBe(true)
     expect(svg.endsWith('</svg>')).toBe(true)
-    expect(svg).toContain('aria-label="MCP Review: ★ 4.5 (10)"')
+    expect(svg).toContain('aria-label="MCP Review: rated 4.5 out of 5 from 10 reviews"')
 
     const width = Number(svg.match(/^<svg[^>]* width="(\d+)"/)![1])
-    expect(width).toBeGreaterThan(measureText('MCP Review') + measureText('★ 4.5 (10)'))
+    expect(width).toBeGreaterThan(measureText('MCP Review') + measureText('4.5 · 10 reviews') + 50)
+  })
+
+  it('draws five stars filled in proportion to the rating', () => {
+    const svg = generateRatingBadge({ avgRating: 2.5, totalRatings: 4 })
+    expect(svg.match(/<polygon /g)).toHaveLength(10) // empty row + filled row
+    // 2 full stars (10px + 1.5px gap each) + half of the third
+    expect(svg).toMatch(/<clipPath id="fill"><rect x="\d+" y="0" width="28" /)
+  })
+
+  it('draws no stars without ratings', () => {
+    expect(generateRatingBadge({ avgRating: 0, totalRatings: 0 })).not.toContain('<polygon')
   })
 
   it('never emits unescaped custom text', () => {
