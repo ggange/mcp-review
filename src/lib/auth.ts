@@ -60,28 +60,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         // Explicit account linking: Check if a user with this email already exists
         // and link the new provider account to the existing user
-        // First try exact match (normalized email)
-        let existingUser = await prisma.user.findUnique({
-          where: { email: normalizedEmail },
+        // Case-insensitive match also covers emails stored with different casing
+        // (normalizeEmail only trims and lowercases)
+        const existingUser = await prisma.user.findFirst({
+          where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
           include: { accounts: true },
         })
-
-        // If not found, try case-insensitive search for existing users
-        // (handles edge case where email was stored with different casing)
-        if (!existingUser) {
-          const users = await prisma.user.findMany({
-            where: {
-              email: {
-                not: null,
-              },
-            },
-            include: { accounts: true },
-          })
-          existingUser =
-            users.find(
-              (u) => u.email && normalizeEmail(u.email) === normalizedEmail
-            ) || null
-        }
 
         if (existingUser) {
           // Check if account for this provider already exists

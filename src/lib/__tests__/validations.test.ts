@@ -572,3 +572,38 @@ describe('serverIdParamSchema', () => {
     })
   })
 })
+
+describe('serverUploadSchema iconUrl', () => {
+  const baseServer = {
+    name: 'my-server',
+    description: 'A great server',
+    tools: [{ name: 'tool1', description: 'Tool 1 description' }],
+  }
+
+  it('accepts icons served by our own icon proxy', () => {
+    const result = serverUploadSchema.safeParse({
+      ...baseServer,
+      iconUrl: 'http://localhost:3000/api/icons/icons%2Fmy-server-123-abc.png',
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts a missing icon', () => {
+    expect(serverUploadSchema.safeParse({ ...baseServer, iconUrl: null }).success).toBe(true)
+    expect(serverUploadSchema.safeParse(baseServer).success).toBe(true)
+  })
+
+  it('rejects icons hosted elsewhere or outside the icon proxy', () => {
+    const invalidUrls = [
+      'https://tracker.example.com/pixel.png',
+      'https://tracker.example.com/api/icons/icons%2Fx.png', // right path, foreign host
+      'http://localhost:3000/some/other/path.png', // our host, wrong path
+      'javascript:alert(1)',
+    ]
+
+    invalidUrls.forEach(iconUrl => {
+      expect(serverUploadSchema.safeParse({ ...baseServer, iconUrl }).success).toBe(false)
+    })
+  })
+})
