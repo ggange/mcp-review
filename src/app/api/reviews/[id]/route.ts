@@ -5,6 +5,7 @@ import { reviewUpdateSchema, reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { deleteCache, getCacheKey } from '@/lib/cache'
+import { recalculateServerAggregates } from '@/lib/server-aggregates'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -86,43 +87,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       where: { id: paramValidation.data.id },
     })
 
-    // Recalculate server aggregates including combined score
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const [aggregates, recentCount] = await Promise.all([
-      prisma.rating.aggregate({
-        where: { serverId: rating.serverId },
-        _avg: {
-          rating: true,
-        },
-        _count: true,
-      }),
-      prisma.rating.count({
-        where: {
-          serverId: rating.serverId,
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      }),
-    ])
-
-    const avgRating = aggregates._avg.rating || 0
-    const combinedScore = avgRating // Same as avgRating
-
-    await prisma.server.update({
-      where: { id: rating.serverId },
-      data: {
-        avgRating,
-        totalRatings: aggregates._count,
-        combinedScore,
-        recentRatingsCount: recentCount,
-      } as {
-        avgRating: number
-        totalRatings: number
-        combinedScore: number
-        recentRatingsCount: number
-      },
-    })
+    await recalculateServerAggregates(rating.serverId)
 
     // Invalidate user caches
     await Promise.all([
@@ -258,43 +223,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       },
     })
 
-    // Recalculate server aggregates including combined score
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const [aggregates, recentCount] = await Promise.all([
-      prisma.rating.aggregate({
-        where: { serverId: rating.serverId },
-        _avg: {
-          rating: true,
-        },
-        _count: true,
-      }),
-      prisma.rating.count({
-        where: {
-          serverId: rating.serverId,
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      }),
-    ])
-
-    const avgRating = aggregates._avg.rating || 0
-    const combinedScore = avgRating // Same as avgRating
-
-    await prisma.server.update({
-      where: { id: rating.serverId },
-      data: {
-        avgRating,
-        totalRatings: aggregates._count,
-        combinedScore,
-        recentRatingsCount: recentCount,
-      } as {
-        avgRating: number
-        totalRatings: number
-        combinedScore: number
-        recentRatingsCount: number
-      },
-    })
+    await recalculateServerAggregates(rating.serverId)
 
     // Invalidate user caches
     await Promise.all([

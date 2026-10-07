@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { recalculateServerAggregates } from '@/lib/server-aggregates'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -62,7 +63,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Check if rating exists
     const rating = await prisma.rating.findUnique({
       where: { id: paramValidation.data.id },
-      select: { userId: true },
+      select: { userId: true, serverId: true },
     })
 
     if (!rating) {
@@ -140,6 +141,12 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       return updatedRating as { status: string; flagCount: number }
     })
+
+    // A review that just crossed the flag threshold no longer counts as
+    // approved, so the server's cached score has to be recomputed without it.
+    if (result.status === 'flagged') {
+      await recalculateServerAggregates(rating.serverId)
+    }
 
     return NextResponse.json({
       data: { 

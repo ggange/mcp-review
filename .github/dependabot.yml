@@ -46,6 +46,11 @@ updates:
       # TS 7 is not yet supported by typescript-eslint or the Next.js compiler API
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # ESLint 10 removed context.getFilename(); eslint-plugin-react (pulled in by
+      # eslint-config-next) still calls it, so the lint job crashes. Unpin once
+      # eslint-plugin-react ships an ESLint 10 compatible release.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     # Allow both direct and indirect dependencies
     allow:
       - dependency-type: "direct"
