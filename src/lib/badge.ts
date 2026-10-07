@@ -227,6 +227,11 @@ export function generateErrorBadge(): string {
   return renderBadge({ label: BADGE_LABEL, message: 'unavailable', color: COLORS.error })
 }
 
+/** Inline a badge SVG as an <img> source, e.g. for examples that need no request */
+export function badgeDataUri(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
 /** Suggested no-reviews message inviting visitors to review on this site */
 export function getReviewInvitation(baseUrl: string): string {
   return `Review us on ${new URL(baseUrl).host}`

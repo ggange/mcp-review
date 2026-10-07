@@ -18,6 +18,7 @@ import {
   type SortOption 
 } from '@/lib/server-queries'
 import { HeroServerCard } from '@/components/server/hero-server-card'
+import { BadgePromo } from '@/components/badge-promo'
 import { auth } from '@/lib/auth'
 import type { ServerWithRatings } from '@/types'
 
@@ -513,6 +514,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      {/* README badge promo for server maintainers */}
+      <div className="mb-10">
+        <BadgePromo />
+      </div>
 
       {/* Search */}
       <div className="mx-auto mb-8 max-w-xl">

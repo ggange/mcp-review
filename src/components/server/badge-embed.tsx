@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  badgeDataUri,
   generateRatingBadge,
   getBadgeEmbed,
   getReviewInvitation,
@@ -64,7 +65,7 @@ export function BadgeEmbed({ serverId, baseUrl }: BadgeEmbedProps) {
   // no-reviews version locally to show what new visitors will see before that
   const customText = sanitizeCustomText(noReviewsText)
   const noReviewsPreview = customText
-    ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(generateRatingBadge({ avgRating: 0, totalRatings: 0, noRatingsText: customText }))}`
+    ? badgeDataUri(generateRatingBadge({ avgRating: 0, totalRatings: 0, noRatingsText: customText }))
     : null
 
   return (
