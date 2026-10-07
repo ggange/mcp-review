@@ -62,6 +62,23 @@ export async function checkRateLimit(
 }
 
 /**
+ * Atomically increment the counter and make sure it has an expiry.
+ * Doing INCR and EXPIRE as separate calls could leave a key without a TTL
+ * (e.g. if the process died in between), locking that user out forever;
+ * this script also repairs any such key on its next hit.
+ * Returns [count, ttlMs].
+ */
+const RATE_LIMIT_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+local ttl = redis.call('PTTL', KEYS[1])
+if ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+return {count, ttl}
+`
+
+/**
  * Check rate limit using Redis
  */
 async function checkRateLimitRedis(
@@ -71,19 +88,9 @@ async function checkRateLimitRedis(
 ): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
   const redis = getRedisClient()
   const redisKey = `ratelimit:${key}`
-  const windowSeconds = Math.ceil(windowMs / 1000)
 
-  // Use Redis INCR to atomically increment the counter
-  const count = await redis.incr(redisKey)
-  
-  // Set expiration on first request (only if key was just created)
-  if (count === 1) {
-    await redis.expire(redisKey, windowSeconds)
-  }
-
-  // Get TTL to calculate reset time
-  const ttl = await redis.ttl(redisKey)
-  const resetIn = ttl > 0 ? ttl * 1000 : windowMs
+  const [count, ttl] = (await redis.eval(RATE_LIMIT_SCRIPT, 1, redisKey, windowMs)) as [number, number]
+  const resetIn = ttl > 0 ? ttl : windowMs
 
   if (count > limit) {
     return {
