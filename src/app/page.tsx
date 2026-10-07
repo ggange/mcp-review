@@ -36,8 +36,12 @@ export const metadata: Metadata = {
     type: 'website',
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'MCP Review - Open Source MCP Server Directory',
     description: 'Find the best MCP servers for Claude & AI workflows. Community-driven ratings & reviews. Free to use & open-source. ⭐ Star us on GitHub!',
+    creator: '@ggange',
+    site: '@ggange',
+    images: ['/og-image.png'],
   },
   alternates: {
     canonical: baseUrl,
@@ -400,11 +404,36 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     numberOfItems: '100+',
   }
 
+  // CollectionPage schema when filters are applied
+  const hasFilters = category !== 'all' || q || source || minRating > 0 || maxRating !== undefined || dateFrom || dateTo || hasGithub
+  const collectionPageSchema = hasFilters ? {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'MCP Server Directory',
+    description: 'Filtered collection of Model Context Protocol servers',
+    url: `${baseUrl}?${new URLSearchParams({
+      ...(category !== 'all' && { category }),
+      ...(q && { q }),
+      ...(source && { source }),
+      ...(minRating > 0 && { minRating: minRating.toString() }),
+      ...(maxRating !== undefined && { maxRating: maxRating.toString() }),
+      ...(dateFrom && { dateFrom }),
+      ...(dateTo && { dateTo }),
+      ...(hasGithub && { hasGithub: 'true' }),
+    }).toString()}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'MCP Review',
+      url: baseUrl,
+    },
+  } : null
+
   return (
     <>
       <JsonLdScript data={websiteSchema} id="website-schema" />
       <JsonLdScript data={faqSchema} id="faq-schema" />
       <JsonLdScript data={itemListSchema} id="itemlist-schema" />
+      {collectionPageSchema && <JsonLdScript data={collectionPageSchema} id="collectionpage-schema" />}
       <div className="container mx-auto px-4 py-8">
       {/* Hero Section - Static shell renders immediately, data streams in */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 pt-8 pb-12 lg:pt-12 lg:pb-16">

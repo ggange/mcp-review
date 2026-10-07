@@ -100,17 +100,21 @@ export async function POST(request: Request) {
         },
       },
       create: {
-        serverId,
-        userId: session.user.id,
+        server: {
+          connect: { id: serverId },
+        },
+        user: {
+          connect: { id: session.user.id },
+        },
         rating: ratingValue,
         text: text || null,
         status: 'approved', // Auto-approve reviews
-      } as unknown as Prisma.RatingCreateInput,
+      } satisfies Prisma.RatingCreateInput,
       update: {
         rating: ratingValue,
         text: text || null,
         status: 'approved', // Re-approve on update
-      } as unknown as Prisma.RatingUpdateInput,
+      } satisfies Prisma.RatingUpdateInput,
     })
 
     // Update server aggregates including combined score for efficient sorting
@@ -122,7 +126,7 @@ export async function POST(request: Request) {
         where: { serverId },
         _avg: {
           rating: true,
-        } as Prisma.RatingAvgAggregateInputType,
+        },
         _count: true,
       }),
       prisma.rating.count({
@@ -133,7 +137,7 @@ export async function POST(request: Request) {
       }),
     ])
 
-    const avgRating = (aggregates._avg as { rating: number | null })?.rating || 0
+    const avgRating = aggregates._avg.rating ?? 0
     const combinedScore = avgRating // Same as avgRating
 
     await prisma.server.update({

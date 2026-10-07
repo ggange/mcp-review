@@ -3,7 +3,6 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import type { Prisma } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { UploadServerDialog } from '@/components/server/upload-server-dialog'
@@ -12,6 +11,7 @@ import { UploadOfficialServerDialog } from '@/components/server/upload-official-
 import { GitHubProfileLink } from '@/components/github-profile-link'
 import { getCache, setCache, getCacheKey } from '@/lib/cache'
 import type { ServerWithRatings } from '@/types'
+import type { Prisma } from '@prisma/client'
 
 export const metadata: Metadata = {
   title: 'Dashboard - MCP Review',
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
               organization: true,
             },
           },
-        } as Prisma.RatingSelect,
+        } satisfies Prisma.RatingFindManyArgs['select'],
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string

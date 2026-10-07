@@ -206,7 +206,7 @@ export function ReviewCard({ review, currentUserId, serverId }: ReviewCardProps)
                   month: 'short',
                   day: 'numeric',
                 })}
-                {review.updatedAt.getTime() !== review.createdAt.getTime() && (
+                {new Date(review.updatedAt).getTime() !== new Date(review.createdAt).getTime() && (
                   <span className="ml-2 italic">(edited)</span>
                 )}
               </div>

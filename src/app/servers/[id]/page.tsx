@@ -4,7 +4,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { auth } from '@/lib/auth'
-import type { Prisma } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +13,7 @@ import { RatingDisplay } from '@/components/rating/rating-display'
 import { RatingForm } from '@/components/rating/rating-form'
 import { ReviewCard } from '@/components/rating/review-card'
 import { ServerActions } from '@/components/server/server-actions'
+import type { Prisma } from '@prisma/client'
 import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
 
@@ -49,6 +49,8 @@ const getServer = cache(async (decodedId: string) => {
       totalRatings: true,
       hasManyTools: true,
       completeToolsUrl: true,
+      createdAt: true,
+      syncedAt: true,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any,
   }) as Promise<{
@@ -70,6 +72,8 @@ const getServer = cache(async (decodedId: string) => {
     totalRatings: number
     hasManyTools: boolean
     completeToolsUrl: string | null
+    createdAt: Date
+    syncedAt: Date | null
   } | null>
 })
 
@@ -91,11 +95,16 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
-  const avgRating = server.totalRatings > 0 ? server.avgRating.toFixed(1) : null
+  const avgRating = server.totalRatings > 0 && server.avgRating != null ? Number(server.avgRating).toFixed(1) : null
   const ratingText = avgRating ? `Rated ${avgRating}/5 by ${server.totalRatings} ${server.totalRatings === 1 ? 'developer' : 'developers'}.` : 'Be the first to review!'
   const description = server.description 
     ? `${server.description.slice(0, 120)}${server.description.length > 120 ? '...' : ''} ${ratingText}`
     : `${server.name} MCP server by ${server.organization}. Community ratings and reviews for this Model Context Protocol server. ${ratingText}`
+
+  // Dynamic OG image URL
+  const ogImageUrl = `${baseUrl}/og?type=server&serverId=${encodeURIComponent(decodedId)}`
+  const publishedTime = server.createdAt ? new Date(server.createdAt).toISOString() : undefined
+  const modifiedTime = server.syncedAt ? new Date(server.syncedAt).toISOString() : publishedTime
 
   return {
     title: `${server.name} MCP Server - Reviews & Ratings`,
@@ -115,19 +124,12 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
       url: serverUrl,
       type: 'website',
       siteName: 'MCP Review',
-      images: server.iconUrl ? [
+      images: [
         {
-          url: server.iconUrl,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${server.name} MCP server icon`,
-        },
-      ] : [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: `${server.name} - MCP Review`,
+          alt: `${server.name} - MCP Server Reviews & Ratings`,
         },
       ],
     },
@@ -135,10 +137,16 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
       card: 'summary_large_image',
       title: `${server.name} - MCP Server Reviews`,
       description,
-      images: server.iconUrl ? [server.iconUrl] : ['/og-image.png'],
+      creator: '@ggange',
+      site: '@ggange',
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: serverUrl,
+    },
+    other: {
+      ...(publishedTime && { 'article:published_time': publishedTime }),
+      ...(modifiedTime && { 'article:modified_time': modifiedTime }),
     },
   }
 }
@@ -176,7 +184,7 @@ async function ServerReviews({
             take: 1,
           }
         : undefined,
-    } as Prisma.RatingSelect,
+    } satisfies Prisma.RatingFindManyArgs['select'],
     orderBy: { createdAt: 'desc' },
     take: 12,
   })) as unknown) as Array<{
@@ -223,8 +231,8 @@ async function ServerReviews({
                   status: rating.status,
                   helpfulCount: rating.helpfulCount,
                   notHelpfulCount: rating.notHelpfulCount,
-                  createdAt: rating.createdAt,
-                  updatedAt: rating.updatedAt,
+                  createdAt: rating.createdAt instanceof Date ? rating.createdAt.toISOString() : rating.createdAt,
+                  updatedAt: rating.updatedAt instanceof Date ? rating.updatedAt.toISOString() : rating.updatedAt,
                   userId: rating.userId,
                   user: {
                     name: rating.user.name,
@@ -375,9 +383,30 @@ export default async function ServerPage({ params }: ServerPageProps) {
     notFound()
   }
 
-  const avgRating = server.totalRatings > 0 ? server.avgRating : null
+  const avgRating = server.totalRatings > 0 && server.avgRating != null ? server.avgRating : null
 
   const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
+
+  // Fetch reviews for Review schema (limit to 5 most recent)
+  const reviews = await prisma.rating.findMany({
+    where: {
+      serverId: decodedId,
+      status: 'approved',
+    },
+    select: {
+      id: true,
+      rating: true,
+      text: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  })
 
   // Build JSON-LD structured data
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
@@ -395,9 +424,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
     },
-    aggregateRating: server.totalRatings > 0 && avgRating ? {
+    aggregateRating: server.totalRatings > 0 && avgRating != null ? {
       '@type': 'AggregateRating',
-      ratingValue: avgRating.toFixed(1),
+      ratingValue: Number(avgRating).toFixed(1),
       ratingCount: server.totalRatings,
       bestRating: '5',
       worstRating: '1',
@@ -432,7 +461,33 @@ export default async function ServerPage({ params }: ServerPageProps) {
     ],
   }
 
-  // Remove undefined fields
+  // Review schema for individual reviews
+  const reviewSchemas = reviews.map((review) => ({
+    '@type': 'Review',
+    '@id': `${serverUrl}#review-${review.id}`,
+    author: {
+      '@type': 'Person',
+      name: review.user.name || 'Anonymous',
+    },
+    datePublished: review.createdAt instanceof Date ? review.createdAt.toISOString() : review.createdAt,
+    reviewBody: review.text || undefined,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: review.rating,
+      bestRating: '5',
+      worstRating: '1',
+    },
+    itemReviewed: {
+      '@type': 'SoftwareApplication',
+      name: server.name,
+      url: serverUrl,
+    },
+  })).filter((review) => {
+    // Remove reviews without text or with invalid data
+    return review.reviewBody || review.reviewRating
+  })
+
+  // Remove undefined fields from productSchema
   if (!productSchema.aggregateRating) {
     delete productSchema.aggregateRating
   }
@@ -447,6 +502,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
     <>
       <JsonLdScript data={productSchema} id="product-schema" />
       <JsonLdScript data={breadcrumbSchema} id="breadcrumb-schema" />
+      {reviewSchemas.length > 0 && reviewSchemas.map((reviewSchema, index) => (
+        <JsonLdScript key={index} data={reviewSchema} id={`review-schema-${index}`} />
+      ))}
       <div className="container mx-auto px-4 py-8">
       {/* Back button */}
       <Link
@@ -665,8 +723,8 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardHeader>
             <CardContent>
               <RatingDisplay
-                rating={server.avgRating}
-                totalRatings={server.totalRatings}
+                rating={server.avgRating ?? 0}
+                totalRatings={server.totalRatings ?? 0}
               />
             </CardContent>
           </Card>

@@ -309,7 +309,7 @@ Description of what the tool does.
 
 The parser automatically detects both formats and extracts tool information.
 
-## 📛 Badge Integration
+## 📛 Badge Integration [WIP!]
 
 Add a dynamic rating badge to your GitHub repository README to showcase your MCP server's ratings and reviews!
 

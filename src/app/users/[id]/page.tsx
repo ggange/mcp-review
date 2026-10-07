@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
-import type { Prisma } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -10,6 +9,8 @@ import { getAvatarColor } from '@/lib/utils'
 import { ServerCard } from '@/components/server/server-card'
 import type { ServerWithRatings } from '@/types'
 import { getCache, setCache, getCacheKey } from '@/lib/cache'
+import type { Prisma } from '@prisma/client'
+import { JsonLdScript } from '@/components/json-ld-script'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -204,7 +205,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               organization: true,
             },
           },
-        } as Prisma.RatingSelect,
+        } satisfies Prisma.RatingFindManyArgs['select'],
         orderBy: { updatedAt: 'desc' },
       }) as unknown) as Promise<Array<{
         id: string
@@ -275,8 +276,34 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
   const avatarColor = getAvatarColor(user.name || 'U')
 
+  // Build Person schema for structured data
+  const userUrl = `${baseUrl}/users/${id}`
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: user.name || 'Anonymous User',
+    url: userUrl,
+    image: user.image || undefined,
+    memberOf: {
+      '@type': 'Organization',
+      name: 'MCP Review Community',
+      url: baseUrl,
+    },
+    sameAs: githubProfileUrl ? [githubProfileUrl] : undefined,
+  }
+
+  // Remove undefined fields
+  if (!personSchema.image) {
+    delete personSchema.image
+  }
+  if (!personSchema.sameAs || personSchema.sameAs.length === 0) {
+    delete personSchema.sameAs
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <JsonLdScript data={personSchema} id="person-schema" />
+      <div className="container mx-auto px-4 py-8">
       {/* Profile Header Section */}
       <Card className="mb-8 border-border bg-card">
         <CardContent className="pt-6">
@@ -432,6 +459,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       )}
       </div>
     </div>
+    </>
   )
 }
 
