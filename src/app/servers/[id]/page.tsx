@@ -16,6 +16,7 @@ import { ServerActions } from '@/components/server/server-actions'
 import type { Prisma } from '@prisma/client'
 import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
+import { BadgeEmbed } from '@/components/server/badge-embed'
 
 interface ServerPageProps {
   params: Promise<{ id: string }>
@@ -745,6 +746,16 @@ export default async function ServerPage({ params }: ServerPageProps) {
               currentUserId={session?.user?.id}
             />
           </Suspense>
+
+          {/* README badge embed */}
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="text-card-foreground">README Badge</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BadgeEmbed serverId={server.id} baseUrl={baseUrl} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
