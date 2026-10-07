@@ -102,16 +102,9 @@ export async function POST(request: Request) {
   }
 }
 
-// Also support GET for easier testing (but should be disabled in production)
+// Vercel cron jobs (vercel.json) invoke this endpoint with GET and an
+// "Authorization: Bearer $CRON_SECRET" header, so GET must run the sync too.
+// POST enforces the same authorization in every environment.
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      { error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST in production' } },
-      { status: 405 }
-    )
-  }
-  
   return POST(request)
 }
-
-

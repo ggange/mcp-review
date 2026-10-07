@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       update: {
         rating: ratingValue,
         text: text || null,
-        status: 'approved', // Re-approve on update
+        // Keep the existing status: re-submitting must not un-hide a flagged review
       } satisfies Prisma.RatingUpdateInput,
     })
 

@@ -112,18 +112,13 @@ export async function POST(request: Request) {
     })
 
     if (server) {
-      // Server exists - check ownership
-      if (server.source === 'user' && server.userId !== session.user.id) {
+      // Server exists - user servers need their owner; official and registry servers need an admin
+      const canUpload = server.source === 'user'
+        ? server.userId === session.user.id
+        : userIsAdmin
+      if (!canUpload) {
         return NextResponse.json(
           { error: { code: 'FORBIDDEN', message: 'You can only upload icons for your own servers' } },
-          { status: 403 }
-        )
-      }
-      
-      // For official servers, only admins can upload icons
-      if (server.source === 'official' && !userIsAdmin) {
-        return NextResponse.json(
-          { error: { code: 'FORBIDDEN', message: 'Only admins can upload icons for official servers' } },
           { status: 403 }
         )
       }

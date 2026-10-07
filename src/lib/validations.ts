@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { getAllowedOrigins, normalizeOrigin } from './csrf'
 
 /**
  * Regex pattern for safe server names
@@ -65,6 +66,27 @@ function sanitizeText(text: string): string {
     .replace(/[\t\v\f\r]+/g, ' ')
     .trim()
 }
+
+/**
+ * Icons must be served by our own icon proxy (/api/icons/...), which is the
+ * URL format upload-icon returns. Arbitrary URLs would let any server owner
+ * embed third-party images (e.g. tracking pixels) on every page listing it.
+ */
+function isOwnIconUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.pathname.startsWith('/api/icons/') &&
+      getAllowedOrigins().includes(normalizeOrigin(parsed.origin))
+  } catch {
+    return false
+  }
+}
+
+const iconUrlSchema = z.string()
+  .url('Invalid icon URL')
+  .refine(isOwnIconUrl, { message: 'Icon must be uploaded through MCP Review' })
+  .nullable()
+  .optional()
 
 /**
  * Zod transformer that sanitizes text
@@ -134,10 +156,7 @@ export const serverUploadSchema = z.object({
     )
     .nullable()
     .optional(),
-  iconUrl: z.string()
-    .url('Invalid icon URL')
-    .nullable()
-    .optional(),
+  iconUrl: iconUrlSchema,
   category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
   hasManyTools: z.boolean().optional().default(false),
@@ -215,10 +234,7 @@ export const officialServerUploadSchema = z.object({
     )
     .nullable()
     .optional(),
-  iconUrl: z.string()
-    .url('Invalid icon URL')
-    .nullable()
-    .optional(),
+  iconUrl: iconUrlSchema,
   category: z.enum(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
     .optional(),
   hasManyTools: z.boolean().optional().default(false),
