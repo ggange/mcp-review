@@ -1,106 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getClientIp, getIpRateLimitKey, checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
-import { setPublicCacheHeaders } from '@/lib/cdn-cache'
-import type { Prisma } from '@prisma/client'
-import { generateBadge, generateNotFoundBadge, generateErrorBadge, sanitizeCustomText } from '@/lib/badge'
+import {
+  generateRatingBadge,
+  generateNotFoundBadge,
+  generateErrorBadge,
+  sanitizeCustomText,
+} from '@/lib/badge'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string[] }> }
-) {
+// Server IDs are "organization/name" or "name" (see validations.ts)
+const MAX_SERVER_ID_LENGTH = 201
+
+interface RouteParams {
+  params: Promise<{ id: string[] }>
+}
+
+function svgResponse(svg: string, status: number, cacheControl: string): NextResponse {
+  return new NextResponse(svg, {
+    status,
+    headers: {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': cacheControl,
+      'X-Content-Type-Options': 'nosniff',
+      // The badge is a static image: forbid scripts and external loads if opened directly
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+    },
+  })
+}
+
+/**
+ * Embeddable README badge showing a server's rating
+ * GET /api/badge/{organization}/{name}?totals=false&text=Custom%20text
+ *
+ * No per-IP rate limiting here: GitHub serves every README image through a
+ * small pool of camo proxy IPs, so an IP limit would break badges across all
+ * repositories at once. Load is absorbed by CDN caching instead.
+ */
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const clientIp = getClientIp(request)
-    const rateLimitKey = getIpRateLimitKey(clientIp, 'badge')
-    const { allowed, resetIn } = await checkRateLimit(
-      rateLimitKey,
-      RATE_LIMITS.read.limit,
-      RATE_LIMITS.read.windowMs
-    )
-
-    if (!allowed) {
-      return NextResponse.json(
-        { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.ceil(resetIn / 1000)),
-            'Retry-After': String(Math.ceil(resetIn / 1000)),
-          },
-        }
-      )
+    const { id } = await params
+    const rawId = id.join('/')
+    // Next.js already decodes segments; an encoded slash (org%2Fname) may still need decoding
+    let serverId = rawId
+    try {
+      serverId = decodeURIComponent(rawId)
+    } catch {
+      // Not double-encoded - use as-is
     }
 
-    const { id } = await params
-    // For catch-all routes, id is an array - join it to get the full path
-    const idString = Array.isArray(id) ? id.join('/') : id
-    const decodedId = decodeURIComponent(idString)
-    const url = new URL(request.url)
-    const customText = url.searchParams.get('text')
-    // Optional query parameter to control whether to show total ratings count
-    const showTotals = url.searchParams.get('totals') !== 'false'
-
-    const server = await prisma.server.findUnique({
-      where: { id: decodedId },
-      select: {
-        id: true,
-        name: true,
-        avgRating: true,
-        totalRatings: true,
-        iconUrl: true,
-      } as Prisma.ServerSelect,
-    })
+    const server = serverId.length <= MAX_SERVER_ID_LENGTH
+      ? await prisma.server.findUnique({
+          where: { id: serverId },
+          select: { avgRating: true, totalRatings: true },
+        })
+      : null
 
     if (!server) {
-      const notFoundSvg = generateNotFoundBadge()
-      const response = new NextResponse(notFoundSvg, {
-        status: 404,
-        headers: {
-          'Content-Type': 'image/svg+xml',
-          'X-Content-Type-Options': 'nosniff',
-          'Cache-Control': 'public, max-age=300',
-        },
-      })
-      return setPublicCacheHeaders(response, 300)
+      // 200 rather than 404: GitHub's image proxy shows a broken image for non-2xx
+      // responses, and a readable "not found" badge is more helpful to maintainers.
+      return svgResponse(generateNotFoundBadge(), 200, 'public, max-age=60, s-maxage=60')
     }
 
-    const noRatingsText = sanitizeCustomText(customText)
-    const serverWithRatings = server as typeof server & { avgRating: number; totalRatings: number; iconUrl: string | null }
-    
-    const badgeSvg = generateBadge({
-      avgRating: serverWithRatings.avgRating,
-      totalRatings: serverWithRatings.totalRatings,
-      noRatingsText,
-      serverName: serverWithRatings.name,
-      brandName: 'MCP Review',
-      iconUrl: serverWithRatings.iconUrl,
-      showTotals,
+    const { searchParams } = request.nextUrl
+    const svg = generateRatingBadge({
+      avgRating: server.avgRating,
+      totalRatings: server.totalRatings,
+      showTotals: searchParams.get('totals') !== 'false',
+      noRatingsText: sanitizeCustomText(searchParams.get('text')),
     })
 
-    const response = new NextResponse(badgeSvg, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    })
-
-    return setPublicCacheHeaders(response, 300)
+    return svgResponse(svg, 200, 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400')
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('Badge generation error:', error instanceof Error ? error.message : 'Unknown error')
     }
-
-    const errorSvg = generateErrorBadge()
-
-    return new NextResponse(errorSvg, {
-      status: 500,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'no-cache',
-      },
-    })
+    return svgResponse(generateErrorBadge(), 500, 'no-store')
   }
 }

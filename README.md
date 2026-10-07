@@ -309,106 +309,61 @@ Description of what the tool does.
 
 The parser automatically detects both formats and extracts tool information.
 
-## 📛 Badge Integration [WIP!]
+## 📛 Badge Integration
 
-Add a dynamic rating badge to your GitHub repository README to showcase your MCP server's ratings and reviews!
+Add a dynamic rating badge to your repository README to showcase your MCP server's rating and invite users to review it.
 
-### Badge Overview
+### Getting the snippet
 
-The MCP Review badge displays your server's trustworthiness and usefulness ratings, or a custom message if no ratings exist yet. The badge automatically updates as your server receives new ratings and reviews.
+Open your server's page on MCP Review: the **README Badge** card in the sidebar shows a live preview and ready-to-copy Markdown and HTML snippets.
 
-### Basic Usage
-
-Add this to your repository's README.md:
+You can also write it by hand:
 
 ```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/your-server-id)](https://mcpreview.dev/servers/your-server-id)
+[![MCP Review](https://mcpreview.dev/api/badge/your-org/your-server)](https://mcpreview.dev/servers/your-org%2Fyour-server)
 ```
 
-Replace `your-server-id` with your actual server ID (e.g., `my-org/my-server` or just `my-server`).
+Replace `your-org/your-server` with your server ID (e.g. `ai.exa/exa`, or just `my-server` when it has no organization). In the badge URL the slash stays as-is; spaces must be encoded as `%20`.
 
-### Custom Text for No Ratings
+### What it shows
 
-When your server doesn't have ratings yet, you can customize the message displayed on the badge using the `text` query parameter:
+| State | Badge message |
+|-------|---------------|
+| Server has ratings | `★ 4.5 (12)`: average rating and number of ratings |
+| `?totals=false` | `★ 4.5`: average rating only |
+| No ratings yet | `be the first to review`, or your custom `?text=` |
+| Unknown server ID | `server not found` |
 
-```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/your-server-id?text=Come%20rate%20%26%20review%20us)](https://mcpreview.dev/servers/your-server-id)
-```
+### Options
 
-**Default Messages:**
-- Default: "Available on MCP Review"
-- Custom: Provide your own message via the `text` parameter (max 50 characters)
+| Query parameter | Effect |
+|-----------------|--------|
+| `totals=false` | Hide the number of ratings |
+| `text=...` | Custom message while the server has no ratings (URL-encoded, max 50 characters; ignored once ratings exist) |
 
-**URL Encoding:** When using custom text, make sure to URL-encode special characters:
-- Spaces: `%20`
-- Ampersand: `%26`
-- Other special characters should be properly encoded
-
-### Examples
-
-**Server with ratings:**
-```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/ai.exa/exa)](https://mcpreview.dev/servers/ai.exa/exa)
-```
-Displays: `Trust: 4.5 | Use: 4.2` (example ratings)
-
-**Server without ratings (default):**
-```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/my-server)](https://mcpreview.dev/servers/my-server)
-```
-Displays: `Available on MCP Review`
-
-**Server without ratings (custom):**
 ```markdown
 [![MCP Review](https://mcpreview.dev/api/badge/my-server?text=Rate%20us%20on%20MCP%20Review)](https://mcpreview.dev/servers/my-server)
 ```
-Displays: `Rate us on MCP Review`
-
-### Badge Appearance
-
-- **With Ratings**: Shows trustworthiness and usefulness ratings side by side (e.g., "Trust: 4.5 | Use: 4.2")
-- **Without Ratings**: Displays your custom message or the default "Available on MCP Review"
-- **Colors**: Badge uses a violet/purple gradient matching the MCP Review theme
-- **Clickable**: Badge links directly to your server's review page
 
 ### API Reference
 
-**Endpoint:** `GET /api/badge/[id]`
+**Endpoint:** `GET /api/badge/{organization}/{name}` or `GET /api/badge/{name}`
 
-**Parameters:**
-- `id` (path): Server ID (URL-encoded)
-- `text` (query, optional): Custom message for no-ratings state (max 50 characters)
+**Response:** `image/svg+xml`, with status `200` (including the "server not found" badge, so GitHub's image proxy still renders it) or `500` on a server error.
 
-**Response:**
-- Content-Type: `image/svg+xml`
-- Status: `200` (success), `404` (server not found), `429` (rate limited), `500` (error)
+**Caching:** `Cache-Control: public, max-age=300, s-maxage=300, stale-while-revalidate=86400`. New ratings appear on badges within about 5 minutes (GitHub's camo proxy may add its own delay).
 
-**Response Headers:**
-- `Cache-Control: public, max-age=300` (badges are cached for 5 minutes)
-- `X-Content-Type-Options: nosniff`
-
-**Error Responses:**
-- `404`: Server not found - returns a "Not Found" badge
-- `429`: Rate limit exceeded - returns JSON error
-- `500`: Server error - returns an "Error" badge
+To try badges locally, run `npm run create-example-server -- --with-ratings` and open `/api/badge/example/test-server`.
 
 ### Troubleshooting
 
-**Badge not displaying?**
-- Check that your server ID is correct and URL-encoded
-- Verify the server exists on MCP Review
-- Ensure the badge URL is accessible (not blocked by firewall)
+**Badge shows "server not found"?**
+- Server IDs are case-sensitive; copy the snippet from the server page to be sure
+- Check that the server has been uploaded to (or synced into) MCP Review
 
 **Custom text not showing?**
-- Make sure the text is properly URL-encoded
-- Check that the text doesn't exceed 50 characters
-- Verify special characters are escaped correctly
-
-**Badge shows "Not Found"?**
-- Verify your server ID matches exactly (case-sensitive)
-- Check if your server has been uploaded to MCP Review
-- Ensure organization/name format is correct (e.g., `org/name`)
-
+- The `text` parameter only applies while the server has no ratings
+- Make sure it is URL-encoded and at most 50 characters
 
 ## 🤝 Contributing
 
