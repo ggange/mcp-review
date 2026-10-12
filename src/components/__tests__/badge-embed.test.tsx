@@ -11,7 +11,7 @@ describe('BadgeEmbed', () => {
     render(<BadgeEmbed serverId="my-org/my-server" baseUrl="https://mcpreview.dev" />)
 
     expect(markdownSnippet().textContent).toBe(
-      '[![MCP Review](https://mcpreview.dev/api/badge/my-org/my-server)](https://mcpreview.dev/servers/my-org%2Fmy-server)'
+      '[![MCP Review](https://mcpreview.dev/api/badge/my-org/my-server)](https://mcpreview.dev/servers/my-org%2Fmy-server?utm_source=readme-badge)'
     )
   })
 
@@ -25,6 +25,15 @@ describe('BadgeEmbed', () => {
     expect(screen.getByAltText('Badge before the first review: Review us on mcpreview.dev')).toBeInTheDocument()
     // Suggestion disappears once applied
     expect(screen.queryByRole('button', { name: /Use .Review us/ })).not.toBeInTheDocument()
+  })
+
+  it('tags the copy button for analytics with format and server', () => {
+    render(<BadgeEmbed serverId="my-org/my-server" baseUrl="https://mcpreview.dev" />)
+
+    const copy = screen.getByRole('button', { name: 'Copy Markdown snippet' })
+    expect(copy).toHaveAttribute('data-umami-event', 'badge-copy')
+    expect(copy).toHaveAttribute('data-umami-event-format', 'markdown')
+    expect(copy).toHaveAttribute('data-umami-event-server', 'my-org/my-server')
   })
 
   it('keeps the live preview free of the text parameter', () => {

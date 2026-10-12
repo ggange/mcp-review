@@ -111,7 +111,7 @@ describe('getBadgeEmbed', () => {
   it('builds badge and page URLs for organization/name IDs', () => {
     const embed = getBadgeEmbed('https://mcpreview.dev/', 'my org/my-server')
     expect(embed.imageUrl).toBe('https://mcpreview.dev/api/badge/my%20org/my-server')
-    expect(embed.pageUrl).toBe('https://mcpreview.dev/servers/my%20org%2Fmy-server')
+    expect(embed.pageUrl).toBe('https://mcpreview.dev/servers/my%20org%2Fmy-server?utm_source=readme-badge')
     expect(embed.markdown).toBe(`[![MCP Review](${embed.imageUrl})](${embed.pageUrl})`)
     expect(embed.html).toContain(`<img src="${embed.imageUrl}"`)
   })

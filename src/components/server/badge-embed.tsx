@@ -21,7 +21,7 @@ interface BadgeEmbedProps {
   baseUrl: string
 }
 
-function CopyableSnippet({ value, label }: { value: string; label: string }) {
+function CopyableSnippet({ value, label, format, serverId }: { value: string; label: string; format: string; serverId: string }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -45,6 +45,9 @@ function CopyableSnippet({ value, label }: { value: string; label: string }) {
         size="icon"
         className="absolute right-1 top-1 h-7 w-7"
         onClick={handleCopy}
+        data-umami-event="badge-copy"
+        data-umami-event-format={format}
+        data-umami-event-server={serverId}
         aria-label={copied ? `${label} copied` : `Copy ${label}`}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -92,6 +95,8 @@ export function BadgeEmbed({ serverId, baseUrl }: BadgeEmbedProps) {
           <button
             type="button"
             onClick={() => setNoReviewsText(invitation)}
+            data-umami-event="badge-invite-suggest"
+            data-umami-event-server={serverId}
             className="text-xs text-primary hover:underline"
           >
             Use &ldquo;{invitation}&rdquo;
@@ -109,10 +114,10 @@ export function BadgeEmbed({ serverId, baseUrl }: BadgeEmbedProps) {
           <TabsTrigger value="html" className="text-xs">HTML</TabsTrigger>
         </TabsList>
         <TabsContent value="markdown">
-          <CopyableSnippet value={embed.markdown} label="Markdown snippet" />
+          <CopyableSnippet value={embed.markdown} label="Markdown snippet" format="markdown" serverId={serverId} />
         </TabsContent>
         <TabsContent value="html">
-          <CopyableSnippet value={embed.html} label="HTML snippet" />
+          <CopyableSnippet value={embed.html} label="HTML snippet" format="html" serverId={serverId} />
         </TabsContent>
       </Tabs>
     </div>

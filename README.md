@@ -322,7 +322,7 @@ Open your server's page on MCP Review: the **README Badge** card in the sidebar 
 You can also write it by hand:
 
 ```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/your-org/your-server)](https://mcpreview.dev/servers/your-org%2Fyour-server)
+[![MCP Review](https://mcpreview.dev/api/badge/your-org/your-server)](https://mcpreview.dev/servers/your-org%2Fyour-server?utm_source=readme-badge)
 ```
 
 Replace `your-org/your-server` with your server ID (e.g. `ai.exa/exa`, or just `my-server` when it has no organization). In the badge URL the slash stays as-is; spaces must be encoded as `%20`.
@@ -348,7 +348,7 @@ Stars are filled to the exact average (4.6 fills four stars and 60% of the fifth
 | `text=...` | Custom message while the server has no ratings (URL-encoded, max 50 characters; ignored once ratings exist) |
 
 ```markdown
-[![MCP Review](https://mcpreview.dev/api/badge/my-server?text=Review%20us%20on%20mcpreview.dev)](https://mcpreview.dev/servers/my-server)
+[![MCP Review](https://mcpreview.dev/api/badge/my-server?text=Review%20us%20on%20mcpreview.dev)](https://mcpreview.dev/servers/my-server?utm_source=readme-badge)
 ```
 
 ### API Reference

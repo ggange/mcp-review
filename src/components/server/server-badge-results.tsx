@@ -26,7 +26,7 @@ export async function ServerBadgeResults({ query, baseUrl }: ServerBadgeResultsP
     return (
       <p className="text-sm text-muted-foreground">
         No servers match &ldquo;{query}&rdquo;.{' '}
-        <Link href={submitHref} className="font-medium text-violet-600 hover:underline dark:text-violet-400">
+        <Link href={submitHref} data-umami-event="badge-submit-server" className="font-medium text-violet-600 hover:underline dark:text-violet-400">
           Submit your server
         </Link>{' '}
         to get a badge.
@@ -43,6 +43,8 @@ export async function ServerBadgeResults({ query, baseUrl }: ServerBadgeResultsP
           <li key={server.id}>
             <Link
               href={`/servers/${encodeURIComponent(server.id)}#readme-badge`}
+              data-umami-event="badge-search-result"
+              data-umami-event-server={server.id}
               className="flex flex-col gap-2 p-3 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
             >
               <span className="min-w-0">
