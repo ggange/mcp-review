@@ -27,7 +27,7 @@ export function BadgePromo() {
             </p>
           </div>
           <Button asChild className="shrink-0 bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600">
-            <Link href="/badges">Get your badge</Link>
+            <Link href="/badges" data-umami-event="badge-promo-click">Get your badge</Link>
           </Button>
         </CardContent>
       </Card>

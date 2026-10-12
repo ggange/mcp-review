@@ -249,7 +249,8 @@ export function getBadgeEmbed(baseUrl: string, serverId: string, options: { text
   const text = sanitizeCustomText(options.text)
   const query = text ? `?text=${encodeURIComponent(text)}` : ''
   const imageUrl = `${origin}/api/badge/${badgePath}${query}`
-  const pageUrl = `${origin}/servers/${encodeURIComponent(serverId)}`
+  // utm_source lets analytics attribute visits that come from a README badge
+  const pageUrl = `${origin}/servers/${encodeURIComponent(serverId)}?utm_source=readme-badge`
 
   return {
     imageUrl,

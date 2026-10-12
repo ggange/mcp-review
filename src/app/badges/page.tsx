@@ -84,7 +84,7 @@ export default async function BadgesPage({ searchParams }: BadgesPageProps) {
                   maxLength={100}
                   autoFocus={!query}
                 />
-                <Button type="submit" className="bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600">
+                <Button type="submit" data-umami-event="badge-search" className="bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600">
                   Search
                 </Button>
               </form>
@@ -129,6 +129,7 @@ export default async function BadgesPage({ searchParams }: BadgesPageProps) {
             your server&apos;s page. Full options are in the{' '}
             <a
               href="https://github.com/ggange/mcp-review#-badge-integration"
+              data-umami-event="badge-docs-click"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-violet-600 hover:underline dark:text-violet-400"
