@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Inline the parseServerName function for testing without DB dependency
 function parseServerName(fullName: string): { organization: string; name: string } {
@@ -46,3 +46,35 @@ describe('parseServerName', () => {
 })
 
 
+
+vi.mock('@/lib/db', () => ({ prisma: {} }))
+vi.mock('@/lib/cache', () => ({ invalidateServerListCache: vi.fn() }))
+
+describe('hasServerChanged', async () => {
+  const { hasServerChanged } = await import('@/lib/mcp-registry')
+  const base = {
+    id: 'ai.exa/exa',
+    name: 'exa',
+    organization: 'ai.exa',
+    description: 'Search',
+    version: '1.0.0',
+    repositoryUrl: null,
+    packages: [{ registryType: 'npm', identifier: 'exa' }],
+    remotes: null,
+    category: 'search',
+    source: 'registry',
+  }
+
+  it('ignores JSON key order from jsonb', () => {
+    const stored = { ...base, packages: [{ identifier: 'exa', registryType: 'npm' }] }
+    expect(hasServerChanged(stored, base as never)).toBe(false)
+  })
+
+  it('detects a version bump', () => {
+    expect(hasServerChanged(base, { ...base, version: '1.1.0' } as never)).toBe(true)
+  })
+
+  it('detects package changes', () => {
+    expect(hasServerChanged(base, { ...base, packages: [] } as never)).toBe(true)
+  })
+})

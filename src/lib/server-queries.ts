@@ -7,6 +7,7 @@
 
 import { prisma } from './db'
 import { syncRegistry } from './mcp-registry'
+import { getCache, setCache, getCacheKey, SERVER_LIST_CACHE_NAMESPACE } from './cache'
 import type { Prisma } from '@prisma/client'
 import type { ServerWithRatings } from '@/types'
 
@@ -165,22 +166,47 @@ export const serverSelectFields = {
   completeToolsUrl: true,
 } as const
 
+// Public listings change only when servers or ratings change (which
+// invalidates them), so a short TTL keeps most page views off the database
+const SERVER_LIST_CACHE_TTL = 300
+
+/**
+ * Read a server listing from Redis, or load and cache it.
+ * JSON round-tripping turns Dates into strings, so they are revived here.
+ */
+async function withServerListCache<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const cacheKey = getCacheKey(SERVER_LIST_CACHE_NAMESPACE, key)
+  const cached = await getCache<T>(cacheKey)
+  if (cached !== null) return reviveServerDates(cached)
+
+  const value = await load()
+  await setCache(cacheKey, value, SERVER_LIST_CACHE_TTL)
+  return value
+}
+
+function reviveServerDates<T>(value: T): T {
+  const revive = (server: ServerWithRatings) => {
+    server.createdAt = new Date(server.createdAt)
+    server.syncedAt = new Date(server.syncedAt)
+  }
+  if (Array.isArray(value)) value.forEach(revive)
+  else if (value && typeof value === 'object' && 'servers' in value) {
+    (value as unknown as PaginatedServers).servers.forEach(revive)
+  }
+  return value
+}
+
+// Source order for the default listing: user > official > registry
+const PRIORITIZED_SOURCES = ['user', 'official', 'registry'] as const
+
 /**
  * Query servers with pagination and filters
  */
-/**
- * Get source priority for custom ordering (user=1, official=2, registry=3)
- */
-function getSourcePriority(source: string): number {
-  switch (source) {
-    case 'user': return 1
-    case 'official': return 2
-    case 'registry': return 3
-    default: return 4
-  }
+export async function queryServers(options: ServerQueryOptions): Promise<PaginatedServers> {
+  return withServerListCache(`list:${JSON.stringify(options)}`, () => queryServersUncached(options))
 }
 
-export async function queryServers(options: ServerQueryOptions): Promise<PaginatedServers> {
+async function queryServersUncached(options: ServerQueryOptions): Promise<PaginatedServers> {
   const page = Math.max(1, options.page ?? 1)
   const limit = options.limit ?? 20
   const skip = (page - 1) * limit
@@ -192,41 +218,52 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
   const prioritizeSourceOrder = sort === 'most-reviewed' && (!options.source || options.source === 'all')
   const orderBy = getOrderBy(sort, prioritizeSourceOrder)
 
-  // If we need custom source ordering, fetch all matching servers, sort, then paginate
+  // Custom source ordering (user > official > registry): paginate across one
+  // query per source instead of loading every matching server into memory
   if (prioritizeSourceOrder && orderBy === null) {
-    // Fetch all matching servers (we'll paginate after sorting)
-    const allServers = await prisma.server.findMany({
+    const sourceCounts = await prisma.server.groupBy({
+      by: ['source'],
       where,
-      select: serverSelectFields,
+      _count: true,
     })
+    const countBySource = new Map(sourceCounts.map((row) => [row.source, row._count]))
 
-    // Sort by source priority, then by other criteria
-    const sortedServers = allServers.sort((a, b) => {
-      // First, sort by source priority (user > official > registry)
-      const priorityA = getSourcePriority(a.source)
-      const priorityB = getSourcePriority(b.source)
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB
-      }
-      
-      // Then by totalRatings (desc)
-      if (a.totalRatings !== b.totalRatings) {
-        return b.totalRatings - a.totalRatings
-      }
-      
-      // Then by combinedScore (desc)
-      if (a.combinedScore !== b.combinedScore) {
-        return b.combinedScore - a.combinedScore
-      }
-      
-      // Finally by name (asc)
-      return a.name.localeCompare(b.name)
-    })
+    const otherCount = sourceCounts
+      .filter((row) => !PRIORITIZED_SOURCES.includes(row.source as typeof PRIORITIZED_SOURCES[number]))
+      .reduce((sum, row) => sum + row._count, 0)
+    const segments: Array<{ where: ServerWhereInput; count: number }> = [
+      ...PRIORITIZED_SOURCES.map((source) => ({
+        where: { ...where, source },
+        count: countBySource.get(source) ?? 0,
+      })),
+      { where: { ...where, source: { notIn: [...PRIORITIZED_SOURCES] } }, count: otherCount },
+    ]
 
-    // Paginate after sorting
-    const total = sortedServers.length
+    const segmentOrder = getOrderBy('most-reviewed') as Prisma.ServerOrderByWithRelationInput[]
+    const segmentQueries: Promise<Array<Prisma.ServerGetPayload<{ select: typeof serverSelectFields }>>>[] = []
+    let offset = 0
+    let remaining = limit
+    for (const segment of segments) {
+      const segmentSkip = Math.max(0, skip - offset)
+      if (remaining > 0 && segmentSkip < segment.count) {
+        const take = Math.min(remaining, segment.count - segmentSkip)
+        segmentQueries.push(
+          prisma.server.findMany({
+            where: segment.where,
+            orderBy: segmentOrder,
+            skip: segmentSkip,
+            take,
+            select: serverSelectFields,
+          })
+        )
+        remaining -= take
+      }
+      offset += segment.count
+    }
+
+    const paginatedServers = (await Promise.all(segmentQueries)).flat()
+    const total = offset
     const totalPages = Math.ceil(total / limit)
-    const paginatedServers = sortedServers.slice(skip, skip + limit)
 
     return {
       servers: paginatedServers.map(server => ({
@@ -269,17 +306,24 @@ export async function queryServers(options: ServerQueryOptions): Promise<Paginat
 /**
  * Ensure the database has servers (sync if empty)
  */
+let serversKnownToExist = false
+
 export async function ensureServersExist(): Promise<void> {
+  // Servers are never all deleted in normal operation, so skip the count
+  // query once this instance has seen a non-empty table
+  if (serversKnownToExist) return
   const serverCount = await prisma.server.count()
-  if (serverCount === 0) {
-    try {
-      await syncRegistry()
-    } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Failed to sync from MCP registry:', error instanceof Error ? error.message : 'Unknown error')
-      }
-      // Continue even if sync fails - user can manually trigger sync later
+  if (serverCount > 0) {
+    serversKnownToExist = true
+    return
+  }
+  try {
+    await syncRegistry()
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Failed to sync from MCP registry:', error instanceof Error ? error.message : 'Unknown error')
     }
+    // Continue even if sync fails - user can manually trigger sync later
   }
 }
 
@@ -309,6 +353,10 @@ export async function getLatestUserServers(limit: number = 4): Promise<ServerWit
  * User servers are shown before official servers, sorted by date within each category
  */
 export async function getHotServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  return withServerListCache(`hot:${limit}`, () => getHotServersUncached(limit))
+}
+
+async function getHotServersUncached(limit: number): Promise<ServerWithRatings[]> {
   // Fetch more servers than needed to ensure proper sorting
   const fetchLimit = Math.max(limit * 2, 100)
   const servers = await prisma.server.findMany({
@@ -342,6 +390,10 @@ export async function getHotServers(limit: number = 4): Promise<ServerWithRating
  * Get the top rated servers
  */
 export async function getTopRatedServers(limit: number = 4): Promise<ServerWithRatings[]> {
+  return withServerListCache(`top:${limit}`, () => getTopRatedServersUncached(limit))
+}
+
+async function getTopRatedServersUncached(limit: number): Promise<ServerWithRatings[]> {
   const servers = await prisma.server.findMany({
     where: { totalRatings: { gt: 0 } },
     orderBy: [
@@ -367,19 +419,26 @@ export async function getCategoryCounts(
   source: 'registry' | 'user' | 'official' | 'all' = 'all',
   options?: Omit<ServerQueryOptions, 'source' | 'category' | 'page' | 'limit' | 'sort'>
 ): Promise<Record<string, number>> {
+  return withServerListCache(`categories:${source}:${JSON.stringify(options ?? {})}`, () =>
+    getCategoryCountsUncached(source, options)
+  )
+}
+
+async function getCategoryCountsUncached(
+  source: 'registry' | 'user' | 'official' | 'all',
+  options?: Omit<ServerQueryOptions, 'source' | 'category' | 'page' | 'limit' | 'sort'>
+): Promise<Record<string, number>> {
   const baseWhere = buildWhereClause({ ...options, source })
 
-  const [total, categoryResults] = await Promise.all([
-    prisma.server.count({ where: baseWhere }),
-    prisma.server.groupBy({
-      by: ['category'],
-      where: baseWhere,
-      _count: true,
-    }),
-  ])
+  const categoryResults = await prisma.server.groupBy({
+    by: ['category'],
+    where: baseWhere,
+    _count: true,
+  })
 
   const counts: Record<string, number> = {
-    total,
+    // Every matching server falls in exactly one group, so no separate count query is needed
+    total: categoryResults.reduce((sum, result) => sum + result._count, 0),
     database: 0,
     search: 0,
     code: 0,
@@ -399,4 +458,3 @@ export async function getCategoryCounts(
 
   return counts
 }
-

@@ -129,3 +129,15 @@ export async function deleteCache(key: string): Promise<void> {
 export function getCacheKey(namespace: string, ...parts: (string | number)[]): string {
   return `${namespace}:${parts.join(':')}`
 }
+
+/**
+ * Namespace for cached public server listings (homepage, hot, top rated)
+ */
+export const SERVER_LIST_CACHE_NAMESPACE = 'servers'
+
+/**
+ * Drop all cached server listings after servers or ratings change
+ */
+export async function invalidateServerListCache(): Promise<void> {
+  await invalidateCache(`${SERVER_LIST_CACHE_NAMESPACE}:`)
+}

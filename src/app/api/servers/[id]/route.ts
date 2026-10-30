@@ -9,7 +9,7 @@ import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { isAdmin } from '@/lib/admin'
 import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { setPublicCacheHeaders, setPrivateCacheHeaders } from '@/lib/cdn-cache'
-import { deleteCache, getCacheKey } from '@/lib/cache'
+import { deleteCache, getCacheKey, invalidateServerListCache } from '@/lib/cache'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -256,6 +256,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Invalidate caches
     const invalidationPromises = [
       deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
+      invalidateServerListCache(),
     ]
     if (existingServer?.userId) {
       invalidationPromises.push(
@@ -370,6 +371,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Invalidate caches
     const invalidationPromises = [
       deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
+      invalidateServerListCache(),
     ]
     if (serverToDelete?.userId) {
       invalidationPromises.push(
