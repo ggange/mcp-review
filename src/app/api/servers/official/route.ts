@@ -6,6 +6,7 @@ import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { requireAdmin } from '@/lib/admin'
+import { invalidateServerListCache } from '@/lib/cache'
 
 export async function POST(request: Request) {
   try {
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
         completeToolsUrl: completeToolsUrl || null,
       },
     })
+
+    await invalidateServerListCache()
 
     return NextResponse.json({ data: server }, { status: 201 })
   } catch (error) {

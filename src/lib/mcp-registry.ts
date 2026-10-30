@@ -2,6 +2,7 @@ import { prisma } from './db'
 import type { MCPRegistryResponse, MCPRegistryServer } from '@/types'
 import { categorizeServer } from './server-categories'
 import { Prisma } from '@prisma/client'
+import { invalidateServerListCache } from './cache'
 
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers'
 
@@ -80,6 +81,42 @@ function transformServer(registryServer: MCPRegistryServer): {
   }
 }
 
+type TransformedServer = ReturnType<typeof transformServer>
+
+/**
+ * Compare a stored server with freshly transformed registry data
+ */
+export function hasServerChanged(
+  current: Record<keyof Omit<TransformedServer, 'id'>, unknown>,
+  next: TransformedServer
+): boolean {
+  // jsonb does not preserve key order, so compare with keys sorted
+  const stableStringify = (value: unknown): string => {
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+    if (value && typeof value === 'object') {
+      const entries = Object.keys(value)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${stableStringify((value as Record<string, unknown>)[key])}`)
+      return `{${entries.join(',')}}`
+    }
+    return JSON.stringify(value)
+  }
+  const normalizeJson = (value: unknown) =>
+    value === Prisma.JsonNull || value === null || value === undefined ? null : stableStringify(value)
+
+  return (
+    current.name !== next.name ||
+    current.organization !== next.organization ||
+    current.description !== next.description ||
+    current.version !== next.version ||
+    current.repositoryUrl !== next.repositoryUrl ||
+    current.category !== next.category ||
+    current.source !== next.source ||
+    normalizeJson(current.packages) !== normalizeJson(next.packages) ||
+    normalizeJson(current.remotes) !== normalizeJson(next.remotes)
+  )
+}
+
 /**
  * Sync all servers from the MCP registry
  */
@@ -89,6 +126,7 @@ export async function syncRegistry(): Promise<{
 }> {
   const errors: string[] = []
   let synced = 0
+  let written = 0
   let cursor: string | undefined
 
   try {
@@ -119,11 +157,35 @@ export async function syncRegistry(): Promise<{
       }
     }
 
-    // Upsert each server
-    for (const registryServer of latestServers.values()) {
+    // Only write servers that are new or whose registry data changed.
+    // Upserting every server on each run rewrote thousands of unchanged rows,
+    // which kept the database busy for the whole sync.
+    const transformed = [...latestServers.values()].map(transformServer)
+    const existing = await prisma.server.findMany({
+      where: { id: { in: transformed.map((s) => s.id) } },
+      select: {
+        id: true,
+        name: true,
+        organization: true,
+        description: true,
+        version: true,
+        repositoryUrl: true,
+        packages: true,
+        remotes: true,
+        category: true,
+        source: true,
+      },
+    })
+    const existingById = new Map(existing.map((s) => [s.id, s]))
+
+    for (const serverData of transformed) {
+      const current = existingById.get(serverData.id)
+      if (current && !hasServerChanged(current, serverData)) {
+        synced++
+        continue
+      }
+
       try {
-        const serverData = transformServer(registryServer)
-        
         await prisma.server.upsert({
           where: { id: serverData.id },
           create: {
@@ -137,16 +199,19 @@ export async function syncRegistry(): Promise<{
         })
         
         synced++
+        written++
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        errors.push(`Failed to sync ${registryServer.server.name}: ${errorMessage}`)
+        errors.push(`Failed to sync ${serverData.id}: ${errorMessage}`)
         if (process.env.NODE_ENV !== 'production') {
-          console.error(`Failed to sync ${registryServer.server.name}:`, errorMessage)
+          console.error(`Failed to sync ${serverData.id}:`, errorMessage)
         }
       }
     }
 
-
+    if (written > 0) {
+      await invalidateServerListCache()
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     errors.push(`Registry sync failed: ${errorMessage}`)

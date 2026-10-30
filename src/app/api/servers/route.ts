@@ -8,7 +8,7 @@ import { checkRateLimit, getRateLimitKey, getIpRateLimitKey, getClientIp, RATE_L
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { queryServers, type SortOption } from '@/lib/server-queries'
 import { setPublicCacheHeaders } from '@/lib/cdn-cache'
-import { deleteCache, getCacheKey } from '@/lib/cache'
+import { deleteCache, getCacheKey, invalidateServerListCache } from '@/lib/cache'
 
 export async function GET(request: Request) {
   try {
@@ -211,6 +211,7 @@ export async function POST(request: Request) {
       deleteCache(getCacheKey('dashboard', session.user.id)),
       deleteCache(getCacheKey('user', session.user.id)),
       deleteCache(getCacheKey('user', session.user.id, 'servers')),
+      invalidateServerListCache(),
     ])
 
     return NextResponse.json({ data: server }, { status: 201 })
