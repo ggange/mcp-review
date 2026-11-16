@@ -4,33 +4,31 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     reviewers:
       - "ggange"
     labels:
       - "dependencies"
       - "automated"
-    # Group updates to reduce PR noise
+    # Group all minor/patch updates into one PR per dependency type.
+    # Major bumps still open individual PRs so they can be reviewed separately.
     groups:
       production-dependencies:
+        dependency-type: "production"
         patterns:
-          - "@auth/*"
-          - "@prisma/*"
-          - "next"
-          - "next-auth"
-          - "react"
-          - "react-dom"
-          - "zod"
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
       dev-dependencies:
+        dependency-type: "development"
         patterns:
-          - "@types/*"
-          - "@testing-library/*"
-          - "eslint*"
-          - "typescript"
-          - "vitest"
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
     # Ignore major version updates for critical packages
     ignore:
       - dependency-name: "next"
@@ -51,10 +49,6 @@ updates:
       # eslint-plugin-react ships an ESLint 10 compatible release.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
-    # Allow both direct and indirect dependencies
-    allow:
-      - dependency-type: "direct"
-      - dependency-type: "indirect"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
