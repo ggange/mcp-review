@@ -1,14 +1,11 @@
 import Link from 'next/link'
-import { auth, signOut } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import { AvatarMenu } from '@/components/avatar-menu'
+import { NavbarAuth } from '@/components/navbar-auth'
 import { Logo } from '@/components/logo'
 import { SiGithub } from '@icons-pack/react-simple-icons'
 
-export async function Navbar() {
-  const session = await auth()
-
+export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -40,21 +37,7 @@ export async function Navbar() {
               About us
             </Button>
           </Link>
-          {session?.user ? (
-            <AvatarMenu
-              user={session.user}
-              signOutAction={async () => {
-                'use server'
-                await signOut({ redirectTo: '/' })
-              }}
-            />
-          ) : (
-            <Link href="/auth/signin">
-              <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
-                Sign in
-              </Button>
-            </Link>
-          )}
+          <NavbarAuth />
         </div>
       </div>
     </nav>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getServerDetail } from '@/lib/server-queries'
 import {
   generateRatingBadge,
   generateNotFoundBadge,
@@ -48,16 +48,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const server = serverId.length <= MAX_SERVER_ID_LENGTH
-      ? await prisma.server.findUnique({
-          where: { id: serverId },
-          select: { avgRating: true, totalRatings: true },
-        })
+      ? await getServerDetail(serverId)
       : null
 
     if (!server) {
       // 200 rather than 404: GitHub's image proxy shows a broken image for non-2xx
       // responses, and a readable "not found" badge is more helpful to maintainers.
-      return svgResponse(generateNotFoundBadge(), 200, 'public, max-age=60, s-maxage=60')
+      return svgResponse(generateNotFoundBadge(), 200, 'public, max-age=300, s-maxage=3600')
     }
 
     const { searchParams } = request.nextUrl
@@ -68,7 +65,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       noRatingsText: sanitizeCustomText(searchParams.get('text')),
     })
 
-    return svgResponse(svg, 200, 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400')
+    return svgResponse(svg, 200, 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400')
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('Badge generation error:', error instanceof Error ? error.message : 'Unknown error')

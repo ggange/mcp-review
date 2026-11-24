@@ -115,6 +115,13 @@ The app will automatically sync servers from the MCP Registry on first load if t
 - Create a new project and copy the connection string
 - Paste it into your `.env` file as `DATABASE_URL`
 
+**Keeping Neon compute usage low (production):**
+- Use the **pooled** connection string (host contains `-pooler`) for `DATABASE_URL`, with `?sslmode=require&pgbouncer=true&connection_limit=1`, and the direct (non-pooled) string as `DIRECT_URL` for `prisma db push`.
+- Keep **scale to zero** enabled on the compute, and set the autoscaling maximum deliberately.
+- `/api/health` does not query the database, so uptime monitors don't keep the compute awake. To include a DB check, call `/api/health?db=1` with `Authorization: Bearer $CRON_SECRET`.
+- Public pages read through Redis (`REDIS_URL`), and server pages are cached as ISR. Without Redis every page view reaches the database, so set it in production.
+- Search relies on the `pg_trgm` extension and trigram indexes declared in `prisma/schema.prisma`; `npm run db:push` creates both.
+
 #### Redis Setup (Optional but Recommended for Production)
 
 Redis is used for:

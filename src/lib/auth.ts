@@ -37,12 +37,13 @@ if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
   process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`
 }
 
-// Note: Currently using PrismaAdapter for all data (users, accounts, sessions)
-// To migrate sessions to Redis while keeping users/accounts in PostgreSQL,
-// a custom hybrid adapter would be needed for NextAuth v5.
-// This is a future optimization - PrismaAdapter works fine for now.
+// PrismaAdapter stores users and linked accounts in PostgreSQL, but sessions
+// are JWTs in a signed cookie: with database sessions every auth() call (every
+// page view by a signed-in user) cost a Session+User query plus periodic
+// session UPDATEs. Switching invalidates existing database sessions once.
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: providers.length > 0 ? PrismaAdapter(prisma) : undefined,
+  session: { strategy: 'jwt' },
   providers,
   trustHost: true, // Trust the host header (needed for Vercel)
   callbacks: {
@@ -141,9 +142,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true
       }
     },
-    session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id
+    jwt({ token, user }) {
+      // `user` is only present at sign-in; it is the database user from the adapter
+      if (user?.id) {
+        token.sub = user.id
+      }
+      return token
+    },
+    session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub
       }
       return session
     },

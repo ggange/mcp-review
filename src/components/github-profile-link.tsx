@@ -4,24 +4,25 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 
 interface GitHubProfileLinkProps {
-  hasGitHubAccount: boolean
-  accessToken?: string | null
+  /** Numeric GitHub account ID (Account.providerAccountId) */
+  githubAccountId: string | null
 }
 
-export function GitHubProfileLink({ hasGitHubAccount, accessToken }: GitHubProfileLinkProps) {
+export function GitHubProfileLink({ githubAccountId }: GitHubProfileLinkProps) {
+  const hasGitHubAccount = !!githubAccountId
   const [githubProfileUrl, setGithubProfileUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const fetchedRef = useRef(false)
 
   const fetchGitHubProfile = useCallback(async () => {
-    if (!accessToken) return
+    if (!githubAccountId || !/^\d+$/.test(githubAccountId)) return
     
     setIsLoading(true)
     try {
-      const res = await fetch('https://api.github.com/user', {
+      // Public lookup by account ID: no OAuth token needs to reach the browser
+      const res = await fetch(`https://api.github.com/user/${githubAccountId}`, {
         headers: {
-          Authorization: `token ${accessToken}`,
-          Accept: 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github+json',
         },
       })
       if (res.ok) {
@@ -35,15 +36,15 @@ export function GitHubProfileLink({ hasGitHubAccount, accessToken }: GitHubProfi
     } finally {
       setIsLoading(false)
     }
-  }, [accessToken])
+  }, [githubAccountId])
 
   useEffect(() => {
     // Fetch GitHub username on client side to avoid blocking page render
-    if (hasGitHubAccount && accessToken && !fetchedRef.current) {
+    if (hasGitHubAccount && !fetchedRef.current) {
       fetchedRef.current = true
       fetchGitHubProfile()
     }
-  }, [hasGitHubAccount, accessToken, fetchGitHubProfile])
+  }, [hasGitHubAccount, fetchGitHubProfile])
 
   if (!hasGitHubAccount || (!githubProfileUrl && !isLoading)) {
     return null

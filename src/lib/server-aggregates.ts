@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { invalidateServerListCache } from '@/lib/cache'
+import { invalidateServerPage } from '@/lib/server-revalidation'
 
 /**
  * Recalculate and persist a server's cached rating aggregates.
@@ -48,6 +49,7 @@ export async function recalculateServerAggregates(serverId: string): Promise<voi
     },
   })
 
-  // Ratings drive the listing order and the top rated list
-  await invalidateServerListCache()
+  // Ratings drive the listing order and the top rated list, and the server
+  // page shows the score and reviews
+  await Promise.all([invalidateServerListCache(), invalidateServerPage(serverId)])
 }

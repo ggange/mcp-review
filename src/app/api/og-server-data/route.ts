@@ -1,36 +1,31 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getServerDetail } from '@/lib/server-queries'
 
 export const runtime = 'nodejs'
+
+// Social crawlers fetch OG images repeatedly; let the CDN absorb them
+const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const serverId = searchParams.get('serverId')
 
-  if (!serverId) {
+  if (!serverId || serverId.length > 201) {
     return Response.json({ error: 'serverId is required' }, { status: 400 })
   }
 
   try {
-    const decodedId = decodeURIComponent(serverId)
-    const server = await prisma.server.findUnique({
-      where: { id: decodedId },
-      select: {
-        name: true,
-        description: true,
-        organization: true,
-        iconUrl: true,
-        avgRating: true,
-        totalRatings: true,
-        category: true,
-      },
-    })
+    const server = await getServerDetail(decodeURIComponent(serverId))
 
     if (!server) {
-      return Response.json({ error: 'Server not found' }, { status: 404 })
+      return Response.json({ error: 'Server not found' }, { status: 404, headers: CACHE_HEADERS })
     }
 
-    return Response.json(server)
+    const { name, description, organization, iconUrl, avgRating, totalRatings, category } = server
+    return Response.json(
+      { name, description, organization, iconUrl, avgRating, totalRatings, category },
+      { headers: CACHE_HEADERS }
+    )
   } catch (error) {
     console.error('Error fetching server data for OG:', error)
     return Response.json({ error: 'Internal server error' }, { status: 500 })

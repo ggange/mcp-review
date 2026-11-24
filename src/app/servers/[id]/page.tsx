@@ -1,82 +1,41 @@
-import { Suspense, cache } from 'react'
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { prisma } from '@/lib/db'
-import { auth } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Skeleton } from '@/components/ui/skeleton'
 import { RatingDisplay } from '@/components/rating/rating-display'
-import { RatingForm } from '@/components/rating/rating-form'
-import { ReviewCard } from '@/components/rating/review-card'
-import { ServerActions } from '@/components/server/server-actions'
-import type { Prisma } from '@prisma/client'
 import { ServerIcon } from '@/components/server/server-icon'
 import { JsonLdScript } from '@/components/json-ld-script'
 import { BadgeEmbed } from '@/components/server/badge-embed'
+import {
+  ServerViewerProvider,
+  ViewerRatingForm,
+  ViewerReviews,
+  ViewerServerActions,
+} from '@/components/server/server-viewer'
+import { getApprovedReviews, getServerDetail } from '@/lib/server-queries'
 
 interface ServerPageProps {
   params: Promise<{ id: string }>
 }
 
-// Enable ISR with 60 second revalidation for better TTFB on repeat visits
-export const revalidate = 60
+// The page is identical for every visitor (viewer-specific parts load on the
+// client), so it is cached as ISR. Data changes call invalidateServerPage(),
+// which revalidates it immediately; this window is only a fallback.
+export const revalidate = 600
+
+// No pages are prebuilt; each server page is generated on first request
+export function generateStaticParams() {
+  return []
+}
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
-// Cache the server fetch to avoid duplicate queries between generateMetadata and page
-const getServer = cache(async (decodedId: string) => {
-  return prisma.server.findUnique({
-    where: { id: decodedId },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      organization: true,
-      iconUrl: true,
-      version: true,
-      repositoryUrl: true,
-      source: true,
-      userId: true,
-      authorUsername: true,
-      tools: true,
-      packages: true,
-      remotes: true,
-      usageTips: true,
-      avgRating: true,
-      totalRatings: true,
-      hasManyTools: true,
-      completeToolsUrl: true,
-      createdAt: true,
-      syncedAt: true,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any,
-  }) as Promise<{
-    id: string
-    name: string
-    description: string | null
-    organization: string | null
-    iconUrl: string | null
-    version: string | null
-    repositoryUrl: string | null
-    source: string
-    userId: string | null
-    authorUsername: string | null
-    tools: Array<{ name: string; description: string }> | null
-    packages: Array<{ registryType?: string; identifier?: string }> | null
-    remotes: Array<{ type?: string; url?: string }> | null
-    usageTips: string | null
-    avgRating: number
-    totalRatings: number
-    hasManyTools: boolean
-    completeToolsUrl: string | null
-    createdAt: Date
-    syncedAt: Date | null
-  } | null>
-})
+// Dedupe between generateMetadata and the page (backed by the Redis cache)
+const getServer = cache(getServerDetail)
+const getReviews = cache(getApprovedReviews)
 
 export async function generateMetadata({ params }: ServerPageProps): Promise<Metadata> {
   const { id } = await params
@@ -152,262 +111,23 @@ export async function generateMetadata({ params }: ServerPageProps): Promise<Met
   }
 }
 
-// Reviews component that streams in after initial paint
-async function ServerReviews({ 
-  serverId, 
-  currentUserId 
-}: { 
-  serverId: string
-  currentUserId?: string
-}) {
-  const ratings = ((await prisma.rating.findMany({
-    where: {
-      serverId,
-      status: 'approved',
-    },
-    select: {
-      id: true,
-      rating: true,
-      text: true,
-      status: true,
-      helpfulCount: true,
-      notHelpfulCount: true,
-      createdAt: true,
-      updatedAt: true,
-      userId: true,
-      user: {
-        select: { name: true, image: true },
-      },
-      reviewVotes: currentUserId
-        ? {
-            where: { userId: currentUserId },
-            select: { helpful: true },
-            take: 1,
-          }
-        : undefined,
-    } satisfies Prisma.RatingFindManyArgs['select'],
-    orderBy: { createdAt: 'desc' },
-    take: 12,
-  })) as unknown) as Array<{
-    id: string
-    rating: number
-    text: string | null
-    status: string
-    helpfulCount: number
-    notHelpfulCount: number
-    createdAt: Date
-    updatedAt: Date
-    userId: string
-    user: {
-      name: string | null
-      image: string | null
-    }
-    reviewVotes?: Array<{ helpful: boolean }>
-  }>
-
-  if (ratings.length === 0) {
-    return null
-  }
-
-  return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle className="text-card-foreground">Reviews</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {ratings.map((rating) => {
-            const userVote =
-              rating.reviewVotes && Array.isArray(rating.reviewVotes) && rating.reviewVotes.length > 0
-                ? { helpful: rating.reviewVotes[0].helpful }
-                : null
-
-            return (
-              <ReviewCard
-                key={rating.id}
-                review={{
-                  id: rating.id,
-                  rating: rating.rating,
-                  text: rating.text,
-                  status: rating.status,
-                  helpfulCount: rating.helpfulCount,
-                  notHelpfulCount: rating.notHelpfulCount,
-                  createdAt: rating.createdAt instanceof Date ? rating.createdAt.toISOString() : rating.createdAt,
-                  updatedAt: rating.updatedAt instanceof Date ? rating.updatedAt.toISOString() : rating.updatedAt,
-                  userId: rating.userId,
-                  user: {
-                    name: rating.user.name,
-                    image: rating.user.image,
-                  },
-                  userVote,
-                }}
-                currentUserId={currentUserId}
-                serverId={serverId}
-              />
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function ReviewsSkeleton() {
-  return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <Skeleton className="h-6 w-24" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Rating form wrapper that fetches user's existing rating
-async function RatingFormWrapper({ 
-  serverId, 
-  userId,
-  isOwner,
-}: { 
-  serverId: string
-  userId?: string
-  isOwner: boolean
-}) {
-  if (isOwner) {
-    return (
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              You cannot rate your own server
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!userId) {
-    return (
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center">
-            <p className="mb-4 text-sm text-muted-foreground">
-              Sign in to rate this server
-            </p>
-            <Link href="/auth/signin">
-              <Button className="bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600">
-                Sign in
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const userRating = await prisma.rating.findUnique({
-    where: {
-      serverId_userId: {
-        serverId,
-        userId,
-      },
-    },
-  })
-
-  if (userRating) {
-    return null // User already rated
-  }
-
-  return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle className="text-card-foreground">Rate This Server</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <RatingForm serverId={serverId} />
-      </CardContent>
-    </Card>
-  )
-}
-
-function RatingFormSkeleton() {
-  return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <Skeleton className="h-6 w-32" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 export default async function ServerPage({ params }: ServerPageProps) {
   const { id } = await params
   const decodedId = decodeURIComponent(id)
   
-  // Parallel fetch: auth and server data at the same time
-  const [session, server] = await Promise.all([
-    auth(),
-    getServer(decodedId),
-  ])
+  const server = await getServer(decodedId)
 
   if (!server) {
     notFound()
   }
 
+  // After the server lookup, so unknown IDs stop at the (negatively cached) miss
+  const reviewList = await getReviews(decodedId)
+
   const avgRating = server.totalRatings > 0 && server.avgRating != null ? server.avgRating : null
 
-  const isOwner = !!(session?.user?.id && server.source === 'user' && server.userId === session.user.id)
-
-  // Fetch reviews for Review schema (limit to 5 most recent)
-  const reviews = await prisma.rating.findMany({
-    where: {
-      serverId: decodedId,
-      status: 'approved',
-    },
-    select: {
-      id: true,
-      rating: true,
-      text: true,
-      createdAt: true,
-      user: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-  })
+  // Review schema uses the 5 most recent of the reviews already loaded for the page
+  const reviews = reviewList.slice(0, 5)
 
   // Build JSON-LD structured data
   const serverUrl = `${baseUrl}/servers/${encodeURIComponent(decodedId)}`
@@ -470,7 +190,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
       '@type': 'Person',
       name: review.user.name || 'Anonymous',
     },
-    datePublished: review.createdAt instanceof Date ? review.createdAt.toISOString() : review.createdAt,
+    datePublished: review.createdAt,
     reviewBody: review.text || undefined,
     reviewRating: {
       '@type': 'Rating',
@@ -506,6 +226,12 @@ export default async function ServerPage({ params }: ServerPageProps) {
       {reviewSchemas.length > 0 && reviewSchemas.map((reviewSchema, index) => (
         <JsonLdScript key={index} data={reviewSchema} id={`review-schema-${index}`} />
       ))}
+      <ServerViewerProvider
+        serverId={server.id}
+        ownerId={server.userId}
+        source={server.source}
+        reviewsKey={reviewList.map((r) => `${r.id}:${r.updatedAt}:${r.helpfulCount}:${r.notHelpfulCount}`).join('|')}
+      >
       <div className="container mx-auto px-4 py-8">
       {/* Back button */}
       <Link
@@ -573,9 +299,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
                           v{server.version}
                         </Badge>
                       )}
-                      {isOwner && (
-                        <ServerActions serverId={server.id} />
-                      )}
+                      <ViewerServerActions serverId={server.id} />
                     </div>
                   </div>
                   
@@ -730,22 +454,9 @@ export default async function ServerPage({ params }: ServerPageProps) {
             </CardContent>
           </Card>
 
-          {/* Rating Form - streamed in */}
-          <Suspense fallback={<RatingFormSkeleton />}>
-            <RatingFormWrapper 
-              serverId={server.id} 
-              userId={session?.user?.id}
-              isOwner={isOwner}
-            />
-          </Suspense>
-
-          {/* Reviews - streamed in after LCP */}
-          <Suspense fallback={<ReviewsSkeleton />}>
-            <ServerReviews 
-              serverId={server.id} 
-              currentUserId={session?.user?.id}
-            />
-          </Suspense>
+          {/* Viewer-specific: rating form state, own votes (loaded on the client) */}
+          <ViewerRatingForm serverId={server.id} />
+          <ViewerReviews serverId={server.id} reviews={reviewList} />
 
           {/* README badge embed (linked from /badges) */}
           <Card id="readme-badge" className="border-border bg-card scroll-mt-24">
@@ -759,6 +470,7 @@ export default async function ServerPage({ params }: ServerPageProps) {
         </div>
       </div>
     </div>
+      </ServerViewerProvider>
     </>
   )
 }

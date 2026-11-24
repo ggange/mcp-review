@@ -6,9 +6,17 @@ import { categorizeServer } from '@/lib/server-categories'
 import { Prisma } from '@prisma/client'
 import { checkRateLimit, getRateLimitKey, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
-import { queryServers, type SortOption } from '@/lib/server-queries'
+import {
+  queryServers,
+  normalizeSearch,
+  parseDateParam,
+  parsePage,
+  parseRatingBound,
+  parseSort,
+} from '@/lib/server-queries'
 import { setPublicCacheHeaders } from '@/lib/cdn-cache'
 import { deleteCache, getCacheKey, invalidateServerListCache } from '@/lib/cache'
+import { invalidateServerPage } from '@/lib/server-revalidation'
 
 export async function GET(request: Request) {
   try {
@@ -39,15 +47,15 @@ export async function GET(request: Request) {
     
     // Parse query parameters
     const result = await queryServers({
-      search: searchParams.get('q') || undefined,
-      category: searchParams.get('category') || undefined,
-      sort: (searchParams.get('sort') || 'most-reviewed') as SortOption,
-      minRating: parseFloat(searchParams.get('minRating') || '0'),
-      maxRating: searchParams.get('maxRating') ? parseFloat(searchParams.get('maxRating')!) : undefined,
-      dateFrom: searchParams.get('dateFrom') || undefined,
-      dateTo: searchParams.get('dateTo') || undefined,
+      search: normalizeSearch(searchParams.get('q')),
+      category: searchParams.get('category')?.slice(0, 32) || undefined,
+      sort: parseSort(searchParams.get('sort')),
+      minRating: parseRatingBound(searchParams.get('minRating')) ?? 0,
+      maxRating: parseRatingBound(searchParams.get('maxRating')),
+      dateFrom: parseDateParam(searchParams.get('dateFrom')),
+      dateTo: parseDateParam(searchParams.get('dateTo')),
       hasGithub: searchParams.get('hasGithub') === 'true',
-      page: Math.max(1, parseInt(searchParams.get('page') || '1')),
+      page: parsePage(searchParams.get('page')),
       source: 'all',
       limit: 20,
     })
@@ -212,6 +220,8 @@ export async function POST(request: Request) {
       deleteCache(getCacheKey('user', session.user.id)),
       deleteCache(getCacheKey('user', session.user.id, 'servers')),
       invalidateServerListCache(),
+      // The ID may have been negatively cached by an earlier lookup
+      invalidateServerPage(serverId),
     ])
 
     return NextResponse.json({ data: server }, { status: 201 })

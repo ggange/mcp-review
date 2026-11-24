@@ -1,46 +1,50 @@
 import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/db'
+
+function secureCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) {
+    timingSafeEqual(bufA, bufA)
+    return false
+  }
+  return timingSafeEqual(bufA, bufB)
+}
 
 /**
  * Health check endpoint for load balancers and monitoring
  * GET /api/health
+ *
+ * The database is NOT touched by default: uptime monitors ping this often, and
+ * a DB query on every ping keeps the Neon compute awake (no scale-to-zero).
+ * GET /api/health?db=1 with "Authorization: Bearer $CRON_SECRET" also checks the DB.
  */
-export async function GET() {
-  try {
-    // Basic health check - just return OK
-    // Optionally check database connectivity
-    const healthCheck = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    }
+export async function GET(request: Request) {
+  const healthCheck = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  }
 
-    // Optional: Check database connectivity
-    // This adds a small delay but provides better health information
-    try {
-      await prisma.$queryRaw`SELECT 1`
-      return NextResponse.json({
-        ...healthCheck,
-        database: 'connected',
-      })
-    } catch {
-      // Database check failed, but still return 200 to indicate service is running
-      // Monitoring systems can check the database field
-      return NextResponse.json(
-        {
-          ...healthCheck,
-          database: 'disconnected',
-        },
-        { status: 200 }
-      )
-    }
+  const { searchParams } = new URL(request.url)
+  const cronSecret = process.env.CRON_SECRET
+  const authHeader = request.headers.get('authorization')
+  const wantsDbCheck =
+    searchParams.get('db') === '1' &&
+    !!cronSecret &&
+    !!authHeader &&
+    secureCompare(authHeader, `Bearer ${cronSecret}`)
+
+  if (!wantsDbCheck) {
+    return NextResponse.json(healthCheck)
+  }
+
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    return NextResponse.json({ ...healthCheck, database: 'connected' })
   } catch {
-    return NextResponse.json(
-      {
-        status: 'error',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    )
+    // Still 200: the service is running; monitors can read the database field
+    return NextResponse.json({ ...healthCheck, database: 'disconnected' })
   }
 }

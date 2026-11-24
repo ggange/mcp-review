@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { reviewVoteSchema, reviewIdParamSchema } from '@/lib/validations'
 import { checkRateLimit, getRateLimitKey, RATE_LIMITS } from '@/lib/rate-limit'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
+import { invalidateServerPage } from '@/lib/server-revalidation'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -81,7 +82,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Check if rating exists
     const rating = await prisma.rating.findUnique({
       where: { id: paramValidation.data.id },
-      select: { userId: true },
+      select: { userId: true, serverId: true },
     })
 
     if (!rating) {
@@ -141,6 +142,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       return { helpfulCount, notHelpfulCount }
     })
+
+    // Helpful counts are part of the cached reviews on the server page
+    await invalidateServerPage(rating.serverId)
 
     return NextResponse.json({
       data: result,

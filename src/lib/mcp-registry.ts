@@ -3,6 +3,7 @@ import type { MCPRegistryResponse, MCPRegistryServer } from '@/types'
 import { categorizeServer } from './server-categories'
 import { Prisma } from '@prisma/client'
 import { invalidateServerListCache } from './cache'
+import { invalidateServerPage } from './server-revalidation'
 
 const REGISTRY_URL = 'https://registry.modelcontextprotocol.io/v0/servers'
 
@@ -126,7 +127,7 @@ export async function syncRegistry(): Promise<{
 }> {
   const errors: string[] = []
   let synced = 0
-  let written = 0
+  const writtenIds: string[] = []
   let cursor: string | undefined
 
   try {
@@ -199,7 +200,7 @@ export async function syncRegistry(): Promise<{
         })
         
         synced++
-        written++
+        writtenIds.push(serverData.id)
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         errors.push(`Failed to sync ${serverData.id}: ${errorMessage}`)
@@ -209,8 +210,8 @@ export async function syncRegistry(): Promise<{
       }
     }
 
-    if (written > 0) {
-      await invalidateServerListCache()
+    if (writtenIds.length > 0) {
+      await Promise.all([invalidateServerListCache(), invalidateServerPage(...writtenIds)])
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

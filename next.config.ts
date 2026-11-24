@@ -61,7 +61,8 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cloud.umami.is https://embeds.iubenda.com https://cdn.iubenda.com https://va.vercel-scripts.com",
+              // 'unsafe-eval' is only needed by the dev server (React Refresh)
+              `script-src 'self'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} 'unsafe-inline' https://cloud.umami.is https://embeds.iubenda.com https://cdn.iubenda.com https://va.vercel-scripts.com`,
               "style-src 'self' 'unsafe-inline' https://www.iubenda.com",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
