@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const dashboardCacheKey = getCacheKey('dashboard', session.user.id)
   const cachedData = await getCache<{
     user: { createdAt: Date; role: string } | null
-    githubAccount: { providerAccountId: string; access_token: string | null } | null
+    githubAccount: { providerAccountId: string } | null
     ratings: Array<{
       id: string
       trustworthiness: number
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
   }>(dashboardCacheKey)
 
   let user: { createdAt: Date; role: string } | null
-  let githubAccount: { providerAccountId: string; access_token: string | null } | null
+  let githubAccount: { providerAccountId: string } | null
   let ratings: Array<{
     id: string
     rating: number
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
           role: true,
         },
       }),
-      // Fetch GitHub account to get access token and providerAccountId for profile link
+      // Fetch GitHub account ID for the profile link (never the OAuth token: this data is cached and sent to the browser)
       prisma.account.findFirst({
         where: {
           userId: session.user.id,
@@ -89,7 +89,6 @@ export default async function DashboardPage() {
         },
         select: {
           providerAccountId: true,
-          access_token: true,
         },
       }),
       // Fetch ratings
@@ -290,8 +289,7 @@ export default async function DashboardPage() {
               </div>
             </div>
             <GitHubProfileLink
-              hasGitHubAccount={!!githubAccount}
-              accessToken={githubAccount?.access_token || null}
+              githubAccountId={githubAccount?.providerAccountId ?? null}
             />
           </div>
         </CardContent>

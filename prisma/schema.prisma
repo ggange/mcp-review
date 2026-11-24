@@ -1,10 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm backs the GIN indexes that serve case-insensitive substring search
+  extensions = [pg_trgm]
 }
 
 // NextAuth.js models
@@ -25,6 +28,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId]) // Account lookups by user (profile, dashboard, uploads)
 }
 
 model Session {
@@ -33,6 +37,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -101,6 +107,12 @@ model Server {
   @@index([combinedScore]) // For top-rated sort (kept for backward compatibility)
   @@index([recentRatingsCount]) // For trending sort
   @@index([source, category]) // For filtered queries
+  @@index([userId]) // User profile / dashboard server lists
+  // Search uses ILIKE '%term%' (Prisma contains + insensitive), which btree
+  // indexes cannot serve; trigram GIN indexes avoid a full table scan
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Server_name_trgm_idx")
+  @@index([organization(ops: raw("gin_trgm_ops"))], type: Gin, map: "Server_organization_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "Server_description_trgm_idx")
 }
 
 model Rating {
@@ -121,10 +133,10 @@ model Rating {
   reviewVotes ReviewVote[]
   reviewFlags ReviewFlag[]
 
-  @@unique([serverId, userId]) // One rating per user per server
-  @@index([status, serverId]) // For filtering approved reviews by server
+  @@unique([serverId, userId]) // One rating per user per server (also serves serverId-only lookups)
+  @@index([serverId, status, createdAt(sort: Desc)]) // Approved reviews of a server, newest first
+  @@index([userId, status, updatedAt(sort: Desc)]) // A user's approved reviews, most recent first
   @@index([createdAt]) // For trending sort by recent ratings
-  @@index([serverId]) // For server-specific rating queries
 }
 
 model ReviewVote {
@@ -151,6 +163,5 @@ model ReviewFlag {
   rating Rating @relation(fields: [ratingId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([ratingId, userId]) // One flag per user per review
-  @@index([ratingId])
+  @@unique([ratingId, userId]) // One flag per user per review (also serves ratingId lookups)
 }

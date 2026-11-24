@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { requireAdmin } from '@/lib/admin'
 import { invalidateServerListCache } from '@/lib/cache'
+import { invalidateServerPage } from '@/lib/server-revalidation'
 
 export async function POST(request: Request) {
   try {
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
       },
     })
 
-    await invalidateServerListCache()
+    await Promise.all([invalidateServerListCache(), invalidateServerPage(serverId)])
 
     return NextResponse.json({ data: server }, { status: 201 })
   } catch (error) {

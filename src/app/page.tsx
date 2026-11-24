@@ -15,15 +15,19 @@ import {
   ensureServersExist,
   getHotServers,
   getTopRatedServers,
+  normalizeSearch,
+  parseDateParam,
+  parsePage,
+  parseRatingBound,
+  parseSort,
   type SortOption 
 } from '@/lib/server-queries'
 import { HeroServerCard } from '@/components/server/hero-server-card'
 import { BadgePromo } from '@/components/badge-promo'
-import { auth } from '@/lib/auth'
+import { SubmitServerButton } from '@/components/submit-server-button'
 import type { ServerWithRatings } from '@/types'
 
-// Enable ISR with 60 second revalidation for better TTFB
-export const revalidate = 60
+const CATEGORIES = new Set(['database', 'search', 'code', 'web', 'ai', 'data', 'tools', 'other'])
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -294,36 +298,24 @@ async function ServerListWrapper({
   )
 }
 
-// Streamed submit button that depends on auth
-async function SubmitServerButton() {
-  const session = await auth()
-  const submitServerHref = session?.user 
-    ? '/dashboard?upload=true' 
-    : '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
-  
-  return (
-    <Link href={submitServerHref}>
-      <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
-        Submit a Server
-      </Button>
-    </Link>
-  )
-}
-
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams
-  const q = params.q
-  const category = params.category || 'all'
-  const page = Math.max(1, parseInt(params.page || '1'))
-  const sort = (params.sort || 'most-reviewed') as SortOption
-  const minRating = parseFloat(params.minRating || '0')
-  const maxRating = params.maxRating ? parseFloat(params.maxRating) : undefined
-  const dateFrom = params.dateFrom
-  const dateTo = params.dateTo
+  // Normalize every param: they feed cache keys, so junk values must not
+  // produce new keys (and fresh DB queries) or errors like NaN pagination
+  const q = normalizeSearch(params.q)
+  const category = CATEGORIES.has(params.category ?? '') ? params.category! : 'all'
+  const page = parsePage(params.page)
+  const sort = parseSort(params.sort)
+  const minRating = parseRatingBound(params.minRating) ?? 0
+  const maxRating = parseRatingBound(params.maxRating)
+  const dateFrom = parseDateParam(params.dateFrom)
+  const dateTo = parseDateParam(params.dateTo)
   const hasGithub = params.hasGithub === 'true'
-  const source = params.source
+  const source = params.source === 'registry' || params.source === 'user' || params.source === 'official'
+    ? params.source
+    : undefined
 
-  // Default href for non-auth contexts (will be replaced by streamed component)
+  // Signed-out href for the empty "Hot" state (rendered on the server)
   const defaultSubmitHref = '/auth/signin?callbackUrl=' + encodeURIComponent('/dashboard?upload=true')
 
   const websiteSchema = {
@@ -464,15 +456,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </Link>
             </Button>
             <div className="flex flex-col gap-1.5 items-center sm:items-start">
-              <Suspense fallback={
-                <Link href={defaultSubmitHref}>
-                  <Button size="lg" className="h-11 px-6 text-base font-semibold bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-500 dark:hover:bg-violet-600 shadow-sm transition-all hover:scale-105">
-                    Submit a Server
-                  </Button>
-                </Link>
-              }>
-                <SubmitServerButton />
-              </Suspense>
+              <SubmitServerButton />
               <span className="inline-flex items-center gap-0.5 text-sm font-medium text-violet-600 dark:text-violet-400">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />

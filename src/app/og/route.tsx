@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
 
       try {
         const response = await fetch(apiUrl, {
-          // Use cache for better performance, but allow fresh data
-          cache: 'no-store', // Always fetch fresh data for OG images
+          // Ratings on a share preview may lag by up to an hour
+          next: { revalidate: 3600 },
         })
         
         if (response.ok) {

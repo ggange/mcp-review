@@ -10,6 +10,8 @@ import { isAdmin } from '@/lib/admin'
 import { checkRateLimit, getIpRateLimitKey, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 import { setPublicCacheHeaders, setPrivateCacheHeaders } from '@/lib/cdn-cache'
 import { deleteCache, getCacheKey, invalidateServerListCache } from '@/lib/cache'
+import { invalidateServerPage } from '@/lib/server-revalidation'
+import { getApprovedReviews, getServerDetail, getUserVotes } from '@/lib/server-queries'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -42,48 +44,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const { id } = await params
     const decodedId = decodeURIComponent(id)
-    const session = await auth()
 
-    const server = await prisma.server.findUnique({
-      where: { id: decodedId },
-      include: {
-        ratings: {
-          where: {
-            status: 'approved', // Only show approved reviews
-          },
-          select: {
-            id: true,
-            rating: true,
-            text: true,
-            status: true,
-            helpfulCount: true,
-            notHelpfulCount: true,
-            createdAt: true,
-            updatedAt: true,
-            userId: true,
-            user: {
-              select: {
-                name: true,
-                image: true,
-              },
-            },
-            reviewVotes: session?.user?.id
-              ? {
-                  where: {
-                    userId: session.user.id,
-                  },
-                  select: {
-                    helpful: true,
-                  },
-                  take: 1,
-                }
-              : false,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 12,
-        },
-      },
-    })
+    // Server and reviews come from the shared per-server cache. The server is
+    // looked up first so unknown IDs stop at the (negatively cached) miss.
+    const [session, server] = await Promise.all([auth(), getServerDetail(decodedId)])
 
     if (!server) {
       return NextResponse.json(
@@ -92,21 +56,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Transform ratings to include user vote
-    const ratingsWithVotes = server.ratings.map((rating) => {
-      const userVote =
-        rating.reviewVotes && rating.reviewVotes.length > 0
-          ? { helpful: rating.reviewVotes[0].helpful }
-          : null
+    const reviews = await getApprovedReviews(decodedId)
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { reviewVotes: _reviewVotes, ...ratingWithoutVotes } = rating
-
-      return {
-        ...ratingWithoutVotes,
-        userVote,
-      }
-    })
+    // Only the signed-in viewer's own votes are fetched fresh
+    const votes = session?.user?.id
+      ? await getUserVotes(session.user.id, reviews.map((r) => r.id))
+      : {}
+    const ratingsWithVotes = reviews.map((review) => ({
+      ...review,
+      userVote: review.id in votes ? { helpful: votes[review.id] } : null,
+    }))
 
     const response = NextResponse.json({
       data: {
@@ -227,12 +186,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
 
-    // Get server before update to check userId
-    const existingServer = await prisma.server.findUnique({
-      where: { id: decodedId },
-      select: { userId: true },
-    })
-
     // Update server
     const updatedServer = await prisma.server.update({
       where: { id: decodedId },
@@ -253,16 +206,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       } as Prisma.ServerUpdateInput,
     })
 
-    // Invalidate caches
+    // Invalidate caches (both IDs when renamed: the old one must 404, the new
+    // one may have been negatively cached)
     const invalidationPromises = [
       deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
       invalidateServerListCache(),
+      invalidateServerPage(decodedId, newServerId),
     ]
-    if (existingServer?.userId) {
+    if (server.userId) {
       invalidationPromises.push(
-        deleteCache(getCacheKey('dashboard', existingServer.userId)),
-        deleteCache(getCacheKey('user', existingServer.userId)),
-        deleteCache(getCacheKey('user', existingServer.userId, 'servers'))
+        deleteCache(getCacheKey('dashboard', server.userId)),
+        deleteCache(getCacheKey('user', server.userId)),
+        deleteCache(getCacheKey('user', server.userId, 'servers'))
       )
     }
     await Promise.all(invalidationPromises)
@@ -357,12 +312,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       }
     }
 
-    // Get server before deletion to check userId for cache invalidation
-    const serverToDelete = await prisma.server.findUnique({
-      where: { id: decodedId },
-      select: { userId: true },
-    })
-
     // Delete server (cascade will delete ratings)
     await prisma.server.delete({
       where: { id: decodedId },
@@ -372,12 +321,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const invalidationPromises = [
       deleteCache(getCacheKey('dashboard', 'official')), // Official servers cache
       invalidateServerListCache(),
+      invalidateServerPage(decodedId),
     ]
-    if (serverToDelete?.userId) {
+    if (server.userId) {
       invalidationPromises.push(
-        deleteCache(getCacheKey('dashboard', serverToDelete.userId)),
-        deleteCache(getCacheKey('user', serverToDelete.userId)),
-        deleteCache(getCacheKey('user', serverToDelete.userId, 'servers'))
+        deleteCache(getCacheKey('dashboard', server.userId)),
+        deleteCache(getCacheKey('user', server.userId)),
+        deleteCache(getCacheKey('user', server.userId, 'servers'))
       )
     }
     await Promise.all(invalidationPromises)

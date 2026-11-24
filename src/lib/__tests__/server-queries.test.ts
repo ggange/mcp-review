@@ -14,7 +14,7 @@ vi.mock('@/lib/db', () => ({
         { source: 'user', _count: 3 },
         { source: 'official', _count: 2 },
       ]),
-      findMany: vi.fn(async ({ where, skip, take }: { where: { source: unknown }; skip: number; take: number }) =>
+      findMany: vi.fn(async ({ where, skip = 0, take }: { where: { source: unknown }; skip?: number; take: number }) =>
         servers.filter((s) => s.source === where.source).slice(skip, skip + take)
       ),
     },
@@ -30,7 +30,7 @@ vi.mock('@/lib/cache', () => ({
 
 vi.mock('@/lib/mcp-registry', () => ({ syncRegistry: vi.fn() }))
 
-import { queryServers } from '@/lib/server-queries'
+import { queryServers, getHotServers } from '@/lib/server-queries'
 import { prisma } from '@/lib/db'
 
 describe('queryServers default ordering', () => {
@@ -53,6 +53,26 @@ describe('queryServers default ordering', () => {
   it('only queries the segments a page overlaps', async () => {
     const result = await queryServers({ page: 4, limit: 4 })
     expect(result.servers.map((s) => s.id)).toEqual(['r7', 'r8', 'r9'])
+    expect(prisma.server.findMany).toHaveBeenCalledOnce()
+  })
+})
+
+describe('getHotServers', () => {
+  beforeEach(() => {
+    vi.mocked(prisma.server.findMany).mockClear()
+  })
+
+  it('lists user servers first and only fetches official ones to fill the rest', async () => {
+    const hot = await getHotServers(4)
+    expect(hot.map((s) => s.id)).toEqual(['u0', 'u1', 'u2', 'o0'])
+    const calls = vi.mocked(prisma.server.findMany).mock.calls
+    expect(calls).toHaveLength(2)
+    expect(calls[1][0]).toMatchObject({ where: { source: 'official' }, take: 1 })
+  })
+
+  it('skips the official query when user servers fill the list', async () => {
+    const hot = await getHotServers(2)
+    expect(hot.map((s) => s.id)).toEqual(['u0', 'u1'])
     expect(prisma.server.findMany).toHaveBeenCalledOnce()
   })
 })

@@ -5,7 +5,7 @@
  * Falls back to in-memory store if Redis is unavailable (development only).
  */
 
-import { getRedisClient, isRedisAvailable } from './redis'
+import { getRedisClient } from './redis'
 
 interface RateLimitRecord {
   count: number
@@ -46,10 +46,7 @@ export async function checkRateLimit(
 ): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
   // Try Redis first
   try {
-    const redisAvailable = await isRedisAvailable()
-    if (redisAvailable) {
-      return await checkRateLimitRedis(key, limit, windowMs)
-    }
+    return await checkRateLimitRedis(key, limit, windowMs)
   } catch (error) {
     // Fall through to in-memory fallback
     if (process.env.NODE_ENV !== 'production') {

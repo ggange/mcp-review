@@ -12,6 +12,12 @@ vi.mock('@/lib/db', () => ({
   },
 }))
 
+// Pass-through cache: every request reaches the (mocked) database
+vi.mock('@/lib/cache', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/cache')>()),
+  getOrSetCache: vi.fn((_key: string, _ttl: number, load: () => Promise<unknown>) => load()),
+}))
+
 const findUnique = vi.mocked(prisma.server.findUnique)
 
 function callBadge(segments: string[], query = '') {
@@ -92,7 +98,7 @@ describe('GET /api/badge/[...id]', () => {
 
     expect(response.status).toBe(200)
     expect(await response.text()).toContain('server not found')
-    expect(response.headers.get('Cache-Control')).toContain('max-age=60')
+    expect(response.headers.get('Cache-Control')).toContain('s-maxage=3600')
   })
 
   it('skips the database for oversized IDs', async () => {
@@ -107,7 +113,7 @@ describe('GET /api/badge/[...id]', () => {
 
     const response = await callBadge(['my-server'])
 
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=300, stale-while-revalidate=86400')
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300, s-maxage=1800, stale-while-revalidate=86400')
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
     expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'none'")
   })

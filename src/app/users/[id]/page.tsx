@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button'
 import { getAvatarColor } from '@/lib/utils'
 import { ServerCard } from '@/components/server/server-card'
 import type { ServerWithRatings } from '@/types'
+import { serverListSelectFields, toListServer, type ListServerRow } from '@/lib/server-queries'
 import { getCache, setCache, getCacheKey } from '@/lib/cache'
 import type { Prisma } from '@prisma/client'
 import { JsonLdScript } from '@/components/json-ld-script'
+import { getGitHubLogin } from '@/lib/github-profile'
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 
@@ -105,12 +107,10 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     await setCache(cacheKey, user, 3600)
   }
 
-  // Fetch GitHub account to get providerAccountId for profile link
-  const githubAccountCacheKey = getCacheKey('user', id, 'github')
-  let githubAccount = await getCache<{
-    providerAccountId: string
-    access_token: string | null
-  }>(githubAccountCacheKey)
+  // GitHub profile link: resolved from the public account ID, never with the
+  // user's OAuth token (a public page must not use or cache that token)
+  const githubAccountCacheKey = getCacheKey('user', id, 'github-id')
+  let githubAccount = await getCache<{ providerAccountId: string }>(githubAccountCacheKey)
 
   if (!githubAccount) {
     githubAccount = await prisma.account.findFirst({
@@ -120,41 +120,15 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
       },
       select: {
         providerAccountId: true,
-        access_token: true,
       },
     })
     if (githubAccount) {
-      // Cache GitHub account for 1 hour
-      await setCache(githubAccountCacheKey, githubAccount, 3600)
+      await setCache(githubAccountCacheKey, githubAccount, 86400)
     }
   }
 
-  // Try to get GitHub username
-  let githubProfileUrl: string | null = null
-  let githubUsername: string | null = null
-
-  if (githubAccount?.access_token) {
-    try {
-      const response = await fetch('https://api.github.com/user', {
-        headers: {
-          Authorization: `token ${githubAccount.access_token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-        next: { revalidate: 3600 }, // Cache for 1 hour
-      })
-
-      if (response.ok) {
-        const githubUser = await response.json()
-        githubUsername = githubUser.login
-        githubProfileUrl = `https://github.com/${githubUsername}`
-      }
-    } catch (error) {
-      // Silently fail - we'll just not show the profile link
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Failed to fetch GitHub username:', error instanceof Error ? error.message : 'Unknown error')
-      }
-    }
-  }
+  const githubUsername = githubAccount ? await getGitHubLogin(githubAccount.providerAccountId) : null
+  const githubProfileUrl = githubUsername ? `https://github.com/${githubUsername}` : null
 
   // Try to get cached data, otherwise fetch from database
   const ratingsCacheKey = getCacheKey('user', id, 'ratings')
@@ -172,11 +146,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     }
   }>
   
-  type ServerType = Awaited<ReturnType<typeof prisma.server.findMany<{
-    where: { userId: string; source: 'user' }
-    orderBy: { createdAt: 'desc' }
-    take: number
-  }>>>
+  type ServerType = ListServerRow[]
 
   const cachedRatings = await getCache<RatingType>(ratingsCacheKey)
   const cachedServers = await getCache<ServerType>(serversCacheKey)
@@ -226,6 +196,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         },
         orderBy: { createdAt: 'desc' },
         take: 20,
+        select: serverListSelectFields,
       }),
     ])
 
@@ -239,34 +210,10 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     ])
   }
 
-  // Cast source field to the expected union type
-  const uploadedServers: ServerWithRatings[] = (uploadedServersRaw ?? []).map((server) => {
-    const serverWithRating = server as typeof server & { avgRating: number; totalRatings: number }
-    const mapped: ServerWithRatings = {
-      id: server.id,
-      name: server.name,
-      organization: server.organization,
-      description: server.description,
-      version: server.version,
-      repositoryUrl: server.repositoryUrl,
-      packages: server.packages,
-      remotes: server.remotes,
-      avgRating: serverWithRating.avgRating,
-      totalRatings: serverWithRating.totalRatings,
-      category: server.category,
-      createdAt: server.createdAt,
-      syncedAt: server.syncedAt,
-      source: server.source as 'registry' | 'user' | 'official',
-      iconUrl: server.iconUrl,
-      tools: server.tools as Array<{ name: string; description: string }> | null,
-      usageTips: server.usageTips,
-      userId: server.userId,
-      authorUsername: server.authorUsername,
-      hasManyTools: server.hasManyTools,
-      completeToolsUrl: server.completeToolsUrl,
-    }
-    return mapped
-  })
+  // Redis returns dates as strings
+  const uploadedServers: ServerWithRatings[] = (uploadedServersRaw ?? []).map((server) =>
+    toListServer({ ...server, createdAt: new Date(server.createdAt), syncedAt: new Date(server.syncedAt) })
+  )
 
   // Format member since date
   const memberSince = new Date(user.createdAt).toLocaleDateString('en-US', {

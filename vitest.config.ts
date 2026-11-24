@@ -9,6 +9,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
+    env: {
+      // Never let tests reach the Redis configured in .env (it may be shared or
+      // production). An empty value makes the cache helpers no-ops.
+      REDIS_URL: '',
+    },
   },
   resolve: {
     alias: {

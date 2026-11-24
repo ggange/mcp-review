@@ -3,7 +3,7 @@
  * For user-specific data that can't be cached at the edge
  */
 
-import { getRedisClient, isRedisAvailable } from './redis'
+import { getRedisClient } from './redis'
 
 const CACHE_PREFIX = 'cache:'
 const DEFAULT_TTL = 3600 // 1 hour in seconds
@@ -13,11 +13,6 @@ const DEFAULT_TTL = 3600 // 1 hour in seconds
  */
 export async function getCache<T>(key: string): Promise<T | null> {
   try {
-    const redisAvailable = await isRedisAvailable()
-    if (!redisAvailable) {
-      return null
-    }
-
     const redis = getRedisClient()
     const redisKey = `${CACHE_PREFIX}${key}`
     const value = await redis.get(redisKey)
@@ -44,11 +39,6 @@ export async function setCache<T>(
   ttl: number = DEFAULT_TTL
 ): Promise<void> {
   try {
-    const redisAvailable = await isRedisAvailable()
-    if (!redisAvailable) {
-      return
-    }
-
     const redis = getRedisClient()
     const redisKey = `${CACHE_PREFIX}${key}`
     const serialized = JSON.stringify(value)
@@ -69,11 +59,6 @@ export async function setCache<T>(
  */
 export async function invalidateCache(pattern: string): Promise<void> {
   try {
-    const redisAvailable = await isRedisAvailable()
-    if (!redisAvailable) {
-      return
-    }
-
     const redis = getRedisClient()
     const fullPattern = `${CACHE_PREFIX}${pattern}*`
     const stream = redis.scanStream({
@@ -107,11 +92,6 @@ export async function invalidateCache(pattern: string): Promise<void> {
  */
 export async function deleteCache(key: string): Promise<void> {
   try {
-    const redisAvailable = await isRedisAvailable()
-    if (!redisAvailable) {
-      return
-    }
-
     const redis = getRedisClient()
     const redisKey = `${CACHE_PREFIX}${key}`
     await redis.del(redisKey)
@@ -140,4 +120,53 @@ export const SERVER_LIST_CACHE_NAMESPACE = 'servers'
  */
 export async function invalidateServerListCache(): Promise<void> {
   await invalidateCache(`${SERVER_LIST_CACHE_NAMESPACE}:`)
+}
+
+/**
+ * Read a value from Redis, or load it and cache it.
+ * Values are stored in an envelope so a `null` result (e.g. "server not found")
+ * can be cached too: with `missTtl`, lookups of nonexistent IDs stop reaching
+ * the database for that long.
+ */
+export async function getOrSetCache<T>(
+  key: string,
+  ttl: number,
+  load: () => Promise<T>,
+  options: { missTtl?: number } = {}
+): Promise<T> {
+  const cached = await getCache<{ v: T }>(key)
+  if (cached !== null && typeof cached === 'object' && 'v' in cached) {
+    return cached.v
+  }
+
+  const value = await load()
+  if (value === null || value === undefined) {
+    if (options.missTtl) await setCache(key, { v: value }, options.missTtl)
+  } else {
+    await setCache(key, { v: value }, ttl)
+  }
+  return value
+}
+
+/**
+ * Namespace for cached per-server data (detail page, reviews, badge, OG)
+ */
+export const SERVER_DETAIL_CACHE_NAMESPACE = 'server'
+
+export function serverDetailCacheKey(serverId: string): string {
+  return getCacheKey(SERVER_DETAIL_CACHE_NAMESPACE, 'detail', serverId)
+}
+
+export function serverReviewsCacheKey(serverId: string): string {
+  return getCacheKey(SERVER_DETAIL_CACHE_NAMESPACE, 'reviews', serverId)
+}
+
+/**
+ * Drop one server's cached detail and reviews after it or its ratings change
+ */
+export async function invalidateServerCache(serverId: string): Promise<void> {
+  await Promise.all([
+    deleteCache(serverDetailCacheKey(serverId)),
+    deleteCache(serverReviewsCacheKey(serverId)),
+  ])
 }

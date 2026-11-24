@@ -1,6 +1,9 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/db'
 
+// Rebuilt at most once a day: crawlers fetch it often, and it reads up to 2000 rows
+export const revalidate = 86400
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://mcpreview.dev'
 

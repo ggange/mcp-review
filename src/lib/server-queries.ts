@@ -7,7 +7,15 @@
 
 import { prisma } from './db'
 import { syncRegistry } from './mcp-registry'
-import { getCache, setCache, getCacheKey, SERVER_LIST_CACHE_NAMESPACE } from './cache'
+import {
+  getCache,
+  setCache,
+  getCacheKey,
+  getOrSetCache,
+  serverDetailCacheKey,
+  serverReviewsCacheKey,
+  SERVER_LIST_CACHE_NAMESPACE,
+} from './cache'
 import type { Prisma } from '@prisma/client'
 import type { ServerWithRatings } from '@/types'
 
@@ -166,6 +174,47 @@ export const serverSelectFields = {
   completeToolsUrl: true,
 } as const
 
+/**
+ * Lean select for public listings (homepage grid, hot, top rated, badge search).
+ * Cards only show a tool count, so the heavy detail-only fields (packages,
+ * remotes, usage tips) are not loaded; toListServer fills them with null.
+ */
+export const serverListSelectFields = {
+  id: true,
+  name: true,
+  organization: true,
+  description: true,
+  version: true,
+  repositoryUrl: true,
+  avgRating: true,
+  totalRatings: true,
+  combinedScore: true,
+  recentRatingsCount: true,
+  category: true,
+  createdAt: true,
+  syncedAt: true,
+  source: true,
+  iconUrl: true,
+  tools: true,
+  userId: true,
+  authorUsername: true,
+  hasManyTools: true,
+} as const
+
+export type ListServerRow = Prisma.ServerGetPayload<{ select: typeof serverListSelectFields }>
+
+export function toListServer(server: ListServerRow): ServerWithRatings {
+  return {
+    ...server,
+    packages: null,
+    remotes: null,
+    usageTips: null,
+    completeToolsUrl: null,
+    source: server.source as ServerWithRatings['source'],
+    tools: server.tools as ServerWithRatings['tools'],
+  }
+}
+
 // Public listings change only when servers or ratings change (which
 // invalidates them), so a short TTL keeps most page views off the database
 const SERVER_LIST_CACHE_TTL = 300
@@ -240,7 +289,7 @@ async function queryServersUncached(options: ServerQueryOptions): Promise<Pagina
     ]
 
     const segmentOrder = getOrderBy('most-reviewed') as Prisma.ServerOrderByWithRelationInput[]
-    const segmentQueries: Promise<Array<Prisma.ServerGetPayload<{ select: typeof serverSelectFields }>>>[] = []
+    const segmentQueries: Promise<ListServerRow[]>[] = []
     let offset = 0
     let remaining = limit
     for (const segment of segments) {
@@ -253,7 +302,7 @@ async function queryServersUncached(options: ServerQueryOptions): Promise<Pagina
             orderBy: segmentOrder,
             skip: segmentSkip,
             take,
-            select: serverSelectFields,
+            select: serverListSelectFields,
           })
         )
         remaining -= take
@@ -266,11 +315,7 @@ async function queryServersUncached(options: ServerQueryOptions): Promise<Pagina
     const totalPages = Math.ceil(total / limit)
 
     return {
-      servers: paginatedServers.map(server => ({
-        ...server,
-        source: server.source as 'registry' | 'user' | 'official',
-        tools: server.tools as Array<{ name: string; description: string }> | null,
-      })),
+      servers: paginatedServers.map(toListServer),
       total,
       page,
       totalPages,
@@ -284,7 +329,7 @@ async function queryServersUncached(options: ServerQueryOptions): Promise<Pagina
       orderBy: orderBy as Prisma.ServerOrderByWithRelationInput[],
       skip,
       take: limit,
-      select: serverSelectFields,
+      select: serverListSelectFields,
     }),
     prisma.server.count({ where }),
   ])
@@ -292,11 +337,7 @@ async function queryServersUncached(options: ServerQueryOptions): Promise<Pagina
   const totalPages = Math.ceil(total / limit)
 
   return {
-    servers: servers.map(server => ({
-      ...server,
-      source: server.source as 'registry' | 'user' | 'official',
-      tools: server.tools as Array<{ name: string; description: string }> | null,
-    })),
+    servers: servers.map(toListServer),
     total,
     page,
     totalPages,
@@ -357,33 +398,24 @@ export async function getHotServers(limit: number = 4): Promise<ServerWithRating
 }
 
 async function getHotServersUncached(limit: number): Promise<ServerWithRatings[]> {
-  // Fetch more servers than needed to ensure proper sorting
-  const fetchLimit = Math.max(limit * 2, 100)
-  const servers = await prisma.server.findMany({
-    where: { 
-      source: { in: ['user', 'official'] }
-    },
+  // User servers first, then official servers, newest first within each.
+  // Two small queries instead of loading 100 full rows to keep `limit` of them.
+  const userServers = await prisma.server.findMany({
+    where: { source: 'user' },
     orderBy: { createdAt: 'desc' },
-    take: fetchLimit,
-    select: serverSelectFields,
+    take: limit,
+    select: serverListSelectFields,
   })
+  const officialServers = userServers.length < limit
+    ? await prisma.server.findMany({
+        where: { source: 'official' },
+        orderBy: { createdAt: 'desc' },
+        take: limit - userServers.length,
+        select: serverListSelectFields,
+      })
+    : []
 
-  // Sort: user servers first, then official servers, both sorted by date (newest first)
-  const sortedServers = servers.sort((a, b) => {
-    // First, prioritize user servers over official
-    if (a.source === 'user' && b.source === 'official') return -1
-    if (a.source === 'official' && b.source === 'user') return 1
-    
-    // Within the same source, sort by createdAt (newest first)
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
-
-  // Take only the requested limit
-  return sortedServers.slice(0, limit).map(server => ({
-    ...server,
-    source: server.source as 'registry' | 'user' | 'official',
-    tools: server.tools as Array<{ name: string; description: string }> | null,
-  }))
+  return [...userServers, ...officialServers].map(toListServer)
 }
 
 /**
@@ -402,14 +434,10 @@ async function getTopRatedServersUncached(limit: number): Promise<ServerWithRati
       { name: 'asc' },
     ],
     take: limit,
-    select: serverSelectFields,
+    select: serverListSelectFields,
   })
 
-  return servers.map(server => ({
-    ...server,
-    source: server.source as 'registry' | 'user' | 'official',
-    tools: server.tools as Array<{ name: string; description: string }> | null,
-  }))
+  return servers.map(toListServer)
 }
 
 /**
@@ -457,4 +485,187 @@ async function getCategoryCountsUncached(
   }
 
   return counts
+}
+
+// ---------------------------------------------------------------------------
+// Server detail (cached per server, invalidated by invalidateServerCache)
+// ---------------------------------------------------------------------------
+
+const SERVER_DETAIL_CACHE_TTL = 600
+// Unknown IDs (typos, scrapers, random badge URLs) are remembered briefly so
+// repeated requests for them don't each reach the database
+const SERVER_DETAIL_MISS_TTL = 60
+
+const serverDetailSelect = {
+  id: true,
+  name: true,
+  description: true,
+  organization: true,
+  iconUrl: true,
+  version: true,
+  repositoryUrl: true,
+  source: true,
+  userId: true,
+  authorUsername: true,
+  tools: true,
+  packages: true,
+  remotes: true,
+  usageTips: true,
+  avgRating: true,
+  totalRatings: true,
+  category: true,
+  hasManyTools: true,
+  completeToolsUrl: true,
+  createdAt: true,
+  syncedAt: true,
+} as const satisfies Prisma.ServerSelect
+
+export interface ServerDetail {
+  id: string
+  name: string
+  description: string | null
+  organization: string | null
+  iconUrl: string | null
+  version: string | null
+  repositoryUrl: string | null
+  source: string
+  userId: string | null
+  authorUsername: string | null
+  tools: Array<{ name: string; description: string }> | null
+  packages: Array<{ registryType?: string; identifier?: string }> | null
+  remotes: Array<{ type?: string; url?: string }> | null
+  usageTips: string | null
+  avgRating: number
+  totalRatings: number
+  category: string | null
+  hasManyTools: boolean
+  completeToolsUrl: string | null
+  createdAt: Date
+  syncedAt: Date
+}
+
+/**
+ * Public data for one server, shared by the detail page, OG image, badge and API
+ */
+export async function getServerDetail(serverId: string): Promise<ServerDetail | null> {
+  const server = await getOrSetCache(
+    serverDetailCacheKey(serverId),
+    SERVER_DETAIL_CACHE_TTL,
+    () => prisma.server.findUnique({ where: { id: serverId }, select: serverDetailSelect }),
+    { missTtl: SERVER_DETAIL_MISS_TTL }
+  )
+  if (!server) return null
+
+  return {
+    ...server,
+    tools: server.tools as ServerDetail['tools'],
+    packages: server.packages as ServerDetail['packages'],
+    remotes: server.remotes as ServerDetail['remotes'],
+    // Dates come back from Redis as strings
+    createdAt: new Date(server.createdAt),
+    syncedAt: new Date(server.syncedAt),
+  }
+}
+
+export const SERVER_REVIEWS_LIMIT = 12
+
+export interface PublicReview {
+  id: string
+  rating: number
+  text: string | null
+  status: string
+  helpfulCount: number
+  notHelpfulCount: number
+  createdAt: string
+  updatedAt: string
+  userId: string
+  user: { name: string | null; image: string | null }
+}
+
+/**
+ * Most recent approved reviews for a server. Viewer-independent, so it can be
+ * cached; the viewer's own votes are loaded separately (getUserVotes).
+ */
+export async function getApprovedReviews(serverId: string): Promise<PublicReview[]> {
+  return getOrSetCache(serverReviewsCacheKey(serverId), SERVER_DETAIL_CACHE_TTL, async () => {
+    const ratings = await prisma.rating.findMany({
+      where: { serverId, status: 'approved' },
+      select: {
+        id: true,
+        rating: true,
+        text: true,
+        status: true,
+        helpfulCount: true,
+        notHelpfulCount: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        user: { select: { name: true, image: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: SERVER_REVIEWS_LIMIT,
+    })
+    return ratings.map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }))
+  })
+}
+
+/**
+ * The viewer's helpful/not-helpful votes on the given reviews, keyed by rating ID
+ */
+export async function getUserVotes(userId: string, ratingIds: string[]): Promise<Record<string, boolean>> {
+  if (ratingIds.length === 0) return {}
+  const votes = await prisma.reviewVote.findMany({
+    where: { userId, ratingId: { in: ratingIds } },
+    select: { ratingId: true, helpful: true },
+  })
+  return Object.fromEntries(votes.map((v) => [v.ratingId, v.helpful]))
+}
+
+// ---------------------------------------------------------------------------
+// Query-param normalization (keeps cache keys bounded, rejects junk input)
+// ---------------------------------------------------------------------------
+
+export const MAX_PAGE = 500
+const MAX_SEARCH_LENGTH = 100
+const MIN_SEARCH_LENGTH = 2
+const SORT_OPTIONS: readonly SortOption[] = ['most-reviewed', 'top-rated', 'newest', 'trending']
+
+/** Page number from a query param: 1 for missing/invalid values, capped at MAX_PAGE */
+export function parsePage(value: string | null | undefined): number {
+  const page = parseInt(value ?? '', 10)
+  if (!Number.isFinite(page) || page < 1) return 1
+  return Math.min(page, MAX_PAGE)
+}
+
+/** Sort option from a query param, falling back to the default */
+export function parseSort(value: string | null | undefined): SortOption {
+  return SORT_OPTIONS.includes(value as SortOption) ? (value as SortOption) : 'most-reviewed'
+}
+
+/**
+ * Search term from a query param: trimmed, lowercased (matching is
+ * case-insensitive anyway, so this only merges cache keys), length-capped.
+ * Terms shorter than MIN_SEARCH_LENGTH are ignored: they match nearly every row.
+ */
+export function normalizeSearch(value: string | null | undefined): string | undefined {
+  const term = (value ?? '').trim().toLowerCase().slice(0, MAX_SEARCH_LENGTH)
+  return term.length >= MIN_SEARCH_LENGTH ? term : undefined
+}
+
+/** Rating bound from a query param, clamped to 0-5; undefined if missing/invalid */
+export function parseRatingBound(value: string | null | undefined): number | undefined {
+  if (!value) return undefined
+  const n = parseFloat(value)
+  if (!Number.isFinite(n)) return undefined
+  return Math.min(5, Math.max(0, n))
+}
+
+/** Date filter from a query param: only YYYY-MM-DD is accepted */
+export function parseDateParam(value: string | null | undefined): string | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
+  return Number.isNaN(new Date(value).getTime()) ? undefined : value
 }
