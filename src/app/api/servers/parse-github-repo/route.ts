@@ -220,6 +220,7 @@ export async function POST(request: Request) {
       version,
       repositoryUrl: `https://github.com/${owner}/${cleanRepo}`,
       category,
+      stars: typeof repoData.stargazers_count === 'number' ? repoData.stargazers_count : null,
     }
     
     return NextResponse.json(result)

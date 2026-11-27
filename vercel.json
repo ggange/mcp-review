@@ -3,6 +3,10 @@
     {
       "path": "/api/sync",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/sync/github-stars",
+      "schedule": "0 4 * * *"
     }
   ]
 }

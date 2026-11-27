@@ -8,6 +8,7 @@ import { validateOrigin, csrfErrorResponse } from '@/lib/csrf'
 import { requireAdmin } from '@/lib/admin'
 import { invalidateServerListCache } from '@/lib/cache'
 import { invalidateServerPage } from '@/lib/server-revalidation'
+import { fetchGitHubStarsSafe } from '@/lib/github-stars'
 
 export async function POST(request: Request) {
   try {
@@ -75,6 +76,9 @@ export async function POST(request: Request) {
     // Use provided category or fall back to auto-categorization
     const finalCategory = category || categorizeServer(description || null)
 
+    // Star count is always fetched server-side (never trusted from the client)
+    const githubStars = repositoryUrl ? await fetchGitHubStarsSafe(repositoryUrl) : null
+
     // Create official server (no userId or authorUsername for official servers)
     const server = await prisma.server.create({
       data: {
@@ -87,6 +91,8 @@ export async function POST(request: Request) {
         iconUrl: iconUrl || null,
         version: version || null,
         repositoryUrl: repositoryUrl || null,
+        githubStars,
+        githubStarsSyncedAt: githubStars !== null ? new Date() : null,
         packages: Prisma.JsonNull,
         remotes: Prisma.JsonNull,
         category: finalCategory,

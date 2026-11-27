@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getCategories, getCategoryDisplayName, type ServerCategory } from '@/lib/server-categories'
-import { Sparkles, Upload, Download, FileText } from 'lucide-react'
+import { Sparkles, Upload, Download, FileText, Star } from 'lucide-react'
+import { formatStars } from '@/lib/utils'
 import type { GitHubRepoParseResult } from '@/types'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import {
@@ -68,6 +69,8 @@ export function ServerUploadForm({ onSuccess, initialData, serverId, mode = 'cre
   const [githubUser, setGithubUser] = useState<GitHubUser | null>(null)
   const [loadingGithub, setLoadingGithub] = useState(true)
   const [isFetchingRepo, setIsFetchingRepo] = useState(false)
+  // Star count from the last GitHub import; preview only, never submitted
+  const [importedStars, setImportedStars] = useState<number | null>(null)
   const [toolsDialogOpen, setToolsDialogOpen] = useState(false)
   const [toolsFileError, setToolsFileError] = useState<string | null>(null)
   
@@ -431,6 +434,7 @@ You can also list tools in a simpler format:
       if (data.tools && data.tools.length > 0) {
         setTools(data.tools)
       }
+      setImportedStars(data.stars ?? null)
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch repository data')
@@ -533,6 +537,7 @@ You can also list tools in a simpler format:
           completeToolsUrl: '',
         })
         setTools([{ name: '', description: '' }])
+        setImportedStars(null)
         setIconFile(null)
         setIconPreview(null)
         setIconUrl(null)
@@ -595,7 +600,10 @@ You can also list tools in a simpler format:
                 id="repositoryUrl"
                 type="url"
                 value={formData.repositoryUrl}
-                onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, repositoryUrl: e.target.value })
+                  setImportedStars(null)
+                }}
                 placeholder="https://github.com/..."
                 className="bg-background border-border text-foreground flex-1"
               />
@@ -628,6 +636,12 @@ You can also list tools in a simpler format:
                 </TooltipContent>
               </Tooltip>
             </div>
+            {importedStars !== null && (
+              <p className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="imported-stars">
+                <Star className="h-3 w-3" aria-hidden="true" />
+                {formatStars(importedStars)} {importedStars === 1 ? 'star' : 'stars'} on GitHub · kept up to date automatically
+              </p>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

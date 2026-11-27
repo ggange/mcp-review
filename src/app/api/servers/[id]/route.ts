@@ -12,6 +12,7 @@ import { setPublicCacheHeaders, setPrivateCacheHeaders } from '@/lib/cdn-cache'
 import { deleteCache, getCacheKey, invalidateServerListCache } from '@/lib/cache'
 import { invalidateServerPage } from '@/lib/server-revalidation'
 import { getApprovedReviews, getServerDetail, getUserVotes } from '@/lib/server-queries'
+import { fetchGitHubStarsSafe } from '@/lib/github-stars'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -114,7 +115,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Check if server exists
     const server = await prisma.server.findUnique({
       where: { id: decodedId },
-      select: { userId: true, source: true },
+      select: { userId: true, source: true, repositoryUrl: true },
     })
 
     if (!server) {
@@ -186,6 +187,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
     }
 
+    // Refresh the star count when the repository changes (fetched server-side only)
+    const newRepositoryUrl = repositoryUrl || null
+    let starsUpdate: Prisma.ServerUpdateInput = {}
+    if (newRepositoryUrl !== server.repositoryUrl) {
+      const githubStars = newRepositoryUrl ? await fetchGitHubStarsSafe(newRepositoryUrl) : null
+      starsUpdate = {
+        githubStars,
+        githubStarsSyncedAt: githubStars !== null ? new Date() : null,
+      }
+    }
+
     // Update server
     const updatedServer = await prisma.server.update({
       where: { id: decodedId },
@@ -198,7 +210,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         usageTips: usageTips || null,
         iconUrl: iconUrl || null,
         version: version || null,
-        repositoryUrl: repositoryUrl || null,
+        repositoryUrl: newRepositoryUrl,
+        ...starsUpdate,
         category,
         syncedAt: new Date(),
         hasManyTools: Boolean(hasManyTools ?? false),

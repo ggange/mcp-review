@@ -95,6 +95,8 @@ model Server {
   completeToolsUrl   String?  // URL to complete list of tools (when hasManyTools is true)
   userId             String?  // User who created this server (for user-uploaded servers)
   authorUsername     String?  // GitHub username of the author (for display)
+  githubStars        Int?     // GitHub stargazers count (user/official servers); null = unknown
+  githubStarsSyncedAt DateTime? // When githubStars was last checked
 
   ratings            Rating[]
   user               User?    @relation(fields: [userId], references: [id], onDelete: SetNull)

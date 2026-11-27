@@ -9,6 +9,7 @@ const mockServer = {
   description: 'Fast, intelligent web search',
   version: '3.0.0',
   repositoryUrl: 'https://github.com/exa-labs/exa-mcp-server',
+  githubStars: null as number | null,
   packages: null,
   remotes: null,
   avgRating: 4.5,
@@ -58,5 +59,14 @@ describe('ServerCard', () => {
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '/servers/ai.exa%2Fexa')
   })
-})
 
+  it('shows a formatted GitHub star count when known', () => {
+    render(<ServerCard server={{ ...mockServer, githubStars: 1234 }} />)
+    expect(screen.getByTestId('github-stars')).toHaveTextContent('1.2k')
+  })
+
+  it('shows only the GitHub icon when the star count is unknown', () => {
+    render(<ServerCard server={mockServer} />)
+    expect(screen.queryByTestId('github-stars')).not.toBeInTheDocument()
+  })
+})
