@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { withExplicitSslMode } from '@/lib/db-url'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -16,7 +17,7 @@ function createPrismaClient() {
     )
   }
 
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString: withExplicitSslMode(url) }) })
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()
