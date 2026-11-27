@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
+  // Connection URLs live in prisma.config.ts (CLI) and src/lib/db.ts (runtime adapter)
   // pg_trgm backs the GIN indexes that serve case-insensitive substring search
   extensions = [pg_trgm]
 }
