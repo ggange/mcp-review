@@ -48,6 +48,7 @@ export interface ServerWithRatings {
   description: string | null
   version: string | null
   repositoryUrl: string | null
+  githubStars: number | null
   packages: unknown
   remotes: unknown
   avgRating: number
@@ -119,6 +120,8 @@ export interface GitHubRepoParseResult {
   version: string | null
   repositoryUrl: string
   category: string
+  /** Current GitHub star count, for display only (the server re-fetches it on save) */
+  stars: number | null
 }
 
 // NextAuth type extensions

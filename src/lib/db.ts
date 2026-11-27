@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Prisma 6: PrismaClient reads connection string from DATABASE_URL env var (defined in schema.prisma)
+// Prisma 7: the runtime connection goes through the pg driver adapter.
+// prisma.config.ts holds the URL the CLI (db push, studio) uses.
 function createPrismaClient() {
   const url = process.env.DATABASE_URL
   if (!url) {
@@ -14,7 +16,7 @@ function createPrismaClient() {
     )
   }
 
-  return new PrismaClient()
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()

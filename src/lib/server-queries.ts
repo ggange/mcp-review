@@ -155,6 +155,7 @@ export const serverSelectFields = {
   description: true,
   version: true,
   repositoryUrl: true,
+  githubStars: true,
   packages: true,
   remotes: true,
   avgRating: true,
@@ -186,6 +187,7 @@ export const serverListSelectFields = {
   description: true,
   version: true,
   repositoryUrl: true,
+  githubStars: true,
   avgRating: true,
   totalRatings: true,
   combinedScore: true,
@@ -504,6 +506,7 @@ const serverDetailSelect = {
   iconUrl: true,
   version: true,
   repositoryUrl: true,
+  githubStars: true,
   source: true,
   userId: true,
   authorUsername: true,
@@ -528,6 +531,7 @@ export interface ServerDetail {
   iconUrl: string | null
   version: string | null
   repositoryUrl: string | null
+  githubStars: number | null
   source: string
   userId: string | null
   authorUsername: string | null

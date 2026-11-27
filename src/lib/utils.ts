@@ -39,3 +39,13 @@ export function normalizeEmail(email: string | null | undefined): string | null 
   }
   return email.trim().toLowerCase() || null
 }
+
+/**
+ * Format a GitHub star count compactly: 999 → "999", 1234 → "1.2k", 1200000 → "1.2M"
+ */
+export function formatStars(count: number): string {
+  if (count < 1000) return String(count)
+  const [value, suffix] = count < 1_000_000 ? [count / 1000, 'k'] : [count / 1_000_000, 'M']
+  const rounded = value >= 100 ? Math.round(value).toString() : (Math.floor(value * 10) / 10).toString()
+  return `${rounded}${suffix}`
+}

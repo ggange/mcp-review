@@ -170,6 +170,9 @@ export const RATE_LIMITS = {
   
   // Sync: 1 per minute (for cron jobs)
   sync: { limit: 1, windowMs: 60 * 1000 },
+
+  // GitHub stars sync: 1 per minute (for cron jobs)
+  githubStarsSync: { limit: 1, windowMs: 60 * 1000 },
   
   // Read endpoints: 100 per minute per IP (prevent DoS on expensive queries)
   read: { limit: 100, windowMs: 60 * 1000 },

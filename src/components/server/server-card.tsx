@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { RatingDisplay } from '@/components/rating/rating-display'
 import { ServerIcon } from '@/components/server/server-icon'
+import { Star } from 'lucide-react'
+import { formatStars } from '@/lib/utils'
 import type { ServerWithRatings } from '@/types'
 
 interface ServerCardProps {
@@ -154,10 +156,20 @@ export function ServerCard({ server }: ServerCardProps) {
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="border-border text-muted-foreground">
                       <SiGithub />
+                      {server.githubStars != null && (
+                        <span className="inline-flex items-center gap-0.5" data-testid="github-stars">
+                          <Star className="size-3" aria-hidden="true" />
+                          {formatStars(server.githubStars)}
+                        </span>
+                      )}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>GitHub repository available</p>
+                    <p>
+                      {server.githubStars != null
+                        ? `${server.githubStars.toLocaleString('en-US')} ${server.githubStars === 1 ? 'star' : 'stars'} on GitHub`
+                        : 'GitHub repository available'}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               )}

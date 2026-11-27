@@ -199,6 +199,7 @@ describe('ServerUploadForm', () => {
             version: '1.0.0',
             repositoryUrl: 'https://github.com/owner/test-repo',
             category: 'other',
+            stars: 1234,
           }),
         })
       }
@@ -221,6 +222,11 @@ describe('ServerUploadForm', () => {
       expect(screen.getByDisplayValue('test-repo')).toBeInTheDocument()
       expect(screen.getByDisplayValue('Test repository description')).toBeInTheDocument()
     }, { timeout: 3000 })
+
+    // Star preview from the import, cleared once the repository URL is edited
+    expect(screen.getByTestId('imported-stars')).toHaveTextContent('1.2k stars on GitHub')
+    fireEvent.change(screen.getByLabelText(/repository url/i), { target: { value: 'https://github.com/owner/other' } })
+    expect(screen.queryByTestId('imported-stars')).not.toBeInTheDocument()
   })
 
   it('handles GitHub import error', async () => {

@@ -12,9 +12,14 @@
  *   --with-ratings: Also create a test user and add sample ratings
  */
 
+import 'dotenv/config'
 import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 
-const prisma = new PrismaClient()
+// Prisma 7 needs a driver adapter and no longer loads .env on its own
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+})
 
 const EXAMPLE_SERVER_ID = 'example/test-server'
 const EXAMPLE_SERVER_NAME = 'Test Server'
